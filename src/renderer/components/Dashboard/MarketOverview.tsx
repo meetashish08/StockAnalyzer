@@ -7,6 +7,7 @@ interface MarketIndex {
   value: number;
   change: number;
   changePercent: number;
+  lastUpdated?: Date;
 }
 
 const indices: MarketIndex[] = [
@@ -19,16 +20,16 @@ const indices: MarketIndex[] = [
 export default function MarketOverview() {
   const [marketData, setMarketData] = useState<MarketIndex[]>(indices);
   const [isLoading, setIsLoading] = useState(true);
+  const [lastFetchTime, setLastFetchTime] = useState<Date | null>(null);
 
   useEffect(() => {
     async function fetchMarketData() {
       setIsLoading(true);
       try {
+        const fetchTime = new Date();
         const updatedData = await Promise.all(
           indices.map(async (index) => {
             try {
-              // For indices, we use a different approach since they're not regular stocks
-              // In production, you'd fetch these from a proper API
               const quote = await window.electronAPI.getQuote(index.symbol, 'NYSE');
               if (quote) {
                 return {
@@ -36,6 +37,7 @@ export default function MarketOverview() {
                   value: quote.price,
                   change: quote.change,
                   changePercent: quote.changePercent,
+                  lastUpdated: fetchTime,
                 };
               }
             } catch {
@@ -49,10 +51,12 @@ export default function MarketOverview() {
                      17800 + Math.random() * 100,
               change: (Math.random() - 0.4) * 200,
               changePercent: (Math.random() - 0.4) * 1.5,
+              lastUpdated: fetchTime,
             };
           })
         );
         setMarketData(updatedData);
+        setLastFetchTime(fetchTime);
       } finally {
         setIsLoading(false);
       }
@@ -61,22 +65,49 @@ export default function MarketOverview() {
     fetchMarketData();
   }, []);
 
+  const formatLastUpdated = (date: Date | null) => {
+    if (!date) return '';
+    return date.toLocaleString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true,
+    });
+  };
+
   return (
-    <div className="grid grid-cols-2 gap-3">
-      {marketData.map((index) => (
-        <div
-          key={index.symbol}
-          className="p-3 rounded-lg bg-slate-700/50"
-        >
-          <p className="text-xs text-slate-400 mb-1">{index.name}</p>
-          <p className="text-lg font-semibold text-white">
-            {formatNumber(index.value, 0)}
-          </p>
-          <p className={`text-sm ${index.changePercent >= 0 ? 'text-profit' : 'text-loss'}`}>
-            {index.changePercent >= 0 ? '▲' : '▼'} {formatNumber(Math.abs(index.change), 0)} ({formatPercent(index.changePercent)})
-          </p>
+    <div className="space-y-3">
+      {/* Last Updated Header */}
+      {lastFetchTime && (
+        <div className="flex items-center justify-between text-xs text-slate-400 pb-2 border-b border-slate-700">
+          <span>Market Data</span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+            Last updated: {formatLastUpdated(lastFetchTime)}
+          </span>
         </div>
-      ))}
+      )}
+
+      {/* Market Indices Grid */}
+      <div className="grid grid-cols-2 gap-3">
+        {marketData.map((index) => (
+          <div
+            key={index.symbol}
+            className="p-3 rounded-lg bg-slate-700/50"
+          >
+            <p className="text-xs text-slate-400 mb-1">{index.name}</p>
+            <p className="text-lg font-semibold text-white">
+              {formatNumber(index.value, 0)}
+            </p>
+            <p className={`text-sm ${index.changePercent >= 0 ? 'text-profit' : 'text-loss'}`}>
+              {index.changePercent >= 0 ? '▲' : '▼'} {formatNumber(Math.abs(index.change), 0)} ({formatPercent(index.changePercent)})
+            </p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
