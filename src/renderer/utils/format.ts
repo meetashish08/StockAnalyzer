@@ -14,6 +14,24 @@ export function formatCurrency(value: number, currency: 'INR' | 'USD' = 'INR'): 
   }).format(value);
 }
 
+export function formatPrice(value: number, currency: 'INR' | 'USD' = 'INR'): string {
+  if (currency === 'INR') {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
+  }
+
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
 export function formatNumber(value: number, decimals: number = 2): string {
   return new Intl.NumberFormat('en-IN', {
     maximumFractionDigits: decimals,

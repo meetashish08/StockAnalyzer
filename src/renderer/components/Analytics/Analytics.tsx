@@ -1,10 +1,101 @@
 import React, { useEffect, useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, LineChart, Line, Area, AreaChart, RadialBarChart, RadialBar } from 'recharts';
 import { useStore } from '../../store/useStore';
-import { formatCurrency, formatPercent } from '../../utils/format';
+import { formatCurrency, formatPercent, formatPrice } from '../../utils/format';
 import type { PortfolioHealth } from '../../../shared/types';
 
 const COLORS = ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#f97316', '#84cc16', '#14b8a6'];
+
+// Stock List Modal Component
+function StockListModal({
+  isOpen,
+  onClose,
+  title,
+  stocks,
+  type
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  stocks: any[];
+  type: 'winners' | 'losers' | 'all' | 'top5';
+}) {
+  if (!isOpen) return null;
+
+  const sortedStocks = [...stocks].sort((a, b) => {
+    if (type === 'winners') return b.pnlPercent - a.pnlPercent;
+    if (type === 'losers') return a.pnlPercent - b.pnlPercent;
+    if (type === 'top5') return b.weight - a.weight;
+    return b.currentValue - a.currentValue;
+  });
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-slate-800 rounded-xl max-w-2xl w-full max-h-[80vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-4 border-b border-slate-700">
+          <h3 className="text-lg font-semibold text-white">{title}</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-white text-2xl">&times;</button>
+        </div>
+        <div className="overflow-y-auto max-h-[60vh]">
+          <table className="w-full">
+            <thead className="bg-slate-800 sticky top-0 z-10 border-b-2 border-slate-600">
+              <tr>
+                <th className="text-left p-3 text-slate-300 font-medium border-r border-slate-700">#</th>
+                <th className="text-left p-3 text-slate-300 font-medium border-r border-slate-700">Symbol</th>
+                <th className="text-right p-3 text-slate-300 font-medium border-r border-slate-700">Current Value</th>
+                <th className="text-right p-3 text-slate-300 font-medium border-r border-slate-700">P&L</th>
+                <th className="text-right p-3 text-slate-300 font-medium border-r border-slate-700">P&L %</th>
+                <th className="text-right p-3 text-slate-300 font-medium">Weight</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedStocks.map((stock, idx) => (
+                <tr key={idx} className="border-t border-slate-700 hover:bg-slate-700/30">
+                  <td className="p-3 text-slate-400">{idx + 1}</td>
+                  <td className="p-3">
+                    <p className="font-medium text-white">{stock.symbol}</p>
+                    {stock.name && <p className="text-xs text-slate-400">{stock.name}</p>}
+                  </td>
+                  <td className="p-3 text-right text-white">{formatCurrency(stock.currentValue)}</td>
+                  <td className={`p-3 text-right ${stock.pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {stock.pnl >= 0 ? '+' : ''}{formatCurrency(stock.pnl)}
+                  </td>
+                  <td className={`p-3 text-right font-medium ${stock.pnlPercent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {stock.pnlPercent >= 0 ? '+' : ''}{stock.pnlPercent.toFixed(2)}%
+                  </td>
+                  <td className="p-3 text-right text-slate-300">{stock.weight.toFixed(2)}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {(() => {
+          const totalPnL = sortedStocks.reduce((sum, s) => sum + s.pnl, 0);
+          const totalValue = sortedStocks.reduce((sum, s) => sum + s.currentValue, 0);
+          return (
+            <div className="p-4 border-t border-slate-700 bg-slate-800">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">Total: {sortedStocks.length} stocks</span>
+                <div className="flex gap-6">
+                  <div className="text-right">
+                    <p className="text-xs text-slate-400">Total Value</p>
+                    <p className="text-white font-medium">{formatCurrency(totalValue)}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-slate-400">Total Gain/Loss</p>
+                    <p className={`font-bold ${totalPnL >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {totalPnL >= 0 ? '+' : ''}{formatCurrency(totalPnL)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+      </div>
+    </div>
+  );
+}
 
 export default function Analytics() {
   const { holdingsWithPrices, fetchHoldings } = useStore();
@@ -94,6 +185,17 @@ export default function Analytics() {
 
 function OverviewTab({ health, allocation }: { health: any; allocation: any }) {
   const metrics = health.metrics || {};
+  const holdings = health.holdings || [];
+  const [modalConfig, setModalConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    stocks: any[];
+    type: 'winners' | 'losers' | 'all' | 'top5';
+  }>({ isOpen: false, title: '', stocks: [], type: 'all' });
+
+  const winners = holdings.filter((h: any) => h.pnlPercent > 0);
+  const losers = holdings.filter((h: any) => h.pnlPercent < 0);
+  const top5 = [...holdings].sort((a: any, b: any) => b.weight - a.weight).slice(0, 5);
 
   const scoreData = [
     { name: 'Overall', value: health.overallScore, fill: getScoreColorHex(health.overallScore) },
@@ -101,8 +203,20 @@ function OverviewTab({ health, allocation }: { health: any; allocation: any }) {
     { name: 'Risk', value: health.riskScore, fill: getScoreColorHex(health.riskScore) },
   ];
 
+  const openModal = (title: string, stocks: any[], type: 'winners' | 'losers' | 'all' | 'top5') => {
+    setModalConfig({ isOpen: true, title, stocks, type });
+  };
+
   return (
     <div className="space-y-6">
+      <StockListModal
+        isOpen={modalConfig.isOpen}
+        onClose={() => setModalConfig({ ...modalConfig, isOpen: false })}
+        title={modalConfig.title}
+        stocks={modalConfig.stocks}
+        type={modalConfig.type}
+      />
+
       {/* Key Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <MetricCard
@@ -110,6 +224,7 @@ function OverviewTab({ health, allocation }: { health: any; allocation: any }) {
           value={formatCurrency(metrics.totalValue || 0)}
           subtitle={`Invested: ${formatCurrency(metrics.totalInvested || 0)}`}
           icon="💰"
+          onClick={() => openModal('All Holdings', holdings, 'all')}
         />
         <MetricCard
           title="Total P&L"
@@ -117,18 +232,44 @@ function OverviewTab({ health, allocation }: { health: any; allocation: any }) {
           subtitle={formatPercent(metrics.totalPnLPercent || 0)}
           icon={metrics.totalPnL >= 0 ? '📈' : '📉'}
           valueColor={metrics.totalPnL >= 0 ? 'text-green-400' : 'text-red-400'}
+          onClick={() => openModal('All Holdings by P&L', holdings, 'all')}
         />
         <MetricCard
           title="Holdings"
           value={metrics.numHoldings || 0}
-          subtitle={`${metrics.numWinners || 0} winners, ${metrics.numLosers || 0} losers`}
+          subtitle={
+            <span>
+              <span
+                className="text-green-400 cursor-pointer hover:underline"
+                onClick={(e) => { e.stopPropagation(); openModal('Profitable Holdings', winners, 'winners'); }}
+              >
+                {metrics.numWinners || 0} winners
+              </span>
+              {', '}
+              <span
+                className="text-red-400 cursor-pointer hover:underline"
+                onClick={(e) => { e.stopPropagation(); openModal('Holdings In Loss', losers, 'losers'); }}
+              >
+                {metrics.numLosers || 0} losers
+              </span>
+            </span>
+          }
           icon="📋"
+          onClick={() => openModal('All Holdings', holdings, 'all')}
         />
         <MetricCard
           title="Avg Position"
           value={formatCurrency(metrics.avgHoldingSize || 0)}
-          subtitle={`Max weight: ${(metrics.maxWeight || 0).toFixed(1)}%`}
+          subtitle={
+            <span
+              className="cursor-pointer hover:underline text-slate-400 hover:text-white"
+              onClick={(e) => { e.stopPropagation(); openModal('Top 5 Holdings by Weight', top5, 'top5'); }}
+            >
+              Max weight: {(metrics.maxWeight || 0).toFixed(1)}%
+            </span>
+          }
           icon="⚖️"
+          onClick={() => openModal('Top 5 Holdings', top5, 'top5')}
         />
       </div>
 
@@ -224,15 +365,19 @@ function OverviewTab({ health, allocation }: { health: any; allocation: any }) {
   );
 }
 
-function MetricCard({ title, value, subtitle, icon, valueColor = 'text-white' }: {
+function MetricCard({ title, value, subtitle, icon, valueColor = 'text-white', onClick }: {
   title: string;
   value: string | number;
-  subtitle?: string;
+  subtitle?: string | React.ReactNode;
   icon: string;
   valueColor?: string;
+  onClick?: () => void;
 }) {
   return (
-    <div className="card">
+    <div
+      className={`card ${onClick ? 'cursor-pointer hover:bg-slate-700/70 transition-colors' : ''}`}
+      onClick={onClick}
+    >
       <div className="flex items-start justify-between mb-2">
         <p className="text-slate-400 text-sm">{title}</p>
         <span className="text-xl">{icon}</span>
@@ -383,8 +528,32 @@ function AllocationView({ allocation }: { allocation: any }) {
 }
 
 function HealthCheckView({ health }: { health: any }) {
+  const holdings = health.holdings || [];
+  const [modalConfig, setModalConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    stocks: any[];
+    type: 'winners' | 'losers' | 'all' | 'top5';
+  }>({ isOpen: false, title: '', stocks: [], type: 'all' });
+
+  const winners = holdings.filter((h: any) => h.pnlPercent > 0);
+  const losers = holdings.filter((h: any) => h.pnlPercent < 0);
+  const top5 = [...holdings].sort((a: any, b: any) => b.weight - a.weight).slice(0, 5);
+
+  const openModal = (title: string, stocks: any[], type: 'winners' | 'losers' | 'all' | 'top5') => {
+    setModalConfig({ isOpen: true, title, stocks, type });
+  };
+
   return (
     <div className="space-y-6">
+      <StockListModal
+        isOpen={modalConfig.isOpen}
+        onClose={() => setModalConfig({ ...modalConfig, isOpen: false })}
+        title={modalConfig.title}
+        stocks={modalConfig.stocks}
+        type={modalConfig.type}
+      />
+
       {/* Scores */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <ScoreCard
@@ -409,21 +578,33 @@ function HealthCheckView({ health }: { health: any }) {
         <div className="card">
           <h3 className="text-lg font-semibold text-white mb-4">Portfolio Metrics</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center p-3 bg-slate-700/50 rounded-lg">
+            <div
+              className="text-center p-3 bg-slate-700/50 rounded-lg cursor-pointer hover:bg-slate-600/50 transition-colors"
+              onClick={() => openModal('All Holdings', holdings, 'all')}
+            >
               <p className="text-2xl font-bold text-white">{health.metrics.numHoldings}</p>
-              <p className="text-slate-400 text-sm">Total Holdings</p>
+              <p className="text-slate-400 text-sm hover:text-white">Total Holdings</p>
             </div>
-            <div className="text-center p-3 bg-slate-700/50 rounded-lg">
+            <div
+              className="text-center p-3 bg-slate-700/50 rounded-lg cursor-pointer hover:bg-green-900/30 transition-colors"
+              onClick={() => openModal('Profitable Holdings', winners, 'winners')}
+            >
               <p className="text-2xl font-bold text-green-400">{health.metrics.numWinners}</p>
-              <p className="text-slate-400 text-sm">Profitable</p>
+              <p className="text-slate-400 text-sm hover:text-green-400">Profitable</p>
             </div>
-            <div className="text-center p-3 bg-slate-700/50 rounded-lg">
+            <div
+              className="text-center p-3 bg-slate-700/50 rounded-lg cursor-pointer hover:bg-red-900/30 transition-colors"
+              onClick={() => openModal('Holdings In Loss', losers, 'losers')}
+            >
               <p className="text-2xl font-bold text-red-400">{health.metrics.numLosers}</p>
-              <p className="text-slate-400 text-sm">In Loss</p>
+              <p className="text-slate-400 text-sm hover:text-red-400">In Loss</p>
             </div>
-            <div className="text-center p-3 bg-slate-700/50 rounded-lg">
+            <div
+              className="text-center p-3 bg-slate-700/50 rounded-lg cursor-pointer hover:bg-slate-600/50 transition-colors"
+              onClick={() => openModal('Top 5 Holdings by Weight', top5, 'top5')}
+            >
               <p className="text-2xl font-bold text-white">{(health.metrics.top5Weight || 0).toFixed(1)}%</p>
-              <p className="text-slate-400 text-sm">Top 5 Concentration</p>
+              <p className="text-slate-400 text-sm hover:text-white">Top 5 Concentration</p>
             </div>
           </div>
         </div>
@@ -532,6 +713,17 @@ function PerformanceView({ health }: { health: any }) {
   const winners = sortedByPnL.filter((h: any) => h.pnlPercent > 0);
   const losers = sortedByPnL.filter((h: any) => h.pnlPercent < 0).reverse();
 
+  const [modalConfig, setModalConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    stocks: any[];
+    type: 'winners' | 'losers' | 'all' | 'top5';
+  }>({ isOpen: false, title: '', stocks: [], type: 'all' });
+
+  const openModal = (title: string, stocks: any[], type: 'winners' | 'losers' | 'all' | 'top5') => {
+    setModalConfig({ isOpen: true, title, stocks, type });
+  };
+
   const chartData = holdings
     .sort((a: any, b: any) => b.currentValue - a.currentValue)
     .slice(0, 20)
@@ -543,6 +735,14 @@ function PerformanceView({ health }: { health: any }) {
 
   return (
     <div className="space-y-6">
+      <StockListModal
+        isOpen={modalConfig.isOpen}
+        onClose={() => setModalConfig({ ...modalConfig, isOpen: false })}
+        title={modalConfig.title}
+        stocks={modalConfig.stocks}
+        type={modalConfig.type}
+      />
+
       {/* P&L Distribution Chart */}
       <div className="card">
         <h3 className="text-lg font-semibold text-white mb-4">P&L Distribution (Top 20 by Value)</h3>
@@ -581,7 +781,12 @@ function PerformanceView({ health }: { health: any }) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Winners */}
         <div className="card">
-          <h3 className="text-lg font-semibold text-green-400 mb-4">🏆 Top Winners ({winners.length})</h3>
+          <h3
+            className="text-lg font-semibold text-green-400 mb-4 cursor-pointer hover:underline"
+            onClick={() => openModal('All Profitable Holdings', winners, 'winners')}
+          >
+            🏆 Top Winners ({winners.length})
+          </h3>
           {winners.length === 0 ? (
             <p className="text-slate-400 text-center py-4">No profitable holdings yet</p>
           ) : (
@@ -607,7 +812,12 @@ function PerformanceView({ health }: { health: any }) {
 
         {/* Top Losers */}
         <div className="card">
-          <h3 className="text-lg font-semibold text-red-400 mb-4">📉 Top Losers ({losers.length})</h3>
+          <h3
+            className="text-lg font-semibold text-red-400 mb-4 cursor-pointer hover:underline"
+            onClick={() => openModal('All Holdings In Loss', losers, 'losers')}
+          >
+            📉 Top Losers ({losers.length})
+          </h3>
           {losers.length === 0 ? (
             <p className="text-slate-400 text-center py-4">No losing holdings</p>
           ) : (

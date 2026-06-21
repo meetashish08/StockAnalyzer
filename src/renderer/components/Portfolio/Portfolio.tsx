@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useStore } from '../../store/useStore';
-import { formatCurrency, formatPercent, formatDate } from '../../utils/format';
+import { formatCurrency, formatPrice, formatPercent, formatDate } from '../../utils/format';
 import AddHoldingModal from './AddHoldingModal';
 import AddTransactionModal from './AddTransactionModal';
 import type { Holding } from '../../../shared/types';
@@ -19,6 +19,8 @@ export default function Portfolio() {
   const [showAddTransaction, setShowAddTransaction] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'value' | 'pnl' | 'name'>('value');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshStatus, setRefreshStatus] = useState<string>('');
 
   useEffect(() => {
     fetchHoldings();
@@ -60,6 +62,31 @@ export default function Portfolio() {
     }
   };
 
+  const handleRefreshPrices = async () => {
+    setIsRefreshing(true);
+    setRefreshStatus('Fetching latest prices from Yahoo Finance...');
+
+    try {
+      const response = await fetch('/api/refresh-prices', { method: 'POST' });
+      const result = await response.json();
+
+      if (result.success) {
+        setRefreshStatus(`Updated ${result.updated} of ${result.total} stocks`);
+        await fetchHoldings();
+
+        // Clear status after 5 seconds
+        setTimeout(() => setRefreshStatus(''), 5000);
+      } else {
+        setRefreshStatus('Failed to refresh prices');
+      }
+    } catch (error) {
+      console.error('Failed to refresh prices:', error);
+      setRefreshStatus('Failed to refresh prices');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   const handleAddTransaction = (holding: Holding) => {
     setSelectedHolding(holding);
     setShowAddTransaction(true);
@@ -71,16 +98,29 @@ export default function Portfolio() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">Portfolio</h1>
-          <p className="text-slate-400">Manage your holdings</p>
+          <p className="text-slate-400">
+            {holdingsWithPrices.length > 0
+              ? `${holdingsWithPrices.length} holdings`
+              : 'Manage your holdings'}
+          </p>
         </div>
         <div className="flex items-center gap-3">
           {holdingsWithPrices.length > 0 && (
-            <button
-              onClick={handleClearAll}
-              className="btn-danger flex items-center gap-2"
-            >
-              Clear All
-            </button>
+            <>
+              <button
+                onClick={handleRefreshPrices}
+                disabled={isRefreshing}
+                className="btn-secondary flex items-center gap-2"
+              >
+                {isRefreshing ? '⏳ Refreshing...' : '🔄 Refresh Prices'}
+              </button>
+              <button
+                onClick={handleClearAll}
+                className="btn-danger flex items-center gap-2"
+              >
+                Clear All
+              </button>
+            </>
           )}
           <button
             onClick={() => setShowAddHolding(true)}
@@ -91,6 +131,15 @@ export default function Portfolio() {
           </button>
         </div>
       </div>
+
+      {/* Refresh Status */}
+      {refreshStatus && (
+        <div className={`p-3 rounded-lg ${
+          refreshStatus.includes('Failed') ? 'bg-red-900/30 text-red-400' : 'bg-green-900/30 text-green-400'
+        }`}>
+          {refreshStatus}
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex items-center gap-4">
@@ -164,10 +213,10 @@ export default function Portfolio() {
                     {holding.quantity}
                   </td>
                   <td className="p-4 text-right text-slate-300">
-                    {formatCurrency(holding.avgPrice)}
+                    {formatPrice(holding.avgPrice)}
                   </td>
                   <td className="p-4 text-right text-white">
-                    {formatCurrency(holding.currentPrice)}
+                    {formatPrice(holding.currentPrice)}
                   </td>
                   <td className="p-4 text-right text-white font-medium">
                     {formatCurrency(holding.currentValue)}

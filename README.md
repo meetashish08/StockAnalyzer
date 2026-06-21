@@ -1,113 +1,186 @@
-# Stock Analyzer
+# Stock Market Analysis App
 
-A comprehensive Windows desktop application for stock market analysis and investment tracking for India (NSE/BSE) and US (NYSE/NASDAQ) markets.
+A comprehensive web application for stock market analysis and investment tracking for India (NSE/BSE) and US (NYSE/NASDAQ) markets.
 
 ## Features
 
-### 1. Portfolio Tracking
-- Track your stock and mutual fund holdings
+### Portfolio Tracking
+- Track stock, ETF, REIT, and mutual fund holdings
 - Real-time price updates from Yahoo Finance
-- P&L calculation with day change tracking
-- Transaction history with buy/sell/SIP support
+- P&L calculation with percentage returns
+- Support for 80+ Indian stock symbol mappings
+- Transaction history with buy/sell/SIP/dividend support
 
-### 2. Stock Recommendations
-- AI-powered stock analysis using technical and fundamental indicators
-- Top 10 daily picks for NSE and NYSE markets
-- Scoring based on:
-  - Technical indicators (RSI, MACD, Moving Averages, Bollinger Bands)
-  - Fundamental metrics (P/E, P/B, ROE, Dividend Yield)
-  - Momentum analysis
-  - Value scoring
+### Data Import
+- **Groww**: Full Excel import with holdings data
+- **INDmoney**: Portfolio statement import
+- **Zerodha**: Basic Excel/CSV support
+- Import history tracking with date/time stamps
+- Duplicate detection with replace option
+- Delete previous imports
 
-### 3. Analytics Dashboard
-- Portfolio allocation by sector, market, and asset type
-- Performance charts and P&L distribution
-- Top winners and losers tracking
-- Comparison with benchmark indices
+### Analytics Dashboard
+- **Overview Tab**: Key metrics, score gauges, best/worst performers
+- **Allocation Tab**: Pie charts by holding, market, asset type
+- **Health Check Tab**: Diversification score, risk assessment, recommendations
+- **Performance Tab**: P&L distribution, winners/losers lists
+- Clickable metrics to view detailed stock lists
 
-### 4. Portfolio Health Check
-- Diversification score
-- Risk assessment
-- Corrective action recommendations
-- Overweight position alerts
-- Tax-loss harvesting opportunities
+### Portfolio Health Check
+- Overall health score (0-100)
+- Diversification score based on holdings count and concentration
+- Risk score based on losers ratio and loss severity
+- Actionable recommendations (rebalance, review, profit booking)
+- Warnings for concentration, losses, and portfolio issues
 
-### 5. Data Import
-- CSV/Excel file import
-- Broker email parsing (Zerodha, Groww, INDmoney)
-- Automatic transaction detection
+### Price Refresh
+- One-click refresh all stock prices
+- Uses Yahoo Finance API via yahoo-finance2 library
+- Automatic symbol mapping for Indian stocks
+- Shows success/failure counts
 
 ## Tech Stack
 
-- **Frontend**: React 18 + TypeScript + Tailwind CSS
-- **Backend**: Electron (Node.js)
-- **Database**: SQLite (better-sqlite3)
-- **Charts**: Recharts
-- **State Management**: Zustand
-- **Stock Data**: Yahoo Finance API
+| Component | Technology |
+|-----------|------------|
+| Backend | Node.js + Express.js |
+| Frontend | React 18 + TypeScript |
+| Styling | Tailwind CSS |
+| Charts | Recharts |
+| State Management | Zustand |
+| Build Tool | Vite |
+| Stock Data | Yahoo Finance (yahoo-finance2) |
+| Data Storage | JSON file |
 
-## Getting Started
+## Quick Start
 
 ### Prerequisites
-- Node.js 18+ 
-- npm or yarn
+- Node.js 20.x or higher
+- npm 10.x or higher
 
 ### Installation
 
-```bash
-# Clone the repository
+```powershell
+# Navigate to project directory
 cd stock-analyzer
 
 # Install dependencies
 npm install
 
-# Start development server
-npm run dev
+# Build frontend
+npm run build:renderer
 
-# In another terminal, start Electron
-npm start
+# Start server
+node server.js
 ```
 
-### Build for Production
-
-```bash
-# Build the app
-npm run build
-
-# Package as Windows installer
-npm run package
-```
+### Access
+Open browser: **http://localhost:3001**
 
 ## Project Structure
 
 ```
 stock-analyzer/
+├── server.js              # Express backend
+├── data.json              # Data storage
+├── package.json           # Dependencies
+├── docs/                  # Documentation
+│   ├── TECHNICAL_DOCUMENTATION.md
+│   └── DEPLOYMENT_GUIDE.md
 ├── src/
-│   ├── main/                    # Electron main process
-│   │   ├── database/            # SQLite setup & repositories
-│   │   ├── services/            # Stock API, analyzer, import
-│   │   └── ipc/                 # IPC handlers
-│   ├── renderer/                # React frontend
+│   ├── renderer/          # React frontend
 │   │   ├── components/
-│   │   │   ├── Dashboard/       # Main dashboard
-│   │   │   ├── Portfolio/       # Holdings management
-│   │   │   ├── Recommendations/ # Stock picks
-│   │   │   ├── Analytics/       # Charts & insights
-│   │   │   └── Import/          # Data import
-│   │   ├── store/               # Zustand state
-│   │   └── utils/               # Helpers
-│   └── shared/                  # Shared types
-└── package.json
+│   │   │   ├── Analytics/ # Charts & insights
+│   │   │   ├── Dashboard/ # Main dashboard
+│   │   │   ├── Import/    # File import
+│   │   │   ├── Portfolio/ # Holdings management
+│   │   │   └── Layout/    # Navigation
+│   │   ├── store/         # Zustand state
+│   │   └── utils/         # Formatters
+│   └── shared/            # TypeScript types
+└── dist/renderer/         # Built frontend
 ```
 
-## Configuration
+## Documentation
 
-### API Keys (Optional)
-For additional features, you can add these API keys:
+- **[Technical Documentation](docs/TECHNICAL_DOCUMENTATION.md)**: Detailed module documentation, API reference, data flow, and troubleshooting guide
+- **[Deployment Guide](docs/DEPLOYMENT_GUIDE.md)**: Step-by-step installation on fresh systems, production deployment, Docker setup
 
-```env
-ALPHA_VANTAGE_KEY=your_key_here  # For extended market data
+## API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/holdings` | GET/POST | Manage holdings |
+| `/api/transactions` | GET/POST | Manage transactions |
+| `/api/refresh-prices` | POST | Update all prices |
+| `/api/portfolio/summary` | GET | Portfolio totals |
+| `/api/portfolio/allocation` | GET | Allocation breakdown |
+| `/api/portfolio/health` | GET | Health analysis |
+| `/api/import-history` | GET/POST/DELETE | Import records |
+| `/api/clear-all` | DELETE | Reset all data |
+
+## Common Tasks
+
+### Import Portfolio
+1. Go to **Import** page
+2. Drag & drop Excel file from Groww/INDmoney
+3. Preview data and confirm import
+4. Holdings appear in Portfolio
+
+### Refresh Prices
+1. Go to **Portfolio** page
+2. Click **Refresh Prices** button
+3. Wait for completion (shows X/Y updated)
+
+### View Analytics
+1. Go to **Analytics** page
+2. Switch between tabs: Overview, Allocation, Health, Performance
+3. Click on metrics (Profitable, In Loss) to see stock details
+
+### Clear Portfolio
+1. Go to **Portfolio** page
+2. Click **Clear All** button
+3. Confirm twice to delete all data
+
+## Symbol Mapping
+
+The app maps broker stock names to Yahoo Finance symbols. If a stock price isn't updating:
+
+1. Find the correct Yahoo symbol:
+```javascript
+// In browser console or Node.js
+const YahooFinance = require('yahoo-finance2').default;
+const yf = new YahooFinance();
+const results = await yf.search('company name');
+console.log(results.quotes);
 ```
+
+2. Add mapping in `server.js`:
+```javascript
+const SYMBOL_MAP = {
+  'BROKERSTOCKNAME': 'YAHOOSYMBOL',
+};
+```
+
+## Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Port 3001 in use | `netstat -ano \| findstr :3001` then `taskkill /F /PID <PID>` |
+| Stock price not updating | Add symbol to SYMBOL_MAP in server.js |
+| Double quantity after import | Ensure `skipHoldingUpdate: true` in transactions |
+| Build fails | Run `npm install` again, check Node version |
+
+See [Technical Documentation](docs/TECHNICAL_DOCUMENTATION.md) for detailed troubleshooting.
+
+## Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm install` | Install dependencies |
+| `npm run build:renderer` | Build frontend for production |
+| `npm run dev` | Start frontend dev server (hot reload) |
+| `node server.js` | Start backend server |
 
 ## Disclaimer
 

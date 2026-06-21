@@ -5,6 +5,8 @@ const cors = require('cors');
 const fs = require('fs');
 const multer = require('multer');
 const XLSX = require('xlsx');
+const YahooFinance = require('yahoo-finance2').default;
+const yahooFinance = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -61,11 +63,109 @@ console.log('Data loaded from:', dataPath);
 const YAHOO_QUOTE_URL = 'https://query1.finance.yahoo.com/v7/finance/quote';
 const YAHOO_SEARCH_URL = 'https://query1.finance.yahoo.com/v1/finance/search';
 
+// Common symbol mappings for Indian stocks (Groww name -> Yahoo symbol)
+const SYMBOL_MAP = {
+  'STATEBANKOFINDIA': 'SBIN',
+  'STEELAUTHORITYOFINDIA': 'SAIL',
+  'OILANDNATURALGAS': 'ONGC',
+  'RELIANCEINDUSTRIES': 'RELIANCE',
+  'TATACONSULTANCYSERVLT': 'TCS',
+  'HINDUSTANUNILEVER': 'HINDUNILVR',
+  'BHARTIAIRTEL': 'BHARTIARTL',
+  'INFOSYS': 'INFY',
+  'ICICIBANK': 'ICICIBANK',
+  'HDFCBANK': 'HDFCBANK',
+  'LARSEN&TOUBRO': 'LT',
+  'MAHINDRA&MAHINDRA': 'M&M',
+  'TATAMOTORS': 'TMCV',
+  'TATAMOTORSPASSVEH': 'TMPV',
+  'TATASTEEL': 'TATASTEEL',
+  'TATAPOWERCO': 'TATAPOWER',
+  'SUNPHARMACEUTICALINDL': 'SUNPHARMA',
+  'HINDALCOINDUSTRIES': 'HINDALCO',
+  'COALINDIA': 'COALINDIA',
+  'NTPC': 'NTPC',
+  'PUNJABNATIONALBANK': 'PNB',
+  'INDIANRAILWAYFINCORPL': 'IRFC',
+  'RAILVIKASNIGAM': 'RVNL',
+  'SUZLONENERGY': 'SUZLON',
+  'GAIL(INDIA)': 'GAIL',
+  'WIPRO': 'WIPRO',
+  'HINDUSTANAERONAUTICS': 'HAL',
+  'HINDUSTANCOPPER': 'HINDCOPPER',
+  'MAZAGONDOCKSHIPBUIL': 'MAZDOCK',
+  'OLECTRAGREENTECH': 'OLECTRA',
+  'OLAELECTRICMOBILITY': 'OLAELEC',
+  'JIOFINSERVICES': 'JIOFIN',
+  'KALYANJEWELLERSIND': 'KALYANKJIL',
+  'DATAPATTERNSINDIA': 'DATAPATTNS',
+  'VEDANTA': 'VEDL',
+  'BHARATELECTRONICS': 'BEL',
+  'SJVN': 'SJVN',
+  'GENUSPOWERINFRASTRU': 'GENUSPOWER',
+  'TITAGARHRAILSYSTEMS': 'TITAGARH',
+  'DLF': 'DLF',
+  'BSE': 'BSE',
+  'ITC': 'ITC',
+  'ADANIENERGYSOLUTION': 'ADANIENSOL',
+  'ADANIPOWER': 'ADANIPOWER',
+  'ETERNAL': 'ETERNAL',
+  // REITs
+  'BROOKFIELDINDIARET': 'BIRET',
+  'EMBASSYOFFICEPARKSREIT': 'EMBASSY',
+  'MINDSPACEBUSINESSPREIT': 'MINDSPACE',
+  // ETFs
+  'NIPINDETFGOLDBEES': 'GOLDBEES',
+  'NIPINDETFNIFTYBEES': 'NIFTYBEES',
+  'NIPINDETFPSUBANKBEES': 'PSUBNKBEES',
+  'NIPINDETFIT': 'ITBEES',
+  'NIPINDETFMIDCAP150': 'MID150BEES',
+  'SBI-ETFGOLD': 'SETFGOLD',
+  'SBI-ETFNIFTY50': 'SETFNIF50',
+  'MIRAEAMC-ITETF': 'MAFANG',
+  'HDFCAMC-HDFCSML250': 'HDFCSML250',
+  // Finance
+  'L&TFINANCE': 'LTF',
+  // Hotels & Leisure
+  'MAHINDRAHOLIDAYS': 'MHRIL',
+  // Sugar
+  'KCPSUGARINDCORP': 'KCPSUGIND',
+  // Renewable Energy
+  'STRLNG&WILRENENE': 'SWSOLAR',
+  // Banks
+  'UTKARSHSMALLFINBANKL': 'UTKARSHBNK',
+  'BANDHANBANK': 'BANDHANBNK',
+  // Exchange
+  'INDIANENERGYEXCHANGE': 'IEX',
+  // Retail
+  'VMARTRETAIL': 'VMART',
+  // Travel
+  'YATRAONLINE': 'YATRA',
+  // Finance
+  'SHRIRAMFINANCE': 'SHRIRAMFIN',
+  // Defence
+  'PARASDEFENCEANDSPACETECHNOLOGIES': 'PARAS',
+  // ETFs
+  'QUANTUMGOLDFUNDETF': 'QGOLDHALF',
+  'NIPPONINDIAETFNIFTY50BEES': 'NIFTYBEES',
+  'BHARAT22ETF': 'ICICIB22',
+  'ICICIPRUDENTIALSILVERETF': 'SILVERBEES',
+  // Auto
+  'TATAMOTORSPASSENGERVEHICLES': 'TMPV',
+  // Vedanta subsidiaries
+  'VEDANTAIRONANDSTEELL': 'VISL',
+  'VEDANTAOILANDGAS': 'VOGL',
+  'VEDANTAPOWER': 'VEDPOWER',
+};
+
 function getYahooSymbol(symbol, market) {
+  // Check if we have a mapped symbol
+  const mappedSymbol = SYMBOL_MAP[symbol.toUpperCase()] || symbol;
+
   switch (market) {
-    case 'NSE': return `${symbol}.NS`;
-    case 'BSE': return `${symbol}.BO`;
-    default: return symbol;
+    case 'NSE': return `${mappedSymbol}.NS`;
+    case 'BSE': return `${mappedSymbol}.BO`;
+    default: return mappedSymbol;
   }
 }
 
@@ -703,6 +803,60 @@ app.delete('/api/clear-all', (req, res) => {
   saveData(data);
   invalidateCache();
   res.json({ success: true });
+});
+
+// Refresh all stock prices using yahoo-finance2 library
+app.post('/api/refresh-prices', async (req, res) => {
+  if (data.holdings.length === 0) {
+    return res.json({ success: true, updated: 0, message: 'No holdings to update' });
+  }
+
+  let updated = 0;
+  let failed = 0;
+  const errors = [];
+
+  for (const holding of data.holdings) {
+    const mapped = SYMBOL_MAP[holding.symbol.toUpperCase()] || holding.symbol;
+
+    // Try NSE first, then BSE
+    const symbolsToTry = [`${mapped}.NS`, `${mapped}.BO`, mapped];
+
+    let success = false;
+    for (const sym of symbolsToTry) {
+      try {
+        const quote = await yahooFinance.quote(sym);
+        if (quote && quote.regularMarketPrice) {
+          holding.currentPrice = quote.regularMarketPrice;
+          holding.lastPriceUpdate = new Date().toISOString();
+          updated++;
+          success = true;
+          break;
+        }
+      } catch (err) {
+        // Try next symbol variant
+      }
+    }
+
+    if (!success) {
+      failed++;
+      errors.push({ symbol: holding.symbol, mapped, error: 'Quote not found' });
+    }
+
+    // Small delay to avoid rate limiting
+    await new Promise(resolve => setTimeout(resolve, 200));
+  }
+
+  saveData(data);
+  invalidateCache();
+
+  res.json({
+    success: true,
+    updated,
+    failed,
+    total: data.holdings.length,
+    errors: errors.slice(0, 10),
+    message: `Updated ${updated} of ${data.holdings.length} holdings`,
+  });
 });
 
 // File import endpoint
