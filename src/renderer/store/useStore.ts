@@ -45,39 +45,47 @@ export const useStore = create<StoreState>((set, get) => ({
     set({ isLoadingHoldings: true, error: null });
     try {
       const holdings = await window.electronAPI.getHoldings();
-      set({ holdings, isLoadingHoldings: false });
+      set({ holdings });
 
-      // Fetch current prices for holdings
+      // Build holdings with prices - use stored currentPrice when available
       const holdingsWithPrices: HoldingWithPrice[] = [];
-      for (const holding of holdings) {
-        try {
-          const quote = await window.electronAPI.getQuote(holding.symbol, holding.market);
-          const currentPrice = quote?.price || holding.avgPrice;
-          const currentValue = currentPrice * holding.quantity;
-          const investedValue = holding.avgPrice * holding.quantity;
 
-          holdingsWithPrices.push({
-            ...holding,
-            currentPrice,
-            currentValue,
-            pnl: currentValue - investedValue,
-            pnlPercent: investedValue > 0 ? ((currentValue - investedValue) / investedValue) * 100 : 0,
-            dayChange: quote?.change || 0,
-            dayChangePercent: quote?.changePercent || 0,
-            allocation: 0, // Will calculate after
-          });
-        } catch (e) {
-          holdingsWithPrices.push({
-            ...holding,
-            currentPrice: holding.avgPrice,
-            currentValue: holding.avgPrice * holding.quantity,
-            pnl: 0,
-            pnlPercent: 0,
-            dayChange: 0,
-            dayChangePercent: 0,
-            allocation: 0,
-          });
+      for (const holding of holdings) {
+        // Use stored currentPrice from import, or fall back to avgPrice
+        let currentPrice = holding.currentPrice || holding.avgPrice;
+        let dayChange = 0;
+        let dayChangePercent = 0;
+
+        // Only fetch from API if no currentPrice is stored
+        if (!holding.currentPrice) {
+          try {
+            const quote = await window.electronAPI.getQuote(holding.symbol, holding.market);
+            if (quote?.price) {
+              currentPrice = quote.price;
+              dayChange = quote.change || 0;
+              dayChangePercent = quote.changePercent || 0;
+            }
+          } catch (e) {
+            // Use avgPrice as fallback
+            currentPrice = holding.avgPrice;
+          }
         }
+
+        const currentValue = currentPrice * holding.quantity;
+        const investedValue = holding.avgPrice * holding.quantity;
+        const pnl = currentValue - investedValue;
+        const pnlPercent = investedValue > 0 ? (pnl / investedValue) * 100 : 0;
+
+        holdingsWithPrices.push({
+          ...holding,
+          currentPrice,
+          currentValue,
+          pnl,
+          pnlPercent,
+          dayChange,
+          dayChangePercent,
+          allocation: 0, // Will calculate after
+        });
       }
 
       // Calculate allocations
@@ -86,7 +94,7 @@ export const useStore = create<StoreState>((set, get) => ({
         h.allocation = totalValue > 0 ? (h.currentValue / totalValue) * 100 : 0;
       });
 
-      set({ holdingsWithPrices });
+      set({ holdingsWithPrices, isLoadingHoldings: false });
     } catch (error) {
       set({ error: 'Failed to fetch holdings', isLoadingHoldings: false });
       console.error(error);

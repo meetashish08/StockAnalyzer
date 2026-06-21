@@ -48,6 +48,18 @@ export default function Portfolio() {
     }
   };
 
+  const handleClearAll = async () => {
+    if (!window.confirm('Are you sure you want to delete ALL holdings? This cannot be undone.')) return;
+    if (!window.confirm('This will remove all portfolio data. Are you absolutely sure?')) return;
+
+    try {
+      await fetch('/api/clear-all', { method: 'DELETE' });
+      await fetchHoldings();
+    } catch (error) {
+      console.error('Failed to clear portfolio:', error);
+    }
+  };
+
   const handleAddTransaction = (holding: Holding) => {
     setSelectedHolding(holding);
     setShowAddTransaction(true);
@@ -61,13 +73,23 @@ export default function Portfolio() {
           <h1 className="text-2xl font-bold text-white">Portfolio</h1>
           <p className="text-slate-400">Manage your holdings</p>
         </div>
-        <button
-          onClick={() => setShowAddHolding(true)}
-          className="btn-primary flex items-center gap-2"
-        >
-          <span>+</span>
-          Add Holding
-        </button>
+        <div className="flex items-center gap-3">
+          {holdingsWithPrices.length > 0 && (
+            <button
+              onClick={handleClearAll}
+              className="btn-danger flex items-center gap-2"
+            >
+              Clear All
+            </button>
+          )}
+          <button
+            onClick={() => setShowAddHolding(true)}
+            className="btn-primary flex items-center gap-2"
+          >
+            <span>+</span>
+            Add Holding
+          </button>
+        </div>
       </div>
 
       {/* Filters */}

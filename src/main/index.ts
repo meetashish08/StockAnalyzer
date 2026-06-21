@@ -1,14 +1,29 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, protocol, net } from 'electron';
 import path from 'path';
+import fs from 'fs';
 import { initializeDatabase } from './database/init';
 import { registerDatabaseHandlers } from './ipc/databaseHandlers';
 import { registerStockApiHandlers } from './ipc/stockApiHandlers';
 import { registerAnalysisHandlers } from './ipc/analysisHandlers';
 import { registerImportHandlers } from './ipc/importHandlers';
+import { pathToFileURL } from 'url';
 
 let mainWindow: BrowserWindow | null = null;
 
-const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+const isDev = process.env.NODE_ENV === 'development';
+
+// Register custom protocol scheme before app is ready
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'app',
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      corsEnabled: true,
+    },
+  },
+]);
 
 async function createWindow() {
   mainWindow = new BrowserWindow({
@@ -31,17 +46,42 @@ async function createWindow() {
     mainWindow?.show();
   });
 
-  if (isDev) {
-    // Development: load from Vite dev server
-    await mainWindow.loadURL('http://localhost:5173');
-    mainWindow.webContents.openDevTools();
-  } else {
-    // Production: load from built files
-    await mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
+  try {
+    if (isDev) {
+      // Development: load from Vite dev server
+      await mainWindow.loadURL('http://localhost:5173');
+      mainWindow.webContents.openDevTools();
+    } else {
+      // Production: serve files via custom protocol
+      await mainWindow.loadURL('app://localhost/index.html');
+    }
+  } catch (error) {
+    console.error('Failed to load app:', error);
   }
 
   mainWindow.on('closed', () => {
     mainWindow = null;
+  });
+}
+
+function registerProtocol() {
+  const appPath = app.getAppPath();
+  const rendererPath = path.join(appPath, 'dist', 'renderer');
+  console.log('Registering protocol, renderer path:', rendererPath);
+
+  protocol.handle('app', (request) => {
+    const url = new URL(request.url);
+    let filePath = path.join(rendererPath, url.pathname);
+
+    // Default to index.html for root
+    if (url.pathname === '/' || url.pathname === '') {
+      filePath = path.join(rendererPath, 'index.html');
+    }
+
+    console.log('Protocol handling:', request.url, '->', filePath);
+
+    // Return the file
+    return net.fetch(pathToFileURL(filePath).toString());
   });
 }
 
@@ -57,6 +97,9 @@ async function initialize() {
 }
 
 app.whenReady().then(async () => {
+  // Register custom protocol for serving files
+  registerProtocol();
+
   await initialize();
   await createWindow();
 

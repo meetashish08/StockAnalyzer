@@ -10,18 +10,22 @@
     "build": "npm run build:main && npm run build:renderer",
     "build:main": "tsc -p tsconfig.main.json",
     "build:renderer": "vite build",
-    "start": "electron .",
+    "start": "node server.js",
+    "start:electron": "electron .",
     "preview": "npm run build && electron .",
     "package": "electron-builder",
     "postinstall": "electron-builder install-app-deps"
   },
   "dependencies": {
+    "@webcarrot/xirr": "^1.0.3",
+    "axios": "^1.7.2",
     "better-sqlite3": "^11.3.0",
+    "cors": "^2.8.6",
     "date-fns": "^3.6.0",
     "electron-store": "^8.2.0",
-    "axios": "^1.7.2",
-    "xlsx": "^0.18.5",
-    "@webcarrot/xirr": "^1.0.3"
+    "express": "^4.22.2",
+    "multer": "^2.2.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.11",
@@ -54,7 +58,9 @@
       "package.json"
     ],
     "win": {
-      "target": ["nsis"],
+      "target": [
+        "nsis"
+      ],
       "icon": "assets/icon.ico"
     }
   }

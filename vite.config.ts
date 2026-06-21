@@ -9,6 +9,16 @@ export default defineConfig({
   build: {
     outDir: '../../dist/renderer',
     emptyOutDir: true,
+    target: 'esnext',
+    modulePreload: false,
+    rollupOptions: {
+      output: {
+        format: 'iife',
+        entryFileNames: 'assets/[name].js',
+        chunkFileNames: 'assets/[name].js',
+        assetFileNames: 'assets/[name].[ext]',
+      },
+    },
   },
   resolve: {
     alias: {

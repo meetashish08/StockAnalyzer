@@ -10,11 +10,14 @@ export interface Holding {
   symbol: string;
   market: Market;
   name: string;
+  isin?: string;
   quantity: number;
   avgPrice: number;
+  currentPrice?: number; // Stored from import (e.g., Groww closing price)
   purchaseDate: string;
   type: AssetType;
   sector?: string;
+  importId?: number;
   createdAt: string;
 }
 
