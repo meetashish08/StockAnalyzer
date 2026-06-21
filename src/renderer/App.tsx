@@ -5,13 +5,17 @@ import Portfolio from './components/Portfolio/Portfolio';
 import Recommendations from './components/Recommendations/Recommendations';
 import Analytics from './components/Analytics/Analytics';
 import ImportData from './components/Import/ImportData';
+import AIChat from './components/AIChat/AIChat';
+import TaxAnalysis from './components/TaxAnalysis/TaxAnalysis';
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: '📊' },
   { path: '/portfolio', label: 'Portfolio', icon: '💼' },
   { path: '/recommendations', label: 'Recommendations', icon: '🎯' },
   { path: '/analytics', label: 'Analytics', icon: '📈' },
+  { path: '/tax-analysis', label: 'Tax Analysis', icon: '🧾' },
   { path: '/import', label: 'Import', icon: '📥' },
+  { path: '/ai-chat', label: 'AI Assistant', icon: '🤖' },
 ];
 
 function App() {
@@ -68,7 +72,9 @@ function App() {
             <Route path="/portfolio" element={<Portfolio />} />
             <Route path="/recommendations" element={<Recommendations />} />
             <Route path="/analytics" element={<Analytics />} />
+            <Route path="/tax-analysis" element={<TaxAnalysis />} />
             <Route path="/import" element={<ImportData />} />
+            <Route path="/ai-chat" element={<AIChat />} />
           </Routes>
         </div>
       </main>

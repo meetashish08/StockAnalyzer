@@ -18,14 +18,18 @@
 - **Build Tool**: Vite
 - **State Management**: Zustand
 - **Charts**: Recharts
-- **Data Storage**: JSON file (data.json)
+- **Data Storage**: JSON files (data.json, ai_bookmarks.json, tax_analysis.json)
 - **Stock Data**: Yahoo Finance API (yahoo-finance2 library)
+- **AI Integration**: Claude AI via Portkey middleware
+- **File Parsing**: XLSX library for Excel files
 
 ### Directory Structure
 ```
 stock-analyzer/
 ├── server.js                 # Express backend server
-├── data.json                 # Persistent data storage
+├── data.json                 # Portfolio data storage
+├── ai_bookmarks.json         # AI chat bookmarks storage
+├── tax_analysis.json         # Tax analysis results storage
 ├── package.json              # Dependencies and scripts
 ├── vite.config.ts            # Vite build configuration
 ├── tailwind.config.js        # Tailwind CSS configuration
@@ -36,7 +40,9 @@ stock-analyzer/
 │   │   │   ├── Analytics/    # Portfolio analytics & charts
 │   │   │   ├── Dashboard/    # Main dashboard
 │   │   │   ├── Import/       # File import functionality
-│   │   │   ├── Portfolio/    # Holdings management
+│   │   │   ├── Portfolio/    # Holdings management (India/US tabs)
+│   │   │   ├── AIChat/       # AI Assistant with bookmarks
+│   │   │   ├── TaxAnalysis/  # Tax analysis & ITR helper
 │   │   │   └── Layout/       # App layout & navigation
 │   │   ├── store/            # Zustand state management
 │   │   ├── utils/            # Utility functions
@@ -597,6 +603,140 @@ curl http://localhost:3001/api/holdings | jq '.[] | select(.symbol == "STOCKNAME
 
 ---
 
+---
+
+## AI Chat Module
+
+### Overview
+AI-powered financial assistant using Claude via Portkey middleware.
+
+### Available Models
+```javascript
+const AI_MODELS = {
+  'claude-sonnet': '@vertexai-global/anthropic.claude-sonnet-4-5@20250929',  // Default
+  'claude-haiku': '@vertexai-global/anthropic.claude-haiku-4-5@20251001',
+  'claude-opus': '@vertexai-global/anthropic.claude-opus-4-5@20251101',
+};
+```
+
+### Endpoints
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/ai/models` | Get available AI models |
+| POST | `/api/ai/chat` | Send message to AI |
+| GET | `/api/ai/bookmarks` | Get saved bookmarks |
+| POST | `/api/ai/bookmarks` | Save answer as bookmark |
+| DELETE | `/api/ai/bookmarks/:id` | Delete bookmark |
+
+### Chat Request
+```json
+{
+  "message": "Analyze my portfolio",
+  "portfolioContext": "User's portfolio summary...",
+  "history": [{"role": "user", "content": "..."}, ...],
+  "model": "claude-sonnet"
+}
+```
+
+### Bookmark Storage (ai_bookmarks.json)
+```json
+{
+  "bookmarks": [
+    {
+      "id": 1,
+      "question": "User's question",
+      "answer": "Complete AI response",
+      "model": "claude-sonnet",
+      "createdAt": "2026-06-21T..."
+    }
+  ],
+  "nextBookmarkId": 2
+}
+```
+
+---
+
+## Tax Analysis Module
+
+### Overview
+Analyzes financial Excel data for capital gains calculation and ITR filing assistance.
+
+### Features
+- Excel file upload and parsing
+- Auto-detection of column mappings
+- STCG/LTCG classification (12-month threshold)
+- Tax calculation (STCG @ 20%, LTCG @ 12.5%)
+- LTCG exemption (₹1.25 lakh)
+- ITR Schedule CG generation
+- Tax-saving insights
+
+### Endpoints
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/tax/analyze` | Upload & analyze Excel file |
+| GET | `/api/tax/analyses` | List all analyses |
+| GET | `/api/tax/analyses/:id` | Get specific analysis |
+| DELETE | `/api/tax/analyses/:id` | Delete analysis |
+| GET | `/api/tax/itr-report/:id` | Generate ITR report |
+
+### Capital Gains Classification
+```javascript
+function classifyCapitalGain(buyDate, sellDate) {
+  const holdingDays = (sellDate - buyDate) / (1000 * 60 * 60 * 24);
+  return {
+    type: holdingDays > 365 ? 'LTCG' : 'STCG',
+    holdingMonths: Math.floor(holdingDays / 30),
+  };
+}
+```
+
+### Tax Rates (FY 2024-25)
+| Type | Rate | Exemption |
+|------|------|-----------|
+| STCG (Section 111A) | 20% | None |
+| LTCG (Section 112A) | 12.5% | ₹1,25,000/year |
+
+### Expected Excel Format
+Auto-detected columns:
+- Symbol / Script / Scrip / ISIN
+- Buy Date / Purchase Date
+- Sell Date / Sale Date
+- Quantity / Qty / Units
+- Buy Price / Purchase Price
+- Sell Price / Sale Price
+- Gain / Profit / P&L (optional)
+
+### Analysis Output
+```typescript
+interface TaxAnalysis {
+  id: number;
+  fileName: string;
+  fiscalYear: string;
+  summary: {
+    totalTransactions: number;
+    totalSTCG: number;
+    totalLTCG: number;
+    taxableSTCG: number;
+    taxableLTCG: number;
+    estimatedSTCGTax: number;
+    estimatedLTCGTax: number;
+    totalEstimatedTax: number;
+  };
+  transactions: Transaction[];
+  insights: Insight[];
+  topGainers: Transaction[];
+  topLosers: Transaction[];
+}
+```
+
+### ITR Report Format
+Generates Schedule CG data for ITR-2/ITR-3:
+- Section 111A (STCG on listed equity with STT)
+- Section 112A (LTCG on listed equity/MF with STT)
+- Loss carry-forward details (8 years)
+
+---
+
 ## Future Improvements
 
 1. **Database**: Migrate from JSON to SQLite/PostgreSQL
@@ -605,4 +745,4 @@ curl http://localhost:3001/api/holdings | jq '.[] | select(.symbol == "STOCKNAME
 4. **More Brokers**: Add Zerodha, Angel One, Upstox parsers
 5. **Mobile App**: React Native version
 6. **Alerts**: Price alerts and notifications
-7. **Tax Reports**: Capital gains report generation
+7. **Advanced Tax**: Support for debt funds, grandfathering clause
