@@ -769,9 +769,315 @@ app.get('/api/portfolio/health', async (req, res) => {
   }
 });
 
-// Top picks (placeholder)
-app.get('/api/top-picks/:market', (req, res) => {
-  res.json([]);
+// Top picks - Portfolio-based recommendations
+app.get('/api/top-picks/:market', async (req, res) => {
+  try {
+    const { market } = req.params;
+    const marketHoldings = data.holdings.filter(h => {
+      if (market === 'NSE') return h.market === 'NSE' || h.market === 'BSE';
+      if (market === 'NYSE') return h.market === 'NYSE' || h.market === 'NASDAQ';
+      return true;
+    });
+
+    if (marketHoldings.length === 0) {
+      return res.json([]);
+    }
+
+    const recommendations = [];
+
+    for (const holding of marketHoldings) {
+      const mapped = SYMBOL_MAP[holding.symbol.toUpperCase()] || holding.symbol;
+      let symbolsToTry;
+      if (USE_BSE_EXCHANGE.includes(mapped.toUpperCase())) {
+        symbolsToTry = [`${mapped}.BO`, `${mapped}.NS`];
+      } else if (holding.market === 'NSE' || holding.market === 'BSE') {
+        symbolsToTry = [`${mapped}.NS`, `${mapped}.BO`];
+      } else {
+        symbolsToTry = [mapped];
+      }
+
+      let quote = null;
+      for (const sym of symbolsToTry) {
+        try {
+          quote = await yahooFinance.quote(sym);
+          if (quote && quote.regularMarketPrice) break;
+        } catch {}
+      }
+
+      if (!quote) continue;
+
+      // Calculate technical indicators
+      const price = quote.regularMarketPrice || 0;
+      const high52 = quote.fiftyTwoWeekHigh || price;
+      const low52 = quote.fiftyTwoWeekLow || price;
+      const ma50 = quote.fiftyDayAverage || price;
+      const ma200 = quote.twoHundredDayAverage || price;
+      const prevClose = quote.regularMarketPreviousClose || price;
+      const dayChange = quote.regularMarketChangePercent || 0;
+
+      // Technical Score Components
+      const priceVsMa50 = ma50 > 0 ? ((price - ma50) / ma50) * 100 : 0;
+      const priceVsMa200 = ma200 > 0 ? ((price - ma200) / ma200) * 100 : 0;
+      const distFrom52High = high52 > 0 ? ((price - high52) / high52) * 100 : 0;
+      const distFrom52Low = low52 > 0 ? ((price - low52) / low52) * 100 : 0;
+
+      // Trend Score (0-100)
+      let trendScore = 50;
+      if (price > ma200) trendScore += 20;
+      if (price > ma50) trendScore += 15;
+      if (ma50 > ma200) trendScore += 15; // Golden cross
+      if (price < ma200) trendScore -= 20;
+      if (price < ma50) trendScore -= 15;
+      if (ma50 < ma200) trendScore -= 15; // Death cross
+      trendScore = Math.max(0, Math.min(100, trendScore));
+
+      // Momentum Score (0-100)
+      let momentumScore = 50;
+      if (dayChange > 2) momentumScore += 20;
+      else if (dayChange > 0) momentumScore += 10;
+      else if (dayChange < -2) momentumScore -= 20;
+      else if (dayChange < 0) momentumScore -= 10;
+
+      // Near 52-week high = strong momentum
+      if (distFrom52High > -5) momentumScore += 20;
+      else if (distFrom52High > -15) momentumScore += 10;
+      // Near 52-week low = weak momentum
+      if (distFrom52Low < 10) momentumScore -= 15;
+      momentumScore = Math.max(0, Math.min(100, momentumScore));
+
+      // Value Score (based on P/E if available)
+      let valueScore = 50;
+      const pe = quote.trailingPE || quote.forwardPE;
+      if (pe) {
+        if (pe < 15) valueScore = 80;
+        else if (pe < 25) valueScore = 65;
+        else if (pe < 40) valueScore = 50;
+        else valueScore = 30;
+      }
+
+      // Calculate P&L for this holding
+      const invested = holding.avgPrice * holding.quantity;
+      const currentValue = price * holding.quantity;
+      const pnl = currentValue - invested;
+      const pnlPercent = invested > 0 ? (pnl / invested) * 100 : 0;
+
+      // Overall Score
+      const overallScore = (trendScore * 0.35 + momentumScore * 0.35 + valueScore * 0.3);
+
+      // Determine Signal
+      let signal = 'HOLD';
+      const rationale = [];
+
+      if (overallScore >= 75 && pnlPercent > -10) {
+        signal = 'STRONG_BUY';
+        rationale.push('Strong technical setup with positive trend');
+      } else if (overallScore >= 60) {
+        signal = 'BUY';
+        rationale.push('Good momentum and trend alignment');
+      } else if (overallScore <= 30 || pnlPercent < -20) {
+        signal = 'STRONG_SELL';
+        rationale.push('Weak technicals - consider exiting');
+      } else if (overallScore <= 45 || pnlPercent < -10) {
+        signal = 'SELL';
+        rationale.push('Deteriorating momentum');
+      }
+
+      // Add context to rationale
+      if (price > ma50 && price > ma200) rationale.push('Trading above 50 & 200 DMA');
+      else if (price < ma50 && price < ma200) rationale.push('Trading below key moving averages');
+
+      if (distFrom52High > -5) rationale.push('Near 52-week high - strong momentum');
+      if (distFrom52Low < 15) rationale.push('Near 52-week low - potential value or risk');
+
+      if (pnlPercent > 50) rationale.push(`Strong gain: ${pnlPercent.toFixed(1)}% profit`);
+      if (pnlPercent < -15) rationale.push(`Significant loss: ${pnlPercent.toFixed(1)}%`);
+
+      // Calculate days held
+      const purchaseDate = new Date(holding.purchaseDate);
+      const today = new Date();
+      const daysHeld = Math.floor((today - purchaseDate) / (1000 * 60 * 60 * 24));
+      const taxStatus = daysHeld >= 365 ? 'LTCG' : 'STCG';
+
+      recommendations.push({
+        symbol: holding.symbol,
+        name: holding.name || quote.shortName || holding.symbol,
+        market: holding.market,
+        quantity: holding.quantity,
+        avgPrice: holding.avgPrice,
+        currentPrice: price,
+        pnl,
+        pnlPercent,
+        technicalScore: Math.round(trendScore),
+        fundamentalScore: Math.round(valueScore),
+        momentumScore: Math.round(momentumScore),
+        valueScore: Math.round(valueScore),
+        overallScore: Math.round(overallScore),
+        signal,
+        confidence: Math.min(95, Math.round(overallScore + 10)),
+        rationale,
+        high52Week: high52,
+        low52Week: low52,
+        ma50,
+        ma200,
+        daysHeld,
+        taxStatus,
+        lastUpdated: new Date().toISOString(),
+      });
+
+      await new Promise(resolve => setTimeout(resolve, 150));
+    }
+
+    // Sort by overall score descending
+    recommendations.sort((a, b) => b.overallScore - a.overallScore);
+
+    res.json(recommendations);
+  } catch (error) {
+    console.error('Top picks error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Sector analysis for recommendations
+app.get('/api/recommendations/sectors', (req, res) => {
+  if (data.holdings.length === 0) {
+    return res.json({ sectors: [], gaps: [], overweight: [], underweight: [] });
+  }
+
+  // Ideal sector allocation (simplified benchmark)
+  const benchmarkAllocation = {
+    'Financial Services': 25,
+    'IT': 15,
+    'Consumer Goods': 12,
+    'Pharma': 10,
+    'Auto': 8,
+    'Energy': 8,
+    'Infrastructure': 7,
+    'Metals': 5,
+    'Telecom': 4,
+    'Real Estate': 3,
+    'Others': 3,
+  };
+
+  // Calculate current allocation
+  let totalValue = 0;
+  const sectorValues = {};
+
+  for (const h of data.holdings) {
+    const value = (h.currentPrice || h.avgPrice) * h.quantity;
+    totalValue += value;
+    const sector = h.sector || 'Unknown';
+    sectorValues[sector] = (sectorValues[sector] || 0) + value;
+  }
+
+  const sectors = Object.entries(sectorValues).map(([name, value]) => ({
+    name,
+    value,
+    percentage: totalValue > 0 ? (value / totalValue) * 100 : 0,
+    benchmark: benchmarkAllocation[name] || 5,
+  }));
+
+  // Find gaps (sectors in benchmark but not in portfolio)
+  const gaps = Object.entries(benchmarkAllocation)
+    .filter(([sector]) => !sectorValues[sector])
+    .map(([sector, target]) => ({ sector, targetAllocation: target }));
+
+  // Find overweight (>1.5x benchmark)
+  const overweight = sectors.filter(s => s.percentage > (s.benchmark * 1.5));
+
+  // Find underweight (<0.5x benchmark)
+  const underweight = sectors.filter(s => s.percentage < (s.benchmark * 0.5) && s.benchmark > 3);
+
+  res.json({ sectors, gaps, overweight, underweight, totalValue });
+});
+
+// Portfolio alerts
+app.get('/api/recommendations/alerts', async (req, res) => {
+  try {
+    const alerts = [];
+
+    for (const holding of data.holdings) {
+      const price = holding.currentPrice || holding.avgPrice;
+      const high52 = holding.high52Week;
+      const low52 = holding.low52Week;
+      const invested = holding.avgPrice * holding.quantity;
+      const currentValue = price * holding.quantity;
+      const pnlPercent = invested > 0 ? ((currentValue - invested) / invested) * 100 : 0;
+      const dayChangePercent = holding.dayChangePercent || 0;
+
+      // Calculate allocation
+      const totalValue = data.holdings.reduce((sum, h) => sum + (h.currentPrice || h.avgPrice) * h.quantity, 0);
+      const allocation = totalValue > 0 ? (currentValue / totalValue) * 100 : 0;
+
+      // Days held
+      const purchaseDate = new Date(holding.purchaseDate);
+      const today = new Date();
+      const daysHeld = Math.floor((today - purchaseDate) / (1000 * 60 * 60 * 24));
+
+      // Alert: Large single-day move
+      if (Math.abs(dayChangePercent) > 3) {
+        alerts.push({
+          type: dayChangePercent > 0 ? 'SURGE' : 'DROP',
+          priority: Math.abs(dayChangePercent) > 5 ? 'HIGH' : 'MEDIUM',
+          symbol: holding.symbol,
+          message: `${dayChangePercent > 0 ? 'Up' : 'Down'} ${Math.abs(dayChangePercent).toFixed(1)}% today`,
+          value: dayChangePercent,
+        });
+      }
+
+      // Alert: Concentrated position
+      if (allocation > 10) {
+        alerts.push({
+          type: 'CONCENTRATION',
+          priority: allocation > 15 ? 'HIGH' : 'MEDIUM',
+          symbol: holding.symbol,
+          message: `High allocation: ${allocation.toFixed(1)}% of portfolio`,
+          value: allocation,
+        });
+      }
+
+      // Alert: Large loss
+      if (pnlPercent < -20) {
+        alerts.push({
+          type: 'LOSS',
+          priority: pnlPercent < -30 ? 'HIGH' : 'MEDIUM',
+          symbol: holding.symbol,
+          message: `Down ${Math.abs(pnlPercent).toFixed(1)}% from purchase`,
+          value: pnlPercent,
+        });
+      }
+
+      // Alert: Large gain (consider booking profits)
+      if (pnlPercent > 50) {
+        alerts.push({
+          type: 'PROFIT',
+          priority: 'LOW',
+          symbol: holding.symbol,
+          message: `Up ${pnlPercent.toFixed(1)}% - consider partial profit booking`,
+          value: pnlPercent,
+        });
+      }
+
+      // Alert: LTCG threshold approaching
+      if (daysHeld >= 300 && daysHeld < 365 && pnlPercent > 0) {
+        alerts.push({
+          type: 'TAX',
+          priority: 'MEDIUM',
+          symbol: holding.symbol,
+          message: `${365 - daysHeld} days to LTCG qualification`,
+          value: 365 - daysHeld,
+        });
+      }
+    }
+
+    // Sort by priority
+    const priorityOrder = { HIGH: 0, MEDIUM: 1, LOW: 2 };
+    alerts.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+
+    res.json(alerts.slice(0, 20));
+  } catch (error) {
+    console.error('Alerts error:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // === IMPORT HISTORY APIs ===
