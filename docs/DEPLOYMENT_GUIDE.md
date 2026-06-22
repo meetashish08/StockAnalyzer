@@ -647,7 +647,7 @@ For issues and feature requests:
 | Portfolio | http://localhost:3001/portfolio | Holdings with India/US tabs |
 | Recommendations | http://localhost:3001/recommendations | Stock recommendations |
 | Analytics | http://localhost:3001/analytics | Charts & health scores |
-| Tax Analysis | http://localhost:3001/tax-analysis | Capital gains & ITR helper |
+| Tax Analysis | http://localhost:3001/tax-analysis | Capital gains & ITR helper (Excel + AIS import) |
 | Import | http://localhost:3001/import | Import from brokers |
 | AI Assistant | http://localhost:3001/ai-chat | AI chat with bookmarks |
 
@@ -673,3 +673,4 @@ For issues and feature requests:
 | `data.json` | Portfolio holdings & transactions |
 | `ai_bookmarks.json` | Saved AI chat answers |
 | `tax_analysis.json` | Tax analysis results |
+| `tax_templates.json` | Learned column mappings for Excel formats |

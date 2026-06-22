@@ -674,6 +674,7 @@ Analyzes financial Excel data for capital gains calculation and ITR filing assis
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/api/tax/analyze` | Upload & analyze Excel file |
+| POST | `/api/tax/import-ais` | Import AIS CSV from Income Tax portal |
 | GET | `/api/tax/analyses` | List all analyses |
 | GET | `/api/tax/analyses/:id` | Get specific analysis |
 | DELETE | `/api/tax/analyses/:id` | Delete analysis |
@@ -734,6 +735,52 @@ Generates Schedule CG data for ITR-2/ITR-3:
 - Section 111A (STCG on listed equity with STT)
 - Section 112A (LTCG on listed equity/MF with STT)
 - Loss carry-forward details (8 years)
+
+### AIS (Annual Information Statement) Import
+
+Import pre-calculated capital gains data directly from Income Tax portal CSV exports.
+
+#### How to Get AIS CSV
+1. Login to incometax.gov.in
+2. Go to e-File → View AIS
+3. Click "Download" → Select CSV format
+4. Choose "SecData" or "Schedule 112A Details"
+
+#### AIS CSV Format (SecData)
+| Column | Description |
+|--------|-------------|
+| FY | Financial Year (e.g., 2024-25) |
+| ISIN Code | Security identifier |
+| Name of the Security | Full company/fund name |
+| Asset Type | "Short term" or "Long term" |
+| Units | Quantity sold |
+| Sale Consideration | Total sale value |
+| Cost of Acquisition | Total purchase value |
+| Short Term Capital Gain | Pre-calculated STCG |
+| Long Term Capital Gain | Pre-calculated LTCG |
+| OPTION TO PAY TAX @10% | Y/N for pre-July 2024 transactions |
+
+#### AIS Import Benefits
+- **Official Data**: Values directly from CDSL/NSDL records
+- **Pre-calculated**: STCG/LTCG already computed by depository
+- **10% Tax Option**: Detects grandfathered transactions eligible for old tax rates
+- **High Confidence**: 95%+ accuracy since data is government-verified
+- **All Securities**: Stocks, ETFs, Mutual Funds from all demat accounts
+
+#### AIS Parsing Logic
+```javascript
+// Extract gain from AIS - use pre-calculated values
+const stcg = parseNum(getValue(colMap.stcg));
+const ltcg = parseNum(getValue(colMap.ltcgWithoutIndexation));
+
+if (isShortTerm && stcg !== 0) {
+  gain = stcg;
+  classificationType = 'STCG';
+} else if (isLongTerm && ltcg !== 0) {
+  gain = ltcg;
+  classificationType = 'LTCG';
+}
+```
 
 ---
 

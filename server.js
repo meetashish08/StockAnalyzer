@@ -1176,10 +1176,11 @@ function parseEmailText(emailText, broker) {
 }
 
 // =============================================
-// TAX ANALYSIS - Excel Upload & Capital Gains
+// INTELLIGENT TAX ANALYSIS - AI-Powered Excel Processing
 // =============================================
 
 const taxAnalysisPath = path.join(__dirname, 'tax_analysis.json');
+const taxTemplatesPath = path.join(__dirname, 'tax_templates.json');
 
 function loadTaxAnalysis() {
   try {
@@ -1187,34 +1188,270 @@ function loadTaxAnalysis() {
       return JSON.parse(fs.readFileSync(taxAnalysisPath, 'utf-8'));
     }
   } catch {}
-  return { analyses: [], nextAnalysisId: 1 };
+  return { analyses: [], nextAnalysisId: 1, pendingAnalyses: {} };
 }
 
 function saveTaxAnalysis(data) {
   fs.writeFileSync(taxAnalysisPath, JSON.stringify(data, null, 2));
 }
 
-let taxData = loadTaxAnalysis();
-
-// Helper: Calculate holding period and classify as STCG or LTCG
-function classifyCapitalGain(buyDate, sellDate, assetType = 'equity') {
-  const buy = new Date(buyDate);
-  const sell = new Date(sellDate);
-  const holdingDays = Math.floor((sell - buy) / (1000 * 60 * 60 * 24));
-
-  // For equity/MF: LTCG if held > 12 months, else STCG
-  // For debt funds: LTCG if held > 36 months (pre-2023 rules)
-  const ltcgThreshold = assetType === 'debt' ? 1095 : 365; // 36 months or 12 months
-
-  return {
-    holdingDays,
-    holdingMonths: Math.floor(holdingDays / 30),
-    isLongTerm: holdingDays > ltcgThreshold,
-    type: holdingDays > ltcgThreshold ? 'LTCG' : 'STCG',
-  };
+function loadTaxTemplates() {
+  try {
+    if (fs.existsSync(taxTemplatesPath)) {
+      return JSON.parse(fs.readFileSync(taxTemplatesPath, 'utf-8'));
+    }
+  } catch {}
+  return { templates: [], nextTemplateId: 1 };
 }
 
-// Helper: Parse various date formats
+function saveTaxTemplates(data) {
+  fs.writeFileSync(taxTemplatesPath, JSON.stringify(data, null, 2));
+}
+
+let taxData = loadTaxAnalysis();
+let taxTemplates = loadTaxTemplates();
+
+// =============================================
+// PHASE 1: Structure Analyzer
+// =============================================
+
+function analyzeExcelStructure(workbook) {
+  const sheets = [];
+
+  for (const sheetName of workbook.SheetNames) {
+    const sheet = workbook.Sheets[sheetName];
+    const rawData = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: null });
+
+    if (rawData.length < 2) continue;
+
+    // Find header row (row with most non-empty text cells)
+    let headerRowIndex = 0;
+    let maxTextCells = 0;
+
+    for (let i = 0; i < Math.min(20, rawData.length); i++) {
+      const row = rawData[i] || [];
+      const textCells = row.filter(cell =>
+        cell !== null &&
+        typeof cell === 'string' &&
+        cell.trim().length > 0 &&
+        !/^\d+([.,]\d+)?$/.test(cell.trim()) // Not a number
+      ).length;
+
+      if (textCells > maxTextCells) {
+        maxTextCells = textCells;
+        headerRowIndex = i;
+      }
+    }
+
+    const headers = (rawData[headerRowIndex] || []).map(h => String(h || '').trim());
+    const dataStartRow = headerRowIndex + 1;
+
+    // Find data end (detect footer/total rows)
+    let dataEndRow = rawData.length - 1;
+    for (let i = rawData.length - 1; i > dataStartRow; i--) {
+      const row = rawData[i] || [];
+      const rowText = row.map(c => String(c || '').toLowerCase()).join(' ');
+      if (rowText.includes('total') || rowText.includes('grand') || rowText.includes('sum')) {
+        dataEndRow = i - 1;
+      } else if (row.filter(c => c !== null).length > 2) {
+        break;
+      }
+    }
+
+    // Analyze each column
+    const columns = [];
+    for (let colIdx = 0; colIdx < headers.length; colIdx++) {
+      const header = headers[colIdx];
+      if (!header) continue;
+
+      // Sample values from data rows
+      const sampleValues = [];
+      for (let rowIdx = dataStartRow; rowIdx <= Math.min(dataStartRow + 10, dataEndRow); rowIdx++) {
+        const val = rawData[rowIdx]?.[colIdx];
+        if (val !== null && val !== undefined && val !== '') {
+          sampleValues.push(val);
+        }
+      }
+
+      // Infer data type
+      let dataType = 'text';
+      let nullCount = 0;
+      const totalRows = dataEndRow - dataStartRow + 1;
+
+      for (let rowIdx = dataStartRow; rowIdx <= dataEndRow; rowIdx++) {
+        if (rawData[rowIdx]?.[colIdx] === null || rawData[rowIdx]?.[colIdx] === '') {
+          nullCount++;
+        }
+      }
+
+      if (sampleValues.length > 0) {
+        const sample = sampleValues[0];
+        if (typeof sample === 'number') {
+          // Check if it's a date serial number (between 1900 and 2100 in Excel terms)
+          if (sample > 1 && sample < 100000 && sampleValues.every(v => typeof v === 'number' && v > 1 && v < 100000)) {
+            dataType = 'date';
+          } else {
+            dataType = 'number';
+          }
+        } else if (typeof sample === 'string') {
+          const str = sample.trim();
+          if (/^\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4}$/.test(str) ||
+              /^\d{4}[-\/]\d{1,2}[-\/]\d{1,2}$/.test(str) ||
+              /^\d{1,2}-[A-Za-z]{3}-\d{2,4}$/.test(str)) {
+            dataType = 'date';
+          } else if (/^[₹$Rs.\s]*[\d,]+\.?\d*$/.test(str) || /^\([\d,]+\.?\d*\)$/.test(str)) {
+            dataType = 'currency';
+          } else if (/^-?\d+\.?\d*%?$/.test(str)) {
+            dataType = 'number';
+          }
+        }
+      }
+
+      columns.push({
+        index: colIdx,
+        rawHeader: header,
+        sampleValues: sampleValues.slice(0, 5),
+        dataType,
+        nullPercentage: Math.round((nullCount / totalRows) * 100),
+        uniqueValueCount: new Set(sampleValues.map(v => String(v))).size,
+      });
+    }
+
+    // Detect sheet type
+    const allHeaders = headers.join(' ').toLowerCase();
+    let detectedType = 'unknown';
+    if (allHeaders.includes('buy') && allHeaders.includes('sell')) {
+      detectedType = 'transactions';
+    } else if (allHeaders.includes('gain') || allHeaders.includes('p&l') || allHeaders.includes('profit')) {
+      detectedType = 'capital_gains';
+    } else if (allHeaders.includes('quantity') || allHeaders.includes('qty') || allHeaders.includes('units')) {
+      detectedType = 'holdings';
+    }
+
+    sheets.push({
+      name: sheetName,
+      headerRowIndex,
+      dataStartRow,
+      dataEndRow,
+      totalRows: dataEndRow - dataStartRow + 1,
+      columns,
+      detectedType,
+      rawHeaders: headers,
+    });
+  }
+
+  return { sheets };
+}
+
+// =============================================
+// PHASE 2: AI Semantic Understanding
+// =============================================
+
+async function getAIColumnMapping(sheetStructure, sampleRows) {
+  const prompt = `You are a financial data analyst expert. Analyze this Excel structure and classify each column for Indian tax (ITR) capital gains calculation.
+
+EXCEL STRUCTURE:
+- Sheet: "${sheetStructure.name}"
+- Detected Type: ${sheetStructure.detectedType}
+- Headers: ${JSON.stringify(sheetStructure.rawHeaders)}
+- Column Details:
+${sheetStructure.columns.map(c => `  [${c.index}] "${c.rawHeader}" (${c.dataType}) - Samples: ${JSON.stringify(c.sampleValues.slice(0, 3))}`).join('\n')}
+
+- Sample Data Rows:
+${sampleRows.slice(0, 5).map((row, i) => `  Row ${i + 1}: ${JSON.stringify(row)}`).join('\n')}
+
+TASK: Map each column to a semantic category for tax calculation.
+
+SEMANTIC CATEGORIES:
+- SYMBOL: Stock ticker, scrip code, script name
+- ISIN: ISIN code (12 char alphanumeric)
+- SECURITY_NAME: Company/fund name, stock name, scheme name
+- TRANSACTION_TYPE: Buy/Sell/Purchase/Sale/Redemption indicator
+- QUANTITY: Number of shares/units (qty, units, no. of shares)
+- BUY_DATE: Purchase/acquisition date
+- SELL_DATE: Sale/redemption/transfer date
+- TRADE_DATE: Generic transaction date (if single date column)
+- BUY_PRICE: Purchase price per unit
+- SELL_PRICE: Sale price per unit
+- BUY_VALUE: Total purchase/cost value
+- SELL_VALUE: Total sale/redemption value
+- GAIN_LOSS: Profit/loss amount (P&L, realized gain)
+- GAIN_LOSS_PERCENT: Percentage gain/loss
+- STT: Securities Transaction Tax
+- BROKERAGE: Fees/charges/expenses
+- EXCHANGE: NSE/BSE/MCX
+- FOLIO: Mutual fund folio number
+- NAV: Net Asset Value
+- HOLDING_PERIOD: Days/months held
+- ASSET_TYPE: Equity/MF/ETF/Bond category
+- IGNORE: Columns not needed for tax calculation (serial no, remarks, etc.)
+
+IMPORTANT RULES:
+1. If a column header is ambiguous, use sample values to determine meaning
+2. "Date" alone could be BUY_DATE or SELL_DATE - check context and other columns
+3. If TRANSACTION_TYPE exists, a single "Date" column likely means the transaction date
+4. Currency columns (₹, Rs.) are likely value columns
+5. Short numeric values (1-1000) are likely QUANTITY
+6. Large numeric values are likely VALUE columns
+7. Negative values in GAIN_LOSS indicate loss
+8. If you see "Scrip" or "Script" it means stock SYMBOL
+9. "Dt." or "Dt" prefix usually means date
+
+OUTPUT FORMAT (valid JSON only, no markdown):
+{
+  "sheetType": "capital_gains|transactions|holdings|p&l_statement|unknown",
+  "transactionModel": "single_row|buy_sell_separate|paired",
+  "sourceGuess": "Zerodha|Groww|ICICI Direct|HDFC Securities|Kotak|Angel|NSDL CAS|CDSL CAS|Unknown",
+  "confidence": 0.85,
+  "columns": [
+    {"index": 0, "rawHeader": "...", "semantic": "SYMBOL", "confidence": 0.95},
+    {"index": 1, "rawHeader": "...", "semantic": "IGNORE", "confidence": 0.9, "reason": "Serial number"}
+  ],
+  "derivedFields": [
+    {"field": "GAIN_LOSS", "formula": "SELL_VALUE - BUY_VALUE", "reason": "No explicit gain column"}
+  ],
+  "dateFormat": "DD-MM-YYYY",
+  "warnings": ["No QUANTITY column - may be aggregated data"],
+  "notes": "This appears to be a Zerodha P&L statement"
+}`;
+
+  try {
+    const response = await axios.post(
+      `${PORTKEY_BASE_URL}/v1/messages`,
+      {
+        model: AI_MODELS['claude-sonnet'],
+        max_tokens: 2048,
+        system: 'You are a financial data parsing expert. Output valid JSON only, no markdown code blocks.',
+        messages: [{ role: 'user', content: prompt }],
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-portkey-api-key': PORTKEY_API_KEY,
+          'anthropic-version': '2023-06-01',
+        },
+        timeout: 60000,
+      }
+    );
+
+    const aiResponse = response.data.content[0].text;
+    // Extract JSON from response (handle potential markdown wrapping)
+    let jsonStr = aiResponse;
+    const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      jsonStr = jsonMatch[0];
+    }
+    return JSON.parse(jsonStr);
+  } catch (error) {
+    console.error('AI column mapping error:', error.message);
+    return null;
+  }
+}
+
+// =============================================
+// PHASE 3: Data Normalization
+// =============================================
+
 function parseDate(dateStr) {
   if (!dateStr) return null;
 
@@ -1226,23 +1463,28 @@ function parseDate(dateStr) {
 
   const str = String(dateStr).trim();
 
-  // Try various formats
-  const formats = [
-    /^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/, // DD-MM-YYYY or DD/MM/YYYY
-    /^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/, // YYYY-MM-DD
-    /^(\d{1,2})[-\/](\d{1,2})[-\/](\d{2})$/,  // DD-MM-YY
+  // Common date formats
+  const patterns = [
+    { regex: /^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/, parse: (m) => new Date(m[3], m[2] - 1, m[1]) }, // DD-MM-YYYY
+    { regex: /^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/, parse: (m) => new Date(m[1], m[2] - 1, m[3]) }, // YYYY-MM-DD
+    { regex: /^(\d{1,2})[-\/](\d{1,2})[-\/](\d{2})$/, parse: (m) => {
+      let year = parseInt(m[3]);
+      year += year > 50 ? 1900 : 2000;
+      return new Date(year, m[2] - 1, m[1]);
+    }}, // DD-MM-YY
+    { regex: /^(\d{1,2})-([A-Za-z]{3})-(\d{4})$/, parse: (m) => new Date(`${m[1]} ${m[2]} ${m[3]}`) }, // DD-Mon-YYYY
+    { regex: /^(\d{1,2})-([A-Za-z]{3})-(\d{2})$/, parse: (m) => {
+      let year = parseInt(m[3]);
+      year += year > 50 ? 1900 : 2000;
+      return new Date(`${m[1]} ${m[2]} ${year}`);
+    }}, // DD-Mon-YY
   ];
 
-  for (const fmt of formats) {
-    const match = str.match(fmt);
+  for (const { regex, parse } of patterns) {
+    const match = str.match(regex);
     if (match) {
-      if (fmt === formats[1]) {
-        return new Date(match[1], match[2] - 1, match[3]);
-      } else {
-        let year = parseInt(match[3]);
-        if (year < 100) year += year > 50 ? 1900 : 2000;
-        return new Date(year, match[2] - 1, match[1]);
-      }
+      const d = parse(match);
+      if (!isNaN(d.getTime())) return d;
     }
   }
 
@@ -1251,75 +1493,571 @@ function parseDate(dateStr) {
   return isNaN(parsed.getTime()) ? null : parsed;
 }
 
-// Helper: Detect column mappings from Excel headers
-function detectColumnMapping(headers) {
-  const lowerHeaders = headers.map(h => String(h || '').toLowerCase().trim());
+function parseCurrency(val) {
+  if (val === null || val === undefined || val === '') return 0;
+  if (typeof val === 'number') return val;
 
-  const mapping = {
-    symbol: -1,
-    name: -1,
-    buyDate: -1,
-    sellDate: -1,
-    buyPrice: -1,
-    sellPrice: -1,
-    quantity: -1,
-    buyValue: -1,
-    sellValue: -1,
-    gain: -1,
-    type: -1, // Stock/MF/ETF
-  };
+  let str = String(val).trim();
 
-  lowerHeaders.forEach((h, i) => {
-    // Symbol/Script
-    if (h.includes('symbol') || h.includes('script') || h.includes('scrip') || h === 'isin') {
-      mapping.symbol = i;
-    }
-    // Name
-    if (h.includes('name') || h.includes('company') || h.includes('stock')) {
-      mapping.name = i;
-    }
-    // Buy date
-    if (h.includes('buy') && h.includes('date') || h.includes('purchase') && h.includes('date') || h === 'buy date') {
-      mapping.buyDate = i;
-    }
-    // Sell date
-    if (h.includes('sell') && h.includes('date') || h.includes('sale') && h.includes('date') || h === 'sell date') {
-      mapping.sellDate = i;
-    }
-    // Buy price
-    if ((h.includes('buy') || h.includes('purchase')) && (h.includes('price') || h.includes('rate'))) {
-      mapping.buyPrice = i;
-    }
-    // Sell price
-    if ((h.includes('sell') || h.includes('sale')) && (h.includes('price') || h.includes('rate'))) {
-      mapping.sellPrice = i;
-    }
-    // Quantity
-    if (h.includes('qty') || h.includes('quantity') || h.includes('units') || h === 'qty') {
-      mapping.quantity = i;
-    }
-    // Buy value
-    if ((h.includes('buy') || h.includes('purchase') || h.includes('cost')) && h.includes('value')) {
-      mapping.buyValue = i;
-    }
-    // Sell value
-    if ((h.includes('sell') || h.includes('sale')) && h.includes('value')) {
-      mapping.sellValue = i;
-    }
-    // Gain/Profit
-    if (h.includes('gain') || h.includes('profit') || h.includes('p&l') || h.includes('pnl')) {
-      mapping.gain = i;
-    }
-    // Type
-    if (h.includes('type') || h.includes('category') || h.includes('asset')) {
-      mapping.type = i;
-    }
-  });
+  // Handle brackets as negative
+  const isNegative = str.startsWith('(') && str.endsWith(')') || str.startsWith('-');
+  str = str.replace(/[()]/g, '');
 
-  return mapping;
+  // Remove currency symbols and spaces
+  str = str.replace(/[₹$Rs.\s,]/gi, '');
+
+  // Handle Cr/Lakh suffixes
+  let multiplier = 1;
+  if (/cr$/i.test(str)) {
+    multiplier = 10000000;
+    str = str.replace(/cr$/i, '');
+  } else if (/l(akh)?$/i.test(str)) {
+    multiplier = 100000;
+    str = str.replace(/l(akh)?$/i, '');
+  } else if (/k$/i.test(str)) {
+    multiplier = 1000;
+    str = str.replace(/k$/i, '');
+  }
+
+  const num = parseFloat(str) || 0;
+  return (isNegative ? -num : num) * multiplier;
 }
 
-// Upload and analyze Excel file
+function normalizeTransactions(rawData, structure, columnMapping) {
+  const transactions = [];
+  const mapping = {};
+
+  // Build column index mapping
+  for (const col of columnMapping.columns || []) {
+    if (col.semantic && col.semantic !== 'IGNORE') {
+      mapping[col.semantic] = col.index;
+    }
+  }
+
+  // Process each data row
+  for (let rowIdx = structure.dataStartRow; rowIdx <= structure.dataEndRow; rowIdx++) {
+    const row = rawData[rowIdx];
+    if (!row || row.filter(c => c !== null && c !== '').length < 2) continue;
+
+    const getValue = (semantic) => {
+      const idx = mapping[semantic];
+      return idx !== undefined ? row[idx] : null;
+    };
+
+    // Extract base fields
+    const symbol = String(getValue('SYMBOL') || getValue('SECURITY_NAME') || '').trim();
+    const name = String(getValue('SECURITY_NAME') || getValue('SYMBOL') || '').trim();
+
+    if (!symbol && !name) continue;
+
+    // Parse dates
+    let buyDate = parseDate(getValue('BUY_DATE'));
+    let sellDate = parseDate(getValue('SELL_DATE'));
+    const tradeDate = parseDate(getValue('TRADE_DATE'));
+
+    // Handle transaction type for single date scenarios
+    const txnType = String(getValue('TRANSACTION_TYPE') || '').toLowerCase();
+    if (tradeDate && !buyDate && !sellDate) {
+      if (txnType.includes('buy') || txnType.includes('purchase')) {
+        buyDate = tradeDate;
+      } else if (txnType.includes('sell') || txnType.includes('sale') || txnType.includes('redemption')) {
+        sellDate = tradeDate;
+      }
+    }
+
+    // Parse numeric values
+    const quantity = parseCurrency(getValue('QUANTITY')) || 1;
+    const buyPrice = parseCurrency(getValue('BUY_PRICE'));
+    const sellPrice = parseCurrency(getValue('SELL_PRICE'));
+    let buyValue = parseCurrency(getValue('BUY_VALUE'));
+    let sellValue = parseCurrency(getValue('SELL_VALUE'));
+
+    // Calculate values if not provided
+    if (!buyValue && buyPrice) buyValue = buyPrice * quantity;
+    if (!sellValue && sellPrice) sellValue = sellPrice * quantity;
+
+    // Get or calculate gain/loss
+    let gain = parseCurrency(getValue('GAIN_LOSS'));
+    if (gain === 0 && sellValue && buyValue) {
+      gain = sellValue - buyValue;
+    }
+
+    // Classify capital gain
+    let classification = null;
+    if (buyDate && sellDate) {
+      const holdingDays = Math.floor((sellDate - buyDate) / (1000 * 60 * 60 * 24));
+      classification = {
+        holdingDays,
+        holdingMonths: Math.floor(holdingDays / 30),
+        isLongTerm: holdingDays > 365,
+        type: holdingDays > 365 ? 'LTCG' : 'STCG',
+      };
+    }
+
+    // Additional fields
+    const stt = parseCurrency(getValue('STT'));
+    const brokerage = parseCurrency(getValue('BROKERAGE'));
+    const exchange = String(getValue('EXCHANGE') || '').toUpperCase();
+    const isin = String(getValue('ISIN') || '').toUpperCase();
+
+    transactions.push({
+      symbol,
+      name: name || symbol,
+      isin,
+      buyDate: buyDate ? buyDate.toISOString().split('T')[0] : null,
+      sellDate: sellDate ? sellDate.toISOString().split('T')[0] : null,
+      quantity,
+      buyPrice,
+      sellPrice,
+      buyValue,
+      sellValue,
+      gain,
+      stt,
+      brokerage,
+      exchange,
+      classification,
+      sheet: structure.name,
+      sourceRow: rowIdx + 1,
+      confidence: columnMapping.confidence || 0.5,
+    });
+  }
+
+  return transactions;
+}
+
+// =============================================
+// PHASE 4: Tax Calculator
+// =============================================
+
+function calculateTaxes(transactions) {
+  // Indian Tax Rules FY 2024-25
+  const TAX_CONFIG = {
+    stcgRate: 0.20,           // 20% for STCG on equity
+    ltcgRate: 0.125,          // 12.5% for LTCG on equity
+    ltcgExemption: 125000,    // ₹1.25 lakh exemption
+    ltcgThresholdDays: 365,   // 12 months
+  };
+
+  const stcgTransactions = transactions.filter(t => t.classification?.type === 'STCG');
+  const ltcgTransactions = transactions.filter(t => t.classification?.type === 'LTCG');
+  const unclassified = transactions.filter(t => !t.classification);
+
+  const stcgProfit = stcgTransactions.filter(t => t.gain > 0).reduce((sum, t) => sum + t.gain, 0);
+  const stcgLoss = stcgTransactions.filter(t => t.gain < 0).reduce((sum, t) => sum + t.gain, 0);
+  const ltcgProfit = ltcgTransactions.filter(t => t.gain > 0).reduce((sum, t) => sum + t.gain, 0);
+  const ltcgLoss = ltcgTransactions.filter(t => t.gain < 0).reduce((sum, t) => sum + t.gain, 0);
+
+  const totalSTCG = stcgProfit + stcgLoss;
+  const totalLTCG = ltcgProfit + ltcgLoss;
+  const totalGain = totalSTCG + totalLTCG;
+
+  // Apply loss set-off rules
+  let netSTCG = totalSTCG;
+  let netLTCG = totalLTCG;
+  let stcgLossCarryForward = 0;
+  let ltcgLossCarryForward = 0;
+
+  // STCG loss can be set off against LTCG
+  if (netSTCG < 0 && netLTCG > 0) {
+    const setOff = Math.min(Math.abs(netSTCG), netLTCG);
+    netLTCG -= setOff;
+    netSTCG += setOff;
+  }
+
+  // Remaining losses carry forward
+  if (netSTCG < 0) stcgLossCarryForward = Math.abs(netSTCG);
+  if (netLTCG < 0) ltcgLossCarryForward = Math.abs(netLTCG);
+
+  // Calculate taxable amounts
+  const taxableSTCG = Math.max(0, netSTCG);
+  const taxableLTCG = Math.max(0, netLTCG - TAX_CONFIG.ltcgExemption);
+
+  const estimatedSTCGTax = taxableSTCG * TAX_CONFIG.stcgRate;
+  const estimatedLTCGTax = taxableLTCG * TAX_CONFIG.ltcgRate;
+  const totalEstimatedTax = estimatedSTCGTax + estimatedLTCGTax;
+
+  // Calculate totals for buy/sell values
+  const totalBuyValue = transactions.reduce((sum, t) => sum + (t.buyValue || 0), 0);
+  const totalSellValue = transactions.reduce((sum, t) => sum + (t.sellValue || 0), 0);
+  const totalSTT = transactions.reduce((sum, t) => sum + (t.stt || 0), 0);
+  const totalBrokerage = transactions.reduce((sum, t) => sum + (t.brokerage || 0), 0);
+
+  return {
+    summary: {
+      totalTransactions: transactions.length,
+      stcgCount: stcgTransactions.length,
+      ltcgCount: ltcgTransactions.length,
+      unclassifiedCount: unclassified.length,
+      totalBuyValue,
+      totalSellValue,
+      totalGain,
+      totalSTCG,
+      totalLTCG,
+      stcgProfit,
+      stcgLoss,
+      ltcgProfit,
+      ltcgLoss,
+      netSTCG,
+      netLTCG,
+      taxableSTCG,
+      taxableLTCG,
+      estimatedSTCGTax,
+      estimatedLTCGTax,
+      totalEstimatedTax,
+      ltcgExemption: TAX_CONFIG.ltcgExemption,
+      stcgLossCarryForward,
+      ltcgLossCarryForward,
+      totalSTT,
+      totalBrokerage,
+    },
+    config: TAX_CONFIG,
+  };
+}
+
+// =============================================
+// PHASE 5: Insights Generator
+// =============================================
+
+function generateInsights(summary, transactions) {
+  const insights = [];
+
+  // Loss set-off opportunity
+  if (summary.stcgLoss < 0 || summary.ltcgLoss < 0) {
+    const totalLoss = Math.abs(summary.stcgLoss) + Math.abs(summary.ltcgLoss);
+    insights.push({
+      type: 'tax_saving',
+      priority: 1,
+      title: 'Capital Loss Set-off Available',
+      description: `You have capital losses of ₹${totalLoss.toLocaleString('en-IN')} that can reduce your tax liability.`,
+      details: {
+        stcgLoss: Math.abs(summary.stcgLoss),
+        ltcgLoss: Math.abs(summary.ltcgLoss),
+      },
+      impact: 'STCG losses can offset both STCG and LTCG. LTCG losses can only offset LTCG. Unused losses carry forward 8 years.',
+    });
+  }
+
+  // LTCG exemption status
+  if (summary.totalLTCG > 0) {
+    if (summary.totalLTCG <= summary.ltcgExemption) {
+      insights.push({
+        type: 'tax_saving',
+        priority: 2,
+        title: 'LTCG Within Exemption Limit',
+        description: `Your LTCG of ₹${summary.totalLTCG.toLocaleString('en-IN')} is fully exempt (limit: ₹1,25,000).`,
+        impact: `Tax saved: ₹${Math.round(summary.totalLTCG * 0.125).toLocaleString('en-IN')}`,
+      });
+    } else {
+      const excess = summary.totalLTCG - summary.ltcgExemption;
+      insights.push({
+        type: 'info',
+        priority: 2,
+        title: 'LTCG Exceeds Exemption',
+        description: `₹${excess.toLocaleString('en-IN')} of your LTCG exceeds the ₹1,25,000 exemption.`,
+        impact: `Taxable at 12.5% = ₹${Math.round(excess * 0.125).toLocaleString('en-IN')}`,
+      });
+    }
+  }
+
+  // High STCG warning
+  if (summary.totalSTCG > 100000) {
+    insights.push({
+      type: 'warning',
+      priority: 3,
+      title: 'Significant Short-Term Gains',
+      description: `STCG of ₹${summary.totalSTCG.toLocaleString('en-IN')} is taxed at 20%.`,
+      impact: 'Consider holding investments >12 months for lower 12.5% LTCG rate.',
+    });
+  }
+
+  // Near-term LTCG opportunities
+  const nearLtcg = transactions.filter(t => {
+    if (!t.classification || t.classification.type !== 'STCG') return false;
+    const daysToLtcg = 365 - t.classification.holdingDays;
+    return daysToLtcg > 0 && daysToLtcg <= 90 && t.gain > 10000;
+  });
+
+  if (nearLtcg.length > 0) {
+    insights.push({
+      type: 'optimization',
+      priority: 4,
+      title: 'Near-Term LTCG Qualification',
+      description: `${nearLtcg.length} transaction(s) would qualify for LTCG if held slightly longer.`,
+      details: nearLtcg.map(t => ({
+        symbol: t.symbol,
+        gain: t.gain,
+        daysToLtcg: 365 - t.classification.holdingDays,
+        potentialSaving: Math.round(t.gain * (0.20 - 0.125)),
+      })),
+      impact: 'Waiting could reduce tax from 20% to 12.5%.',
+    });
+  }
+
+  // Loss carry forward
+  if (summary.stcgLossCarryForward > 0 || summary.ltcgLossCarryForward > 0) {
+    const total = summary.stcgLossCarryForward + summary.ltcgLossCarryForward;
+    insights.push({
+      type: 'info',
+      priority: 5,
+      title: 'Losses Available for Carry Forward',
+      description: `₹${total.toLocaleString('en-IN')} in capital losses can be carried forward for 8 years.`,
+      details: {
+        stcgLoss: summary.stcgLossCarryForward,
+        ltcgLoss: summary.ltcgLossCarryForward,
+      },
+      impact: 'File ITR to preserve carry-forward benefit. Report in Schedule CFL.',
+    });
+  }
+
+  // ITR guidance
+  insights.push({
+    type: 'itr_guidance',
+    priority: 10,
+    title: 'ITR Form Required',
+    description: summary.totalGain !== 0 ?
+      'Capital gains require ITR-2 or ITR-3. ITR-1 cannot be used.' :
+      'Even with zero net gain, report transactions in ITR-2/3 if you had capital gains activity.',
+    impact: 'Schedule CG (Capital Gains) must be filled. Keep all contract notes.',
+  });
+
+  // Sort by priority
+  insights.sort((a, b) => a.priority - b.priority);
+
+  return insights;
+}
+
+// =============================================
+// PHASE 6: Helper Functions
+// =============================================
+
+function determineFiscalYear(transactions) {
+  const dates = transactions
+    .map(t => t.sellDate ? new Date(t.sellDate) : null)
+    .filter(d => d && !isNaN(d.getTime()));
+
+  if (dates.length === 0) return 'Unknown';
+
+  const fyCounts = {};
+  dates.forEach(d => {
+    const month = d.getMonth();
+    const year = d.getFullYear();
+    const fy = month >= 3 ? `${year}-${year + 1}` : `${year - 1}-${year}`;
+    fyCounts[fy] = (fyCounts[fy] || 0) + 1;
+  });
+
+  return Object.entries(fyCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'Unknown';
+}
+
+function matchTemplate(structure, templates) {
+  for (const template of templates) {
+    const headerMatch = template.fingerprint.headerPatterns.every(pattern =>
+      structure.rawHeaders.some(h => new RegExp(pattern, 'i').test(h))
+    );
+    if (headerMatch) {
+      return template;
+    }
+  }
+  return null;
+}
+
+// =============================================
+// API ENDPOINTS
+// =============================================
+
+// Step 1: Upload and analyze structure
+app.post('/api/tax/upload', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const filePath = req.file.path;
+    const workbook = XLSX.readFile(filePath);
+
+    // Analyze structure
+    const structure = analyzeExcelStructure(workbook);
+
+    if (structure.sheets.length === 0) {
+      fs.unlinkSync(filePath);
+      return res.status(400).json({ error: 'No valid data sheets found in the file' });
+    }
+
+    // Get raw data for AI analysis
+    const rawDataBySheet = {};
+    for (const sheet of structure.sheets) {
+      const sheetData = workbook.Sheets[sheet.name];
+      rawDataBySheet[sheet.name] = XLSX.utils.sheet_to_json(sheetData, { header: 1, raw: true, defval: null });
+    }
+
+    // Check for matching template first
+    let columnMappings = {};
+    let useAI = true;
+
+    for (const sheet of structure.sheets) {
+      const matchedTemplate = matchTemplate(sheet, taxTemplates.templates);
+      if (matchedTemplate) {
+        columnMappings[sheet.name] = matchedTemplate.columnMapping;
+        columnMappings[sheet.name].sourceGuess = matchedTemplate.sourceName;
+        columnMappings[sheet.name].confidence = matchedTemplate.confidence;
+        columnMappings[sheet.name].fromTemplate = true;
+        useAI = false;
+      }
+    }
+
+    // Use AI for sheets without templates
+    if (useAI) {
+      for (const sheet of structure.sheets) {
+        if (!columnMappings[sheet.name]) {
+          const sampleRows = rawDataBySheet[sheet.name].slice(sheet.dataStartRow, sheet.dataStartRow + 6);
+          const aiMapping = await getAIColumnMapping(sheet, sampleRows);
+          if (aiMapping) {
+            columnMappings[sheet.name] = aiMapping;
+          }
+        }
+      }
+    }
+
+    // Generate a pending analysis ID
+    const pendingId = `pending_${Date.now()}`;
+
+    // Store pending analysis
+    taxData.pendingAnalyses = taxData.pendingAnalyses || {};
+    taxData.pendingAnalyses[pendingId] = {
+      filePath,
+      fileName: req.file.originalname,
+      structure,
+      columnMappings,
+      rawDataBySheet,
+      createdAt: new Date().toISOString(),
+    };
+    saveTaxAnalysis(taxData);
+
+    // Determine if confirmation needed
+    const lowConfidenceSheets = structure.sheets.filter(s => {
+      const mapping = columnMappings[s.name];
+      return !mapping || mapping.confidence < 0.8;
+    });
+
+    res.json({
+      pendingId,
+      fileName: req.file.originalname,
+      structure,
+      columnMappings,
+      requiresConfirmation: lowConfidenceSheets.length > 0,
+      lowConfidenceSheets: lowConfidenceSheets.map(s => s.name),
+      message: lowConfidenceSheets.length > 0 ?
+        'Some columns need confirmation before processing' :
+        'Ready to process',
+    });
+  } catch (error) {
+    console.error('Tax upload error:', error);
+    res.status(500).json({ error: error.message || 'Failed to analyze file' });
+  }
+});
+
+// Step 2: Confirm mapping (optional)
+app.post('/api/tax/confirm-mapping', (req, res) => {
+  try {
+    const { pendingId, columnMappings } = req.body;
+
+    if (!taxData.pendingAnalyses?.[pendingId]) {
+      return res.status(404).json({ error: 'Pending analysis not found' });
+    }
+
+    // Update mappings with user corrections
+    taxData.pendingAnalyses[pendingId].columnMappings = columnMappings;
+    taxData.pendingAnalyses[pendingId].userConfirmed = true;
+    saveTaxAnalysis(taxData);
+
+    res.json({ success: true, message: 'Mappings confirmed' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Step 3: Process and calculate
+app.post('/api/tax/process', async (req, res) => {
+  try {
+    const { pendingId } = req.body;
+
+    const pending = taxData.pendingAnalyses?.[pendingId];
+    if (!pending) {
+      return res.status(404).json({ error: 'Pending analysis not found' });
+    }
+
+    const { structure, columnMappings, rawDataBySheet, fileName, filePath } = pending;
+
+    // Normalize transactions from all sheets
+    let allTransactions = [];
+    const sheetResults = [];
+
+    for (const sheet of structure.sheets) {
+      const mapping = columnMappings[sheet.name];
+      if (!mapping) continue;
+
+      const rawData = rawDataBySheet[sheet.name];
+      const transactions = normalizeTransactions(rawData, sheet, mapping);
+
+      allTransactions.push(...transactions);
+      sheetResults.push({
+        name: sheet.name,
+        rowCount: transactions.length,
+        sourceGuess: mapping.sourceGuess,
+        confidence: mapping.confidence,
+      });
+    }
+
+    // Calculate taxes
+    const { summary, config } = calculateTaxes(allTransactions);
+
+    // Generate insights
+    const insights = generateInsights(summary, allTransactions);
+
+    // Get top gainers and losers
+    const sortedByGain = [...allTransactions].sort((a, b) => (b.gain || 0) - (a.gain || 0));
+    const topGainers = sortedByGain.slice(0, 5).filter(t => t.gain > 0);
+    const topLosers = sortedByGain.slice(-5).reverse().filter(t => t.gain < 0);
+
+    // Create final analysis
+    const analysis = {
+      id: taxData.nextAnalysisId++,
+      fileName,
+      uploadedAt: pending.createdAt,
+      processedAt: new Date().toISOString(),
+      fiscalYear: determineFiscalYear(allTransactions),
+      summary,
+      taxConfig: config,
+      transactions: allTransactions,
+      sheets: sheetResults,
+      insights,
+      topGainers,
+      topLosers,
+      aiMappings: columnMappings,
+      structure,
+    };
+
+    // Save analysis
+    taxData.analyses.unshift(analysis);
+
+    // Clean up pending
+    delete taxData.pendingAnalyses[pendingId];
+    saveTaxAnalysis(taxData);
+
+    // Clean up uploaded file
+    try {
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    } catch (e) {}
+
+    res.json(analysis);
+  } catch (error) {
+    console.error('Tax process error:', error);
+    res.status(500).json({ error: error.message || 'Failed to process file' });
+  }
+});
+
+// Quick analyze (combined upload + process for simple files)
 app.post('/api/tax/analyze', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
@@ -1329,203 +2067,83 @@ app.post('/api/tax/analyze', upload.single('file'), async (req, res) => {
     const filePath = req.file.path;
     const workbook = XLSX.readFile(filePath);
 
-    // Get all sheet names
-    const sheetNames = workbook.SheetNames;
+    // Analyze structure
+    const structure = analyzeExcelStructure(workbook);
 
-    // Parse all sheets
-    const allTransactions = [];
-    const sheetSummaries = [];
+    if (structure.sheets.length === 0) {
+      fs.unlinkSync(filePath);
+      return res.status(400).json({ error: 'No valid data sheets found' });
+    }
 
-    for (const sheetName of sheetNames) {
-      const sheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, dateNF: 'yyyy-mm-dd' });
+    // Get raw data and AI mappings
+    let allTransactions = [];
+    const sheetResults = [];
+    const columnMappings = {};
 
-      if (jsonData.length < 2) continue; // Skip empty sheets
+    for (const sheet of structure.sheets) {
+      const sheetData = workbook.Sheets[sheet.name];
+      const rawData = XLSX.utils.sheet_to_json(sheetData, { header: 1, raw: true, defval: null });
 
-      const headers = jsonData[0];
-      const mapping = detectColumnMapping(headers);
+      // Check template first
+      let mapping = matchTemplate(sheet, taxTemplates.templates);
 
-      const transactions = [];
-
-      for (let i = 1; i < jsonData.length; i++) {
-        const row = jsonData[i];
-        if (!row || row.length === 0) continue;
-
-        const symbol = mapping.symbol >= 0 ? String(row[mapping.symbol] || '').trim() : '';
-        const name = mapping.name >= 0 ? String(row[mapping.name] || '').trim() : symbol;
-
-        // Parse dates
-        const buyDateRaw = mapping.buyDate >= 0 ? row[mapping.buyDate] : null;
-        const sellDateRaw = mapping.sellDate >= 0 ? row[mapping.sellDate] : null;
-        const buyDate = parseDate(buyDateRaw);
-        const sellDate = parseDate(sellDateRaw);
-
-        // Parse numbers
-        const parseNum = (val) => {
-          if (val === null || val === undefined || val === '') return 0;
-          return parseFloat(String(val).replace(/[₹,Rs.\s]/g, '')) || 0;
-        };
-
-        const quantity = mapping.quantity >= 0 ? parseNum(row[mapping.quantity]) : 1;
-        const buyPrice = mapping.buyPrice >= 0 ? parseNum(row[mapping.buyPrice]) : 0;
-        const sellPrice = mapping.sellPrice >= 0 ? parseNum(row[mapping.sellPrice]) : 0;
-        const buyValue = mapping.buyValue >= 0 ? parseNum(row[mapping.buyValue]) : buyPrice * quantity;
-        const sellValue = mapping.sellValue >= 0 ? parseNum(row[mapping.sellValue]) : sellPrice * quantity;
-
-        // Calculate gain if not provided
-        let gain = mapping.gain >= 0 ? parseNum(row[mapping.gain]) : null;
-        if (gain === null && sellValue && buyValue) {
-          gain = sellValue - buyValue;
-        }
-
-        // Classify capital gain
-        let classification = null;
-        if (buyDate && sellDate) {
-          classification = classifyCapitalGain(buyDate, sellDate);
-        }
-
-        if (symbol || name) {
-          transactions.push({
-            symbol,
-            name: name || symbol,
-            buyDate: buyDate ? buyDate.toISOString().split('T')[0] : null,
-            sellDate: sellDate ? sellDate.toISOString().split('T')[0] : null,
-            quantity,
-            buyPrice,
-            sellPrice,
-            buyValue,
-            sellValue,
-            gain,
-            classification,
-            sheet: sheetName,
-          });
-        }
+      if (!mapping) {
+        // Use AI
+        const sampleRows = rawData.slice(sheet.dataStartRow, sheet.dataStartRow + 6);
+        mapping = await getAIColumnMapping(sheet, sampleRows);
       }
 
-      if (transactions.length > 0) {
+      if (mapping) {
+        columnMappings[sheet.name] = mapping;
+        const transactions = normalizeTransactions(rawData, sheet, mapping);
         allTransactions.push(...transactions);
-        sheetSummaries.push({
-          name: sheetName,
+        sheetResults.push({
+          name: sheet.name,
           rowCount: transactions.length,
-          columns: Object.entries(mapping).filter(([k, v]) => v >= 0).map(([k]) => k),
+          sourceGuess: mapping.sourceGuess,
+          confidence: mapping.confidence,
         });
       }
     }
 
-    // Clean up uploaded file
+    // Clean up file
     fs.unlinkSync(filePath);
 
-    // Calculate aggregated metrics
-    const stcgTransactions = allTransactions.filter(t => t.classification?.type === 'STCG');
-    const ltcgTransactions = allTransactions.filter(t => t.classification?.type === 'LTCG');
-    const unclassified = allTransactions.filter(t => !t.classification);
+    if (allTransactions.length === 0) {
+      return res.status(400).json({
+        error: 'Could not extract any transactions from the file',
+        structure,
+        columnMappings,
+      });
+    }
 
-    const totalSTCG = stcgTransactions.reduce((sum, t) => sum + (t.gain || 0), 0);
-    const totalLTCG = ltcgTransactions.reduce((sum, t) => sum + (t.gain || 0), 0);
-    const totalGain = allTransactions.reduce((sum, t) => sum + (t.gain || 0), 0);
-
-    const stcgProfit = stcgTransactions.filter(t => t.gain > 0).reduce((sum, t) => sum + t.gain, 0);
-    const stcgLoss = stcgTransactions.filter(t => t.gain < 0).reduce((sum, t) => sum + t.gain, 0);
-    const ltcgProfit = ltcgTransactions.filter(t => t.gain > 0).reduce((sum, t) => sum + t.gain, 0);
-    const ltcgLoss = ltcgTransactions.filter(t => t.gain < 0).reduce((sum, t) => sum + t.gain, 0);
-
-    // Tax calculation (Indian tax rules FY 2024-25)
-    const ltcgExemption = 125000; // Rs. 1.25 lakh exemption for LTCG
-    const taxableSTCG = Math.max(0, totalSTCG);
-    const taxableLTCG = Math.max(0, totalLTCG - ltcgExemption);
-
-    // Tax rates
-    const stcgTaxRate = 0.20; // 20% for STCG on equity (from July 2024)
-    const ltcgTaxRate = 0.125; // 12.5% for LTCG on equity (from July 2024)
-
-    const estimatedSTCGTax = taxableSTCG * stcgTaxRate;
-    const estimatedLTCGTax = taxableLTCG * ltcgTaxRate;
-    const totalEstimatedTax = estimatedSTCGTax + estimatedLTCGTax;
+    // Calculate taxes
+    const { summary, config } = calculateTaxes(allTransactions);
 
     // Generate insights
-    const insights = [];
+    const insights = generateInsights(summary, allTransactions);
 
-    // Loss harvesting opportunity
-    if (stcgLoss < 0 || ltcgLoss < 0) {
-      insights.push({
-        type: 'tax_saving',
-        title: 'Loss Set-off Available',
-        description: `You have capital losses that can be set off against gains. STCG losses: ₹${Math.abs(stcgLoss).toLocaleString('en-IN')}, LTCG losses: ₹${Math.abs(ltcgLoss).toLocaleString('en-IN')}`,
-        impact: 'STCG losses can be set off against both STCG and LTCG. LTCG losses can only be set off against LTCG.',
-      });
-    }
-
-    // LTCG exemption usage
-    if (totalLTCG > 0 && totalLTCG <= ltcgExemption) {
-      insights.push({
-        type: 'tax_saving',
-        title: 'LTCG Within Exemption Limit',
-        description: `Your LTCG of ₹${totalLTCG.toLocaleString('en-IN')} is within the ₹1,25,000 exemption limit. No LTCG tax payable!`,
-        impact: 'You have saved ₹' + Math.round(totalLTCG * ltcgTaxRate).toLocaleString('en-IN') + ' in taxes.',
-      });
-    } else if (totalLTCG > ltcgExemption) {
-      insights.push({
-        type: 'info',
-        title: 'LTCG Exceeds Exemption',
-        description: `LTCG of ₹${(totalLTCG - ltcgExemption).toLocaleString('en-IN')} exceeds the ₹1,25,000 exemption and is taxable at 12.5%.`,
-        impact: 'Estimated LTCG tax: ₹' + Math.round(estimatedLTCGTax).toLocaleString('en-IN'),
-      });
-    }
-
-    // High STCG warning
-    if (totalSTCG > 100000) {
-      insights.push({
-        type: 'warning',
-        title: 'High Short-Term Gains',
-        description: `You have significant STCG of ₹${totalSTCG.toLocaleString('en-IN')}. STCG is taxed at 20%.`,
-        impact: 'Consider holding positions for >12 months to qualify for lower LTCG tax rate (12.5%).',
-      });
-    }
-
-    // ITR form guidance
-    const itrForm = totalGain > 0 ? 'ITR-2 or ITR-3' : 'ITR-2 or ITR-3';
-    insights.push({
-      type: 'itr_guidance',
-      title: 'ITR Form Required',
-      description: `For capital gains from equity, you need to file ${itrForm}. ITR-1 cannot be used if you have capital gains.`,
-      impact: 'Schedule CG (Capital Gains) needs to be filled in your ITR.',
-    });
-
-    // Top gainers and losers
+    // Get top gainers and losers
     const sortedByGain = [...allTransactions].sort((a, b) => (b.gain || 0) - (a.gain || 0));
     const topGainers = sortedByGain.slice(0, 5).filter(t => t.gain > 0);
     const topLosers = sortedByGain.slice(-5).reverse().filter(t => t.gain < 0);
 
-    // Save analysis
+    // Create analysis
     const analysis = {
       id: taxData.nextAnalysisId++,
       fileName: req.file.originalname,
       uploadedAt: new Date().toISOString(),
+      processedAt: new Date().toISOString(),
       fiscalYear: determineFiscalYear(allTransactions),
-      summary: {
-        totalTransactions: allTransactions.length,
-        stcgCount: stcgTransactions.length,
-        ltcgCount: ltcgTransactions.length,
-        unclassifiedCount: unclassified.length,
-        totalGain,
-        totalSTCG,
-        totalLTCG,
-        stcgProfit,
-        stcgLoss,
-        ltcgProfit,
-        ltcgLoss,
-        taxableSTCG,
-        taxableLTCG,
-        estimatedSTCGTax,
-        estimatedLTCGTax,
-        totalEstimatedTax,
-        ltcgExemption,
-      },
+      summary,
+      taxConfig: config,
       transactions: allTransactions,
-      sheets: sheetSummaries,
+      sheets: sheetResults,
       insights,
       topGainers,
       topLosers,
+      aiMappings: columnMappings,
+      structure,
     };
 
     taxData.analyses.unshift(analysis);
@@ -1538,27 +2156,7 @@ app.post('/api/tax/analyze', upload.single('file'), async (req, res) => {
   }
 });
 
-// Helper: Determine fiscal year from transactions
-function determineFiscalYear(transactions) {
-  const dates = transactions
-    .map(t => t.sellDate ? new Date(t.sellDate) : null)
-    .filter(d => d && !isNaN(d.getTime()));
-
-  if (dates.length === 0) return 'Unknown';
-
-  // Find most common fiscal year
-  const fyCounts = {};
-  dates.forEach(d => {
-    const month = d.getMonth();
-    const year = d.getFullYear();
-    const fy = month >= 3 ? `${year}-${year + 1}` : `${year - 1}-${year}`;
-    fyCounts[fy] = (fyCounts[fy] || 0) + 1;
-  });
-
-  return Object.entries(fyCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'Unknown';
-}
-
-// Get all tax analyses
+// Get all analyses
 app.get('/api/tax/analyses', (req, res) => {
   res.json(taxData.analyses.map(a => ({
     id: a.id,
@@ -1566,10 +2164,11 @@ app.get('/api/tax/analyses', (req, res) => {
     uploadedAt: a.uploadedAt,
     fiscalYear: a.fiscalYear,
     summary: a.summary,
+    sheets: a.sheets,
   })));
 });
 
-// Get specific analysis by ID
+// Get specific analysis
 app.get('/api/tax/analyses/:id', (req, res) => {
   const id = parseInt(req.params.id);
   const analysis = taxData.analyses.find(a => a.id === id);
@@ -1587,7 +2186,325 @@ app.delete('/api/tax/analyses/:id', (req, res) => {
   res.json({ success: true });
 });
 
-// Generate ITR-ready report
+// Save as template
+app.post('/api/tax/save-template', (req, res) => {
+  try {
+    const { analysisId, templateName } = req.body;
+
+    const analysis = taxData.analyses.find(a => a.id === analysisId);
+    if (!analysis) {
+      return res.status(404).json({ error: 'Analysis not found' });
+    }
+
+    // Create template from analysis
+    const template = {
+      id: taxTemplates.nextTemplateId++,
+      name: templateName,
+      sourceName: analysis.sheets[0]?.sourceGuess || 'Custom',
+      confidence: 0.95,
+      createdAt: new Date().toISOString(),
+      timesUsed: 1,
+      fingerprint: {
+        headerPatterns: analysis.structure.sheets[0]?.rawHeaders
+          .filter(h => h && h.length > 2)
+          .slice(0, 5),
+      },
+      columnMapping: analysis.aiMappings[analysis.structure.sheets[0]?.name],
+    };
+
+    taxTemplates.templates.push(template);
+    saveTaxTemplates(taxTemplates);
+
+    res.json({ success: true, template });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get templates
+app.get('/api/tax/templates', (req, res) => {
+  res.json(taxTemplates.templates);
+});
+
+// Delete template
+app.delete('/api/tax/templates/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  taxTemplates.templates = taxTemplates.templates.filter(t => t.id !== id);
+  saveTaxTemplates(taxTemplates);
+  res.json({ success: true });
+});
+
+// =============================================
+// AIS CSV IMPORT - Income Tax AIS Data
+// =============================================
+
+// Parse AIS CSV file from Income Tax website
+function parseAISCSV(content, filename) {
+  const lines = content.split('\n').filter(line => line.trim());
+  if (lines.length < 2) return { transactions: [], metadata: {} };
+
+  // Parse headers - handle quoted values
+  const headers = parseCSVLine(lines[0]).map(h => String(h).trim().toLowerCase());
+
+  const transactions = [];
+  let metadata = {
+    financialYear: '',
+    source: 'AIS',
+    reportType: '',
+    totalRecords: 0,
+  };
+
+  // Detect AIS format type from headers
+  const isSecData = headers.some(h => h.includes('short term capital gain') || h.includes('long term capital gain'));
+  const isSchedule112A = headers.some(h => h.includes('fair market value'));
+
+  if (isSecData) {
+    metadata.reportType = 'AIS_SecData';
+  } else if (isSchedule112A) {
+    metadata.reportType = 'AIS_Schedule112A';
+  }
+
+  // Map AIS columns to our standard fields
+  const getColumnIndex = (patterns) => {
+    for (const pattern of patterns) {
+      const idx = headers.findIndex(h => h.includes(pattern.toLowerCase()));
+      if (idx >= 0) return idx;
+    }
+    return -1;
+  };
+
+  // Column mappings for AIS SecData format
+  const colMap = {
+    fy: getColumnIndex(['fy', 'financial year']),
+    isin: getColumnIndex(['isin']),
+    securityName: getColumnIndex(['name of the security', 'security', 'share name']),
+    securityClass: getColumnIndex(['security class']),
+    assetType: getColumnIndex(['asset type']),
+    debitDate: getColumnIndex(['debit date', 'sale date', 'date']),
+    units: getColumnIndex(['units', 'number of shares', 'quantity']),
+    salePrice: getColumnIndex(['unit sale price', 'sale price per share']),
+    saleConsideration: getColumnIndex(['sale consideration', 'full value']),
+    costOfAcquisition: getColumnIndex(['cost of acquisition']),
+    adjustedCOA: getColumnIndex(['adjusted cost of acquisition']),
+    fmv: getColumnIndex(['fair market value per share']),
+    totalFMV: getColumnIndex(['total fair market value']),
+    adjustedFMV: getColumnIndex(['adjusted fair market value']),
+    stcg: getColumnIndex(['short term capital gain']),
+    ltcgWithoutIndexation: getColumnIndex(['long term capital gain (without indexation)', 'long term capital gain']),
+    ltcgWithIndexation: getColumnIndex(['long term capital gain (with indexation)']),
+    optionTax10: getColumnIndex(['option to pay tax @10%', 'option to pay']),
+    reportingEntity: getColumnIndex(['reporting entity', 'itdrein']),
+  };
+
+  // Process data rows
+  for (let i = 1; i < lines.length; i++) {
+    const values = parseCSVLine(lines[i]);
+    if (values.length < 5) continue;
+
+    const getValue = (colIdx) => {
+      if (colIdx < 0 || colIdx >= values.length) return null;
+      return values[colIdx];
+    };
+
+    const parseNum = (val) => {
+      if (val === null || val === undefined || val === '') return 0;
+      return parseFloat(String(val).replace(/[₹,\s]/g, '')) || 0;
+    };
+
+    // Extract FY
+    const fyVal = getValue(colMap.fy);
+    if (fyVal && !metadata.financialYear) {
+      metadata.financialYear = String(fyVal).trim();
+    }
+
+    const securityName = getValue(colMap.securityName);
+    if (!securityName || securityName.trim() === '') continue;
+
+    // Parse ISIN to get a clean symbol
+    const isin = String(getValue(colMap.isin) || '').trim().toUpperCase();
+
+    // Clean up security name - extract company name before #
+    let cleanName = securityName;
+    let symbol = '';
+    if (securityName.includes('#')) {
+      cleanName = securityName.split('#')[0].trim();
+    }
+    // Generate symbol from ISIN or name
+    if (isin && isin.length >= 12) {
+      symbol = isin;
+    } else {
+      symbol = cleanName.replace(/[^A-Z0-9]/gi, '').substring(0, 15).toUpperCase();
+    }
+
+    // Asset type determines STCG vs LTCG
+    const assetType = String(getValue(colMap.assetType) || '').toLowerCase();
+    const isLongTerm = assetType.includes('long');
+    const isShortTerm = assetType.includes('short');
+
+    // Parse values
+    const units = parseNum(getValue(colMap.units));
+    const salePrice = parseNum(getValue(colMap.salePrice));
+    const saleConsideration = parseNum(getValue(colMap.saleConsideration));
+    const costOfAcquisition = parseNum(getValue(colMap.costOfAcquisition)) || parseNum(getValue(colMap.adjustedCOA));
+    const stcg = parseNum(getValue(colMap.stcg));
+    const ltcg = parseNum(getValue(colMap.ltcgWithoutIndexation)) || parseNum(getValue(colMap.ltcgWithIndexation));
+
+    // Calculate gain - use pre-calculated values from AIS
+    let gain = 0;
+    let classificationType = null;
+
+    if (isShortTerm && stcg !== 0) {
+      gain = stcg;
+      classificationType = 'STCG';
+    } else if (isLongTerm && ltcg !== 0) {
+      gain = ltcg;
+      classificationType = 'LTCG';
+    } else {
+      // Fallback calculation
+      gain = saleConsideration - costOfAcquisition;
+      classificationType = isLongTerm ? 'LTCG' : 'STCG';
+    }
+
+    // Parse sell date
+    let sellDate = null;
+    const dateStr = getValue(colMap.debitDate);
+    if (dateStr) {
+      // Parse DD/MM/YYYY format
+      const parts = String(dateStr).split('/');
+      if (parts.length === 3) {
+        sellDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+      }
+    }
+
+    // Check for 10% tax option (pre-July 2024 transactions)
+    const optionTax10 = String(getValue(colMap.optionTax10) || '').toUpperCase();
+    const eligibleFor10PercentTax = optionTax10 === 'Y';
+
+    const transaction = {
+      symbol,
+      name: cleanName,
+      isin,
+      buyDate: null, // AIS doesn't provide buy dates
+      sellDate,
+      quantity: units,
+      buyPrice: units > 0 ? costOfAcquisition / units : 0,
+      sellPrice: salePrice,
+      buyValue: costOfAcquisition,
+      sellValue: saleConsideration,
+      gain,
+      stt: 0, // STT already deducted in AIS values
+      brokerage: 0,
+      exchange: 'NSE', // Default
+      classification: classificationType ? {
+        holdingDays: isLongTerm ? 400 : 200, // Estimated
+        holdingMonths: isLongTerm ? 13 : 6,
+        isLongTerm,
+        type: classificationType,
+      } : null,
+      sheet: 'AIS Import',
+      sourceRow: i + 1,
+      confidence: 0.95, // High confidence - official AIS data
+      aisSource: true,
+      eligibleFor10PercentTax,
+      securityClass: getValue(colMap.securityClass),
+    };
+
+    transactions.push(transaction);
+  }
+
+  metadata.totalRecords = transactions.length;
+
+  return { transactions, metadata };
+}
+
+// AIS CSV import endpoint
+app.post('/api/tax/import-ais', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const filePath = req.file.path;
+    const content = fs.readFileSync(filePath, 'utf-8');
+    const filename = req.file.originalname;
+
+    // Parse AIS CSV
+    const { transactions, metadata } = parseAISCSV(content, filename);
+
+    // Clean up uploaded file
+    fs.unlinkSync(filePath);
+
+    if (transactions.length === 0) {
+      return res.status(400).json({
+        error: 'No transactions found in AIS file. Make sure you uploaded an AIS CSV export (not encrypted JSON).',
+        metadata,
+      });
+    }
+
+    // Calculate taxes using existing function
+    const { summary, config } = calculateTaxes(transactions);
+
+    // Generate insights
+    const insights = generateInsights(summary, transactions);
+
+    // Add AIS-specific insights
+    const ais10PercentEligible = transactions.filter(t => t.eligibleFor10PercentTax && t.gain > 0);
+    if (ais10PercentEligible.length > 0) {
+      const totalGainEligible = ais10PercentEligible.reduce((sum, t) => sum + t.gain, 0);
+      insights.unshift({
+        type: 'tax_saving',
+        priority: 0,
+        title: '10% Tax Option Available (Pre-July 2024)',
+        description: `${ais10PercentEligible.length} transaction(s) with ₹${totalGainEligible.toLocaleString('en-IN')} gains are eligible for 10% tax rate (grandfathered transactions before July 2024 tax changes).`,
+        details: {
+          count: ais10PercentEligible.length,
+          totalGain: totalGainEligible,
+          potentialSaving: Math.round(totalGainEligible * 0.025), // 12.5% - 10% = 2.5% saving
+        },
+        impact: 'You may opt for 10% tax rate on these transactions instead of 12.5%.',
+      });
+    }
+
+    // Get top gainers and losers
+    const sortedByGain = [...transactions].sort((a, b) => (b.gain || 0) - (a.gain || 0));
+    const topGainers = sortedByGain.slice(0, 5).filter(t => t.gain > 0);
+    const topLosers = sortedByGain.slice(-5).reverse().filter(t => t.gain < 0);
+
+    // Create analysis
+    const analysis = {
+      id: taxData.nextAnalysisId++,
+      fileName: filename,
+      uploadedAt: new Date().toISOString(),
+      processedAt: new Date().toISOString(),
+      fiscalYear: metadata.financialYear || determineFiscalYear(transactions),
+      summary,
+      taxConfig: config,
+      transactions,
+      sheets: [{
+        name: 'AIS Import',
+        rowCount: transactions.length,
+        sourceGuess: 'Income Tax AIS',
+        confidence: 0.95,
+      }],
+      insights,
+      topGainers,
+      topLosers,
+      aiMappings: {},
+      structure: { sheets: [] },
+      aisMetadata: metadata,
+    };
+
+    taxData.analyses.unshift(analysis);
+    saveTaxAnalysis(taxData);
+
+    res.json(analysis);
+  } catch (error) {
+    console.error('AIS import error:', error);
+    res.status(500).json({ error: error.message || 'Failed to import AIS file' });
+  }
+});
+
+// Generate ITR report
 app.get('/api/tax/itr-report/:id', (req, res) => {
   const id = parseInt(req.params.id);
   const analysis = taxData.analyses.find(a => a.id === id);
@@ -1595,53 +2512,115 @@ app.get('/api/tax/itr-report/:id', (req, res) => {
     return res.status(404).json({ error: 'Analysis not found' });
   }
 
+  const summary = analysis.summary;
+
+  // Helper to calculate ITR values for a set of transactions
+  function calculateITRValues(transactions) {
+    let fullValue = 0;
+    let costOfAcquisition = 0;
+    let expenditure = 0;
+    let totalGain = 0;
+    let detectedCurrency = 'INR'; // Default to INR
+
+    for (const t of transactions) {
+      const gain = t.gain || 0;
+      const buyVal = t.buyValue || 0;
+      const sellVal = t.sellValue || 0;
+      const charges = (t.stt || 0) + (t.brokerage || 0);
+
+      totalGain += gain;
+      expenditure += charges;
+      fullValue += sellVal;
+      costOfAcquisition += buyVal;
+
+      // Detect if values might be in different currency (USD)
+      // If gain is much larger than buy/sell values, likely USD values with INR gain
+      if (Math.abs(gain) > 50 && buyVal > 0 && Math.abs(gain) > (buyVal + sellVal) * 2) {
+        detectedCurrency = 'USD';
+      }
+    }
+
+    return {
+      fullValue,
+      costOfAcquisition,
+      expenditure,
+      capitalGains: totalGain,
+      currency: detectedCurrency,
+    };
+  }
+
+  const stcgTransactions = analysis.transactions.filter(t => t.classification?.type === 'STCG');
+  const ltcgTransactions = analysis.transactions.filter(t => t.classification?.type === 'LTCG');
+
+  const stcgValues = calculateITRValues(stcgTransactions);
+  const ltcgValues = calculateITRValues(ltcgTransactions);
+
   // Generate ITR Schedule CG format
   const scheduleCG = {
     shortTermCapitalGains: {
-      section111A: { // Equity with STT paid
-        fullValue: analysis.transactions
-          .filter(t => t.classification?.type === 'STCG')
-          .reduce((sum, t) => sum + (t.sellValue || 0), 0),
-        deductions: analysis.transactions
-          .filter(t => t.classification?.type === 'STCG')
-          .reduce((sum, t) => sum + (t.buyValue || 0), 0),
-        capitalGains: analysis.summary.totalSTCG,
+      section111A: {
+        fullValue: stcgValues.fullValue,
+        costOfAcquisition: stcgValues.costOfAcquisition,
+        expenditure: stcgValues.expenditure,
+        capitalGains: summary.totalSTCG,
         taxRate: '20%',
+        taxPayable: summary.estimatedSTCGTax,
+        currency: stcgValues.currency,
       },
     },
     longTermCapitalGains: {
-      section112A: { // Listed equity/MF
-        fullValue: analysis.transactions
-          .filter(t => t.classification?.type === 'LTCG')
-          .reduce((sum, t) => sum + (t.sellValue || 0), 0),
-        deductions: analysis.transactions
-          .filter(t => t.classification?.type === 'LTCG')
-          .reduce((sum, t) => sum + (t.buyValue || 0), 0),
-        exemptionClaimed: Math.min(analysis.summary.ltcgExemption, analysis.summary.totalLTCG),
-        taxableGains: analysis.summary.taxableLTCG,
+      section112A: {
+        fullValue: ltcgValues.fullValue,
+        costOfAcquisition: ltcgValues.costOfAcquisition,
+        expenditure: ltcgValues.expenditure,
+        grossGains: summary.totalLTCG,
+        exemptionUnder112A: Math.min(summary.ltcgExemption, Math.max(0, summary.totalLTCG)),
+        taxableGains: summary.taxableLTCG,
         taxRate: '12.5%',
+        taxPayable: summary.estimatedLTCGTax,
+        currency: ltcgValues.currency,
       },
     },
-    lossBroughtForward: {
-      stcgLoss: Math.abs(Math.min(0, analysis.summary.totalSTCG)),
-      ltcgLoss: Math.abs(Math.min(0, analysis.summary.totalLTCG)),
-      canCarryForward: true,
+    lossSetOff: {
+      stcgLossSetOffAgainstSTCG: Math.min(Math.abs(summary.stcgLoss), summary.stcgProfit),
+      stcgLossSetOffAgainstLTCG: summary.stcgLoss < 0 && summary.totalLTCG > 0 ?
+        Math.min(Math.abs(summary.stcgLoss + summary.stcgProfit), summary.totalLTCG) : 0,
+      ltcgLossSetOffAgainstLTCG: Math.min(Math.abs(summary.ltcgLoss), summary.ltcgProfit),
+    },
+    lossCarryForward: {
+      stcgLoss: summary.stcgLossCarryForward || 0,
+      ltcgLoss: summary.ltcgLossCarryForward || 0,
       yearsRemaining: 8,
     },
   };
 
+  const notes = [
+    'STT-paid equity transactions fall under Section 111A (STCG) and Section 112A (LTCG)',
+    'LTCG exemption of ₹1,25,000 per year is available under Section 112A',
+    'Capital losses can be carried forward for 8 assessment years',
+    'STCG losses can be set off against both STCG and LTCG',
+    'LTCG losses can only be set off against LTCG',
+    'Keep all contract notes and broker statements for verification',
+    'Report grandfathered gains separately if holding from before 31-Jan-2018',
+  ];
+
+  // Add note if values are in different currency
+  if (stcgValues.currency === 'USD' || ltcgValues.currency === 'USD') {
+    notes.unshift('Note: Full Value and Cost of Acquisition are shown in USD (source currency). Capital Gains are in INR.');
+  }
+
   res.json({
     fiscalYear: analysis.fiscalYear,
     scheduleCG,
-    summary: analysis.summary,
+    summary,
     formRequired: 'ITR-2 or ITR-3',
-    notes: [
-      'STT-paid equity transactions fall under Section 111A (STCG) and 112A (LTCG)',
-      'LTCG exemption of ₹1,25,000 is available under Section 112A',
-      'Capital losses can be carried forward for 8 years',
-      'STCG losses can be set off against both STCG and LTCG',
-      'LTCG losses can only be set off against LTCG',
-    ],
+    scheduleToFill: ['Schedule CG', 'Schedule 112A'],
+    transactionCount: {
+      stcg: summary.stcgCount,
+      ltcg: summary.ltcgCount,
+      total: summary.totalTransactions,
+    },
+    notes,
   });
 });
 
