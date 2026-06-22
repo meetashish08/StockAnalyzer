@@ -1080,6 +1080,249 @@ app.get('/api/recommendations/alerts', async (req, res) => {
   }
 });
 
+// === RECOMMENDATIONS BOOKMARKS ===
+
+const recBookmarksPath = path.join(__dirname, 'recommendations_bookmarks.json');
+
+function loadRecBookmarks() {
+  try {
+    if (fs.existsSync(recBookmarksPath)) {
+      const loaded = JSON.parse(fs.readFileSync(recBookmarksPath, 'utf-8'));
+      return {
+        bookmarks: loaded.bookmarks || [],
+        nextId: loaded.nextId || 1,
+      };
+    }
+  } catch {}
+  return { bookmarks: [], nextId: 1 };
+}
+
+function saveRecBookmarks(bookmarkData) {
+  fs.writeFileSync(recBookmarksPath, JSON.stringify(bookmarkData, null, 2));
+}
+
+// Get all recommendation bookmarks
+app.get('/api/recommendations/bookmarks', (req, res) => {
+  const bookmarks = loadRecBookmarks();
+  res.json(bookmarks.bookmarks);
+});
+
+// Save recommendation bookmark
+app.post('/api/recommendations/bookmarks', (req, res) => {
+  const bookmarks = loadRecBookmarks();
+  const { type, symbol, data: bookmarkData, notes, market } = req.body;
+
+  const bookmark = {
+    id: bookmarks.nextId++,
+    type, // 'portfolio' | 'sectors' | 'alerts' | 'stock'
+    symbol: symbol || null,
+    data: bookmarkData,
+    notes: notes || '',
+    market: market || 'NSE',
+    createdAt: new Date().toISOString(),
+  };
+
+  bookmarks.bookmarks.push(bookmark);
+  saveRecBookmarks(bookmarks);
+  res.json(bookmark);
+});
+
+// Delete recommendation bookmark
+app.delete('/api/recommendations/bookmarks/:id', (req, res) => {
+  const bookmarks = loadRecBookmarks();
+  const id = parseInt(req.params.id);
+  bookmarks.bookmarks = bookmarks.bookmarks.filter(b => b.id !== id);
+  saveRecBookmarks(bookmarks);
+  res.json({ success: true });
+});
+
+// Export recommendations as CSV
+app.get('/api/recommendations/export/csv/:type', async (req, res) => {
+  try {
+    const { type } = req.params;
+    const { market } = req.query;
+
+    let csvContent = '';
+    const timestamp = new Date().toISOString().split('T')[0];
+
+    if (type === 'portfolio') {
+      // Get recommendations data
+      const marketFilter = market || 'NSE';
+      const marketHoldings = data.holdings.filter(h => {
+        if (marketFilter === 'NSE') return h.market === 'NSE' || h.market === 'BSE';
+        if (marketFilter === 'NYSE') return h.market === 'NYSE' || h.market === 'NASDAQ';
+        return true;
+      });
+
+      csvContent = 'Symbol,Name,Market,Quantity,Avg Price,Current Price,P&L,P&L %,Signal,Score,Tax Status,Days Held\n';
+
+      for (const h of marketHoldings) {
+        const pnl = ((h.currentPrice || h.avgPrice) - h.avgPrice) * h.quantity;
+        const pnlPercent = h.avgPrice > 0 ? ((h.currentPrice || h.avgPrice) - h.avgPrice) / h.avgPrice * 100 : 0;
+        const purchaseDate = new Date(h.purchaseDate);
+        const daysHeld = Math.floor((new Date() - purchaseDate) / (1000 * 60 * 60 * 24));
+        const taxStatus = daysHeld >= 365 ? 'LTCG' : 'STCG';
+
+        csvContent += `"${h.symbol}","${h.name}","${h.market}",${h.quantity},${h.avgPrice.toFixed(2)},${(h.currentPrice || h.avgPrice).toFixed(2)},${pnl.toFixed(2)},${pnlPercent.toFixed(2)}%,HOLD,50,${taxStatus},${daysHeld}\n`;
+      }
+    } else if (type === 'alerts') {
+      csvContent = 'Type,Priority,Symbol,Message,Value\n';
+
+      for (const h of data.holdings) {
+        const pnlPercent = h.avgPrice > 0 ? ((h.currentPrice || h.avgPrice) - h.avgPrice) / h.avgPrice * 100 : 0;
+        if (pnlPercent < -20) {
+          csvContent += `LOSS,${pnlPercent < -30 ? 'HIGH' : 'MEDIUM'},"${h.symbol}","Down ${Math.abs(pnlPercent).toFixed(1)}% from purchase",${pnlPercent.toFixed(2)}\n`;
+        }
+        if (pnlPercent > 50) {
+          csvContent += `PROFIT,LOW,"${h.symbol}","Up ${pnlPercent.toFixed(1)}% - consider profit booking",${pnlPercent.toFixed(2)}\n`;
+        }
+      }
+    } else if (type === 'sectors') {
+      csvContent = 'Sector,Value,Allocation %,Benchmark %,Status\n';
+
+      let totalValue = 0;
+      const sectorValues = {};
+      for (const h of data.holdings) {
+        const value = (h.currentPrice || h.avgPrice) * h.quantity;
+        totalValue += value;
+        const sector = h.sector || 'Unknown';
+        sectorValues[sector] = (sectorValues[sector] || 0) + value;
+      }
+
+      const benchmark = { 'Financial Services': 25, 'IT': 15, 'Consumer Goods': 12, 'Pharma': 10, 'Auto': 8, 'Energy': 8 };
+
+      for (const [sector, value] of Object.entries(sectorValues)) {
+        const pct = totalValue > 0 ? (value / totalValue) * 100 : 0;
+        const bench = benchmark[sector] || 5;
+        const status = pct > bench * 1.5 ? 'Overweight' : pct < bench * 0.5 ? 'Underweight' : 'Normal';
+        csvContent += `"${sector}",${value.toFixed(2)},${pct.toFixed(2)}%,${bench}%,${status}\n`;
+      }
+    }
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename=recommendations_${type}_${timestamp}.csv`);
+    res.send(csvContent);
+  } catch (error) {
+    console.error('Export error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Export recommendations as Excel
+app.get('/api/recommendations/export/excel', async (req, res) => {
+  try {
+    const { market } = req.query;
+    const timestamp = new Date().toISOString().split('T')[0];
+
+    // Create workbook
+    const wb = XLSX.utils.book_new();
+
+    // Portfolio sheet
+    const portfolioData = [];
+    portfolioData.push(['Portfolio Insights Report', '', '', '', '', '', '', '', '', '']);
+    portfolioData.push(['Generated:', new Date().toLocaleString(), '', '', '', '', '', '', '', '']);
+    portfolioData.push([]);
+    portfolioData.push(['Symbol', 'Name', 'Market', 'Qty', 'Avg Price', 'Current Price', 'P&L', 'P&L %', 'Tax Status', 'Days Held']);
+
+    const marketFilter = market || 'NSE';
+    const marketHoldings = data.holdings.filter(h => {
+      if (marketFilter === 'NSE') return h.market === 'NSE' || h.market === 'BSE';
+      if (marketFilter === 'NYSE') return h.market === 'NYSE' || h.market === 'NASDAQ';
+      return true;
+    });
+
+    let totalInvested = 0, totalValue = 0;
+    for (const h of marketHoldings) {
+      const currentPrice = h.currentPrice || h.avgPrice;
+      const pnl = (currentPrice - h.avgPrice) * h.quantity;
+      const pnlPercent = h.avgPrice > 0 ? (currentPrice - h.avgPrice) / h.avgPrice * 100 : 0;
+      const purchaseDate = new Date(h.purchaseDate);
+      const daysHeld = Math.floor((new Date() - purchaseDate) / (1000 * 60 * 60 * 24));
+      const taxStatus = daysHeld >= 365 ? 'LTCG' : 'STCG';
+
+      totalInvested += h.avgPrice * h.quantity;
+      totalValue += currentPrice * h.quantity;
+
+      portfolioData.push([h.symbol, h.name, h.market, h.quantity, h.avgPrice, currentPrice, pnl, pnlPercent.toFixed(2) + '%', taxStatus, daysHeld]);
+    }
+
+    portfolioData.push([]);
+    portfolioData.push(['Total Invested:', totalInvested.toFixed(2)]);
+    portfolioData.push(['Current Value:', totalValue.toFixed(2)]);
+    portfolioData.push(['Total P&L:', (totalValue - totalInvested).toFixed(2)]);
+
+    const ws1 = XLSX.utils.aoa_to_sheet(portfolioData);
+    XLSX.utils.book_append_sheet(wb, ws1, 'Portfolio');
+
+    // Sectors sheet
+    const sectorData = [];
+    sectorData.push(['Sector Analysis']);
+    sectorData.push(['Generated:', new Date().toLocaleString()]);
+    sectorData.push([]);
+    sectorData.push(['Sector', 'Value', 'Allocation %', 'Benchmark %', 'Status']);
+
+    let sectorTotal = 0;
+    const sectorValues = {};
+    for (const h of data.holdings) {
+      const value = (h.currentPrice || h.avgPrice) * h.quantity;
+      sectorTotal += value;
+      const sector = h.sector || 'Unknown';
+      sectorValues[sector] = (sectorValues[sector] || 0) + value;
+    }
+
+    const benchmark = { 'Financial Services': 25, 'IT': 15, 'Consumer Goods': 12, 'Pharma': 10, 'Auto': 8, 'Energy': 8, 'Infrastructure': 7, 'Metals': 5 };
+    for (const [sector, value] of Object.entries(sectorValues)) {
+      const pct = sectorTotal > 0 ? (value / sectorTotal) * 100 : 0;
+      const bench = benchmark[sector] || 5;
+      const status = pct > bench * 1.5 ? 'Overweight' : pct < bench * 0.5 ? 'Underweight' : 'Normal';
+      sectorData.push([sector, value.toFixed(2), pct.toFixed(2) + '%', bench + '%', status]);
+    }
+
+    const ws2 = XLSX.utils.aoa_to_sheet(sectorData);
+    XLSX.utils.book_append_sheet(wb, ws2, 'Sectors');
+
+    // Alerts sheet
+    const alertsData = [];
+    alertsData.push(['Portfolio Alerts']);
+    alertsData.push(['Generated:', new Date().toLocaleString()]);
+    alertsData.push([]);
+    alertsData.push(['Type', 'Priority', 'Symbol', 'Message']);
+
+    for (const h of data.holdings) {
+      const pnlPercent = h.avgPrice > 0 ? ((h.currentPrice || h.avgPrice) - h.avgPrice) / h.avgPrice * 100 : 0;
+      const dayChange = h.dayChangePercent || 0;
+      const currentValue = (h.currentPrice || h.avgPrice) * h.quantity;
+      const allocation = sectorTotal > 0 ? (currentValue / sectorTotal) * 100 : 0;
+
+      if (Math.abs(dayChange) > 3) {
+        alertsData.push([dayChange > 0 ? 'SURGE' : 'DROP', Math.abs(dayChange) > 5 ? 'HIGH' : 'MEDIUM', h.symbol, `${dayChange > 0 ? 'Up' : 'Down'} ${Math.abs(dayChange).toFixed(1)}% today`]);
+      }
+      if (allocation > 10) {
+        alertsData.push(['CONCENTRATION', allocation > 15 ? 'HIGH' : 'MEDIUM', h.symbol, `High allocation: ${allocation.toFixed(1)}%`]);
+      }
+      if (pnlPercent < -20) {
+        alertsData.push(['LOSS', pnlPercent < -30 ? 'HIGH' : 'MEDIUM', h.symbol, `Down ${Math.abs(pnlPercent).toFixed(1)}% from purchase`]);
+      }
+      if (pnlPercent > 50) {
+        alertsData.push(['PROFIT', 'LOW', h.symbol, `Up ${pnlPercent.toFixed(1)}% - consider profit booking`]);
+      }
+    }
+
+    const ws3 = XLSX.utils.aoa_to_sheet(alertsData);
+    XLSX.utils.book_append_sheet(wb, ws3, 'Alerts');
+
+    // Generate buffer
+    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename=recommendations_report_${timestamp}.xlsx`);
+    res.send(buf);
+  } catch (error) {
+    console.error('Excel export error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // === IMPORT HISTORY APIs ===
 
 // Get import history

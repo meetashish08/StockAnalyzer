@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { formatCurrency, formatPercent } from '../../utils/format';
+import React, { useEffect, useState, useRef } from 'react';
+import { formatCurrency } from '../../utils/format';
 
-type TabType = 'portfolio' | 'sectors' | 'alerts';
+type TabType = 'portfolio' | 'sectors' | 'alerts' | 'bookmarks';
 
 interface Recommendation {
   symbol: string;
@@ -44,22 +44,46 @@ interface Alert {
   value: number;
 }
 
+interface Bookmark {
+  id: number;
+  type: string;
+  symbol: string | null;
+  data: any;
+  notes: string;
+  market: string;
+  createdAt: string;
+}
+
 export default function Recommendations() {
   const [activeTab, setActiveTab] = useState<TabType>('portfolio');
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+  const [previousRecommendations, setPreviousRecommendations] = useState<Recommendation[] | null>(null);
   const [sectors, setSectors] = useState<{ sectors: SectorData[]; gaps: any[]; overweight: SectorData[]; underweight: SectorData[] }>({ sectors: [], gaps: [], overweight: [], underweight: [] });
   const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedStock, setSelectedStock] = useState<Recommendation | null>(null);
   const [market, setMarket] = useState<'NSE' | 'NYSE'>('NSE');
+  const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [showBookmarkModal, setShowBookmarkModal] = useState(false);
+  const [bookmarkNotes, setBookmarkNotes] = useState('');
+  const [bookmarkType, setBookmarkType] = useState<'portfolio' | 'stock'>('portfolio');
+  const [showChanges, setShowChanges] = useState(true);
+  const [refreshStatus, setRefreshStatus] = useState('');
+  const exportMenuRef = useRef<HTMLDivElement>(null);
 
-  const fetchRecommendations = async () => {
+  const fetchRecommendations = async (storePrevious = true) => {
+    if (storePrevious && recommendations.length > 0) {
+      setPreviousRecommendations([...recommendations]);
+    }
     setIsLoading(true);
     try {
       const response = await fetch(`/api/top-picks/${market}`);
       const data = await response.json();
       setRecommendations(data);
-      if (data.length > 0) setSelectedStock(data[0]);
+      if (data.length > 0 && !selectedStock) setSelectedStock(data[0]);
+      setLastRefreshTime(new Date());
     } catch (error) {
       console.error('Failed to fetch recommendations:', error);
     } finally {
@@ -87,11 +111,121 @@ export default function Recommendations() {
     }
   };
 
+  const fetchBookmarks = async () => {
+    try {
+      const response = await fetch('/api/recommendations/bookmarks');
+      const data = await response.json();
+      setBookmarks(data);
+    } catch (error) {
+      console.error('Failed to fetch bookmarks:', error);
+    }
+  };
+
   useEffect(() => {
-    fetchRecommendations();
+    fetchRecommendations(false);
     fetchSectors();
     fetchAlerts();
+    fetchBookmarks();
   }, [market]);
+
+  // Close export menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
+        setShowExportMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleRefresh = async () => {
+    setRefreshStatus('Refreshing...');
+    await fetchRecommendations(true);
+    await fetchSectors();
+    await fetchAlerts();
+
+    // Count signal changes
+    if (previousRecommendations) {
+      const changes = recommendations.filter(r => {
+        const prev = previousRecommendations.find(p => p.symbol === r.symbol);
+        return prev && prev.signal !== r.signal;
+      }).length;
+      setRefreshStatus(changes > 0 ? `Updated - ${changes} signal(s) changed` : 'Updated');
+    } else {
+      setRefreshStatus('Updated');
+    }
+    setTimeout(() => setRefreshStatus(''), 3000);
+  };
+
+  const handleExport = async (format: 'csv' | 'excel', type?: string) => {
+    setShowExportMenu(false);
+    const timestamp = new Date().toISOString().split('T')[0];
+
+    if (format === 'excel') {
+      window.open(`/api/recommendations/export/excel?market=${market}`, '_blank');
+    } else if (format === 'csv' && type) {
+      window.open(`/api/recommendations/export/csv/${type}?market=${market}`, '_blank');
+    }
+  };
+
+  const handleSaveBookmark = async () => {
+    try {
+      const bookmarkData = bookmarkType === 'portfolio'
+        ? { recommendations, sectors, alerts, summary: { total: recommendations.length, market } }
+        : selectedStock;
+
+      await fetch('/api/recommendations/bookmarks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: bookmarkType,
+          symbol: bookmarkType === 'stock' ? selectedStock?.symbol : null,
+          data: bookmarkData,
+          notes: bookmarkNotes,
+          market,
+        }),
+      });
+
+      await fetchBookmarks();
+      setShowBookmarkModal(false);
+      setBookmarkNotes('');
+      setRefreshStatus('Bookmark saved');
+      setTimeout(() => setRefreshStatus(''), 2000);
+    } catch (error) {
+      console.error('Failed to save bookmark:', error);
+    }
+  };
+
+  const handleDeleteBookmark = async (id: number) => {
+    if (!window.confirm('Delete this bookmark?')) return;
+    try {
+      await fetch(`/api/recommendations/bookmarks/${id}`, { method: 'DELETE' });
+      await fetchBookmarks();
+    } catch (error) {
+      console.error('Failed to delete bookmark:', error);
+    }
+  };
+
+  const getScoreDelta = (symbol: string, field: keyof Recommendation): number | null => {
+    if (!previousRecommendations || !showChanges) return null;
+    const prev = previousRecommendations.find(p => p.symbol === symbol);
+    const curr = recommendations.find(r => r.symbol === symbol);
+    if (!prev || !curr) return null;
+    const prevVal = prev[field] as number;
+    const currVal = curr[field] as number;
+    if (typeof prevVal !== 'number' || typeof currVal !== 'number') return null;
+    const delta = currVal - prevVal;
+    return Math.abs(delta) > 0.5 ? delta : null;
+  };
+
+  const getSignalChange = (symbol: string): string | null => {
+    if (!previousRecommendations || !showChanges) return null;
+    const prev = previousRecommendations.find(p => p.symbol === symbol);
+    const curr = recommendations.find(r => r.symbol === symbol);
+    if (!prev || !curr || prev.signal === curr.signal) return null;
+    return `${prev.signal} → ${curr.signal}`;
+  };
 
   const getSignalColor = (signal: string) => {
     switch (signal) {
@@ -137,6 +271,25 @@ export default function Recommendations() {
     }
   };
 
+  const formatTimeAgo = (date: Date) => {
+    const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+    if (seconds < 60) return 'Just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes} min ago`;
+    const hours = Math.floor(minutes / 60);
+    return `${hours} hr ago`;
+  };
+
+  const DeltaIndicator = ({ value }: { value: number | null }) => {
+    if (value === null) return null;
+    const isPositive = value > 0;
+    return (
+      <span className={`text-xs ml-1 ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+        {isPositive ? '↑' : '↓'}{Math.abs(value).toFixed(0)}
+      </span>
+    );
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
@@ -146,23 +299,99 @@ export default function Recommendations() {
           <p className="text-slate-400">Portfolio insights, sector analysis & alerts</p>
         </div>
 
-        {/* Market Toggle */}
-        <div className="flex bg-slate-700 rounded-lg p-1">
-          {(['NSE', 'NYSE'] as const).map((m) => (
+        <div className="flex items-center gap-3">
+          {/* Last Updated */}
+          {lastRefreshTime && (
+            <span className="text-xs text-slate-500">
+              Updated: {formatTimeAgo(lastRefreshTime)}
+            </span>
+          )}
+
+          {/* Refresh Button */}
+          <button
+            onClick={handleRefresh}
+            disabled={isLoading}
+            className="btn-secondary flex items-center gap-2 text-sm"
+          >
+            <span className={isLoading ? 'animate-spin' : ''}>🔄</span>
+            Refresh
+          </button>
+
+          {/* Export Dropdown */}
+          <div className="relative" ref={exportMenuRef}>
             <button
-              key={m}
-              onClick={() => setMarket(m)}
-              className={`px-4 py-2 rounded-md font-medium transition-colors ${
-                market === m
-                  ? 'bg-green-600 text-white'
-                  : 'text-slate-300 hover:text-white'
-              }`}
+              onClick={() => setShowExportMenu(!showExportMenu)}
+              className="btn-secondary flex items-center gap-2 text-sm"
             >
-              {m === 'NSE' ? '🇮🇳 India' : '🇺🇸 US'}
+              <span>⬇️</span>
+              Export
+              <span className="text-xs">▼</span>
             </button>
-          ))}
+
+            {showExportMenu && (
+              <div className="absolute right-0 mt-2 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50">
+                <div className="p-2">
+                  <button
+                    onClick={() => handleExport('excel')}
+                    className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-slate-700 rounded flex items-center gap-2"
+                  >
+                    📊 Excel Report (.xlsx)
+                  </button>
+                  <button
+                    onClick={() => handleExport('csv', 'portfolio')}
+                    className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-slate-700 rounded flex items-center gap-2"
+                  >
+                    📋 Portfolio CSV
+                  </button>
+                  <button
+                    onClick={() => handleExport('csv', 'sectors')}
+                    className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-slate-700 rounded flex items-center gap-2"
+                  >
+                    📋 Sectors CSV
+                  </button>
+                  <button
+                    onClick={() => handleExport('csv', 'alerts')}
+                    className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-slate-700 rounded flex items-center gap-2"
+                  >
+                    📋 Alerts CSV
+                  </button>
+                  <div className="border-t border-slate-700 my-2"></div>
+                  <button
+                    onClick={() => { setShowExportMenu(false); setBookmarkType('portfolio'); setShowBookmarkModal(true); }}
+                    className="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-slate-700 rounded flex items-center gap-2"
+                  >
+                    🔖 Save Bookmark
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Market Toggle */}
+          <div className="flex bg-slate-700 rounded-lg p-1">
+            {(['NSE', 'NYSE'] as const).map((m) => (
+              <button
+                key={m}
+                onClick={() => setMarket(m)}
+                className={`px-4 py-2 rounded-md font-medium transition-colors ${
+                  market === m
+                    ? 'bg-green-600 text-white'
+                    : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                {m === 'NSE' ? '🇮🇳 India' : '🇺🇸 US'}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
+
+      {/* Status Message */}
+      {refreshStatus && (
+        <div className="p-2 bg-green-900/30 text-green-400 rounded-lg text-sm text-center">
+          {refreshStatus}
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-2 border-b border-slate-700 pb-2">
@@ -207,6 +436,37 @@ export default function Recommendations() {
             </span>
           )}
         </button>
+        <button
+          onClick={() => setActiveTab('bookmarks')}
+          className={`px-4 py-2 rounded-t-lg font-medium transition-colors flex items-center gap-2 ${
+            activeTab === 'bookmarks'
+              ? 'bg-slate-700 text-white'
+              : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+          }`}
+        >
+          <span>🔖</span>
+          <span>Bookmarks</span>
+          {bookmarks.length > 0 && (
+            <span className="text-xs bg-slate-600 px-2 py-0.5 rounded-full">
+              {bookmarks.length}
+            </span>
+          )}
+        </button>
+
+        {/* Show Changes Toggle */}
+        {activeTab === 'portfolio' && previousRecommendations && (
+          <div className="ml-auto flex items-center gap-2">
+            <label className="text-sm text-slate-400 flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showChanges}
+                onChange={(e) => setShowChanges(e.target.checked)}
+                className="w-4 h-4 rounded border-slate-500 bg-slate-700 text-green-500"
+              />
+              Show changes
+            </label>
+          </div>
+        )}
       </div>
 
       {/* Portfolio Insights Tab */}
@@ -237,55 +497,79 @@ export default function Recommendations() {
                         <th className="p-3 text-slate-300 font-medium text-right">Score</th>
                         <th className="p-3 text-slate-300 font-medium text-right">P&L</th>
                         <th className="p-3 text-slate-300 font-medium text-right">Tax</th>
+                        <th className="p-3 text-slate-300 font-medium text-center">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {recommendations.map((stock) => (
-                        <tr
-                          key={stock.symbol}
-                          onClick={() => setSelectedStock(stock)}
-                          className={`border-t border-slate-700 cursor-pointer transition-colors ${
-                            selectedStock?.symbol === stock.symbol
-                              ? 'bg-slate-700'
-                              : 'hover:bg-slate-700/50'
-                          }`}
-                        >
-                          <td className="p-3">
-                            <p className="font-medium text-white">{stock.symbol}</p>
-                            <p className="text-xs text-slate-400 truncate max-w-[150px]">{stock.name}</p>
-                          </td>
-                          <td className="p-3 text-center">
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${getSignalColor(stock.signal)}`}>
-                              {stock.signal.replace('_', ' ')}
-                            </span>
-                          </td>
-                          <td className="p-3 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <div className="w-16 h-2 bg-slate-600 rounded-full overflow-hidden">
-                                <div
-                                  className={`h-full rounded-full ${getScoreBarColor(stock.overallScore)}`}
-                                  style={{ width: `${stock.overallScore}%` }}
-                                />
-                              </div>
-                              <span className={`font-medium w-6 ${getScoreColor(stock.overallScore)}`}>
-                                {stock.overallScore}
+                      {recommendations.map((stock) => {
+                        const signalChange = getSignalChange(stock.symbol);
+                        const scoreDelta = getScoreDelta(stock.symbol, 'overallScore');
+
+                        return (
+                          <tr
+                            key={stock.symbol}
+                            onClick={() => setSelectedStock(stock)}
+                            className={`border-t border-slate-700 cursor-pointer transition-colors ${
+                              selectedStock?.symbol === stock.symbol
+                                ? 'bg-slate-700'
+                                : 'hover:bg-slate-700/50'
+                            }`}
+                          >
+                            <td className="p-3">
+                              <p className="font-medium text-white">{stock.symbol}</p>
+                              <p className="text-xs text-slate-400 truncate max-w-[150px]">{stock.name}</p>
+                            </td>
+                            <td className="p-3 text-center">
+                              <span className={`px-2 py-1 rounded text-xs font-medium ${getSignalColor(stock.signal)}`}>
+                                {stock.signal.replace('_', ' ')}
                               </span>
-                            </div>
-                          </td>
-                          <td className="p-3 text-right">
-                            <p className={`font-medium ${stock.pnlPercent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                              {stock.pnlPercent >= 0 ? '+' : ''}{stock.pnlPercent.toFixed(1)}%
-                            </p>
-                          </td>
-                          <td className="p-3 text-right">
-                            <span className={`text-xs px-2 py-0.5 rounded ${
-                              stock.taxStatus === 'LTCG' ? 'bg-green-900/50 text-green-400' : 'bg-yellow-900/50 text-yellow-400'
-                            }`}>
-                              {stock.taxStatus}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
+                              {signalChange && (
+                                <p className="text-xs text-yellow-400 mt-1">{signalChange}</p>
+                              )}
+                            </td>
+                            <td className="p-3 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <div className="w-16 h-2 bg-slate-600 rounded-full overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full ${getScoreBarColor(stock.overallScore)}`}
+                                    style={{ width: `${stock.overallScore}%` }}
+                                  />
+                                </div>
+                                <span className={`font-medium w-6 ${getScoreColor(stock.overallScore)}`}>
+                                  {stock.overallScore}
+                                </span>
+                                <DeltaIndicator value={scoreDelta} />
+                              </div>
+                            </td>
+                            <td className="p-3 text-right">
+                              <p className={`font-medium ${stock.pnlPercent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                {stock.pnlPercent >= 0 ? '+' : ''}{stock.pnlPercent.toFixed(1)}%
+                              </p>
+                            </td>
+                            <td className="p-3 text-right">
+                              <span className={`text-xs px-2 py-0.5 rounded ${
+                                stock.taxStatus === 'LTCG' ? 'bg-green-900/50 text-green-400' : 'bg-yellow-900/50 text-yellow-400'
+                              }`}>
+                                {stock.taxStatus}
+                              </span>
+                            </td>
+                            <td className="p-3 text-center">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedStock(stock);
+                                  setBookmarkType('stock');
+                                  setShowBookmarkModal(true);
+                                }}
+                                className="text-slate-400 hover:text-yellow-400 transition-colors"
+                                title="Bookmark this stock"
+                              >
+                                🔖
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -329,10 +613,10 @@ export default function Recommendations() {
                     <div>
                       <p className="text-sm font-medium text-slate-300 mb-2">Score Breakdown</p>
                       <div className="grid grid-cols-2 gap-2">
-                        <ScoreCard label="Trend" score={selectedStock.technicalScore} />
-                        <ScoreCard label="Momentum" score={selectedStock.momentumScore} />
-                        <ScoreCard label="Value" score={selectedStock.valueScore} />
-                        <ScoreCard label="Overall" score={selectedStock.overallScore} highlight />
+                        <ScoreCard label="Trend" score={selectedStock.technicalScore} delta={getScoreDelta(selectedStock.symbol, 'technicalScore')} />
+                        <ScoreCard label="Momentum" score={selectedStock.momentumScore} delta={getScoreDelta(selectedStock.symbol, 'momentumScore')} />
+                        <ScoreCard label="Value" score={selectedStock.valueScore} delta={getScoreDelta(selectedStock.symbol, 'valueScore')} />
+                        <ScoreCard label="Overall" score={selectedStock.overallScore} delta={getScoreDelta(selectedStock.symbol, 'overallScore')} highlight />
                       </div>
                     </div>
 
@@ -416,7 +700,6 @@ export default function Recommendations() {
                           className="h-full bg-green-500 rounded-full"
                           style={{ width: `${Math.min(100, sector.percentage)}%` }}
                         />
-                        {/* Benchmark marker */}
                         <div
                           className="absolute top-0 h-full w-0.5 bg-yellow-400"
                           style={{ left: `${Math.min(100, sector.benchmark)}%` }}
@@ -436,7 +719,6 @@ export default function Recommendations() {
 
           {/* Insights */}
           <div className="space-y-4">
-            {/* Overweight Sectors */}
             {sectors.overweight.length > 0 && (
               <div className="card border-l-4 border-yellow-500">
                 <h3 className="text-lg font-semibold text-yellow-400 mb-3">⚠️ Overweight Sectors</h3>
@@ -454,7 +736,6 @@ export default function Recommendations() {
               </div>
             )}
 
-            {/* Underweight Sectors */}
             {sectors.underweight.length > 0 && (
               <div className="card border-l-4 border-blue-500">
                 <h3 className="text-lg font-semibold text-blue-400 mb-3">📉 Underweight Sectors</h3>
@@ -472,7 +753,6 @@ export default function Recommendations() {
               </div>
             )}
 
-            {/* Missing Sectors */}
             {sectors.gaps.length > 0 && (
               <div className="card border-l-4 border-slate-500">
                 <h3 className="text-lg font-semibold text-slate-300 mb-3">🔍 Missing Sectors</h3>
@@ -487,7 +767,6 @@ export default function Recommendations() {
               </div>
             )}
 
-            {/* All Good */}
             {sectors.overweight.length === 0 && sectors.underweight.length === 0 && sectors.gaps.length === 0 && sectors.sectors.length > 0 && (
               <div className="card border-l-4 border-green-500">
                 <h3 className="text-lg font-semibold text-green-400 mb-2">✅ Well Diversified</h3>
@@ -534,7 +813,6 @@ export default function Recommendations() {
             </div>
           )}
 
-          {/* Alert Legend */}
           {alerts.length > 0 && (
             <div className="card bg-slate-800/50">
               <h4 className="text-sm font-medium text-slate-400 mb-2">Alert Types</h4>
@@ -551,6 +829,118 @@ export default function Recommendations() {
         </div>
       )}
 
+      {/* Bookmarks Tab */}
+      {activeTab === 'bookmarks' && (
+        <div className="space-y-4">
+          {bookmarks.length === 0 ? (
+            <div className="card text-center py-12">
+              <div className="text-6xl mb-4">🔖</div>
+              <h3 className="text-xl font-semibold text-white mb-2">No Bookmarks Yet</h3>
+              <p className="text-slate-400">Save portfolio snapshots or individual stock analyses for future reference.</p>
+              <button
+                onClick={() => { setBookmarkType('portfolio'); setShowBookmarkModal(true); }}
+                className="btn-primary mt-4"
+              >
+                Save Current Analysis
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {bookmarks.map((bookmark) => (
+                <div key={bookmark.id} className="card">
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <span className={`text-xs px-2 py-0.5 rounded ${
+                        bookmark.type === 'portfolio' ? 'bg-blue-900/50 text-blue-400' : 'bg-green-900/50 text-green-400'
+                      }`}>
+                        {bookmark.type === 'portfolio' ? 'Portfolio Snapshot' : `Stock: ${bookmark.symbol}`}
+                      </span>
+                      <p className="text-xs text-slate-500 mt-1">
+                        {new Date(bookmark.createdAt).toLocaleString()}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteBookmark(bookmark.id)}
+                      className="text-slate-400 hover:text-red-400 transition-colors"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+
+                  {bookmark.type === 'portfolio' && bookmark.data.summary && (
+                    <div className="text-sm text-slate-300 mb-2">
+                      <p>{bookmark.data.summary.total} holdings ({bookmark.data.summary.market})</p>
+                    </div>
+                  )}
+
+                  {bookmark.type === 'stock' && bookmark.data && (
+                    <div className="text-sm mb-2">
+                      <p className="text-white font-medium">{bookmark.data.symbol}</p>
+                      <p className={`${bookmark.data.signal?.includes('BUY') ? 'text-green-400' : bookmark.data.signal?.includes('SELL') ? 'text-red-400' : 'text-yellow-400'}`}>
+                        Signal: {bookmark.data.signal}
+                      </p>
+                      <p className="text-slate-400">Score: {bookmark.data.overallScore}</p>
+                    </div>
+                  )}
+
+                  {bookmark.notes && (
+                    <p className="text-sm text-slate-400 italic border-t border-slate-700 pt-2 mt-2">
+                      "{bookmark.notes}"
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Bookmark Modal */}
+      {showBookmarkModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-slate-800 rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-white mb-4">
+              {bookmarkType === 'portfolio' ? 'Save Portfolio Snapshot' : `Bookmark ${selectedStock?.symbol}`}
+            </h3>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">Notes (optional)</label>
+                <textarea
+                  value={bookmarkNotes}
+                  onChange={(e) => setBookmarkNotes(e.target.value)}
+                  placeholder="Add notes about this snapshot..."
+                  className="input w-full h-24 resize-none"
+                />
+              </div>
+
+              <div className="text-sm text-slate-400">
+                {bookmarkType === 'portfolio' ? (
+                  <p>This will save the current analysis of {recommendations.length} holdings with all scores and signals.</p>
+                ) : (
+                  <p>This will save the current analysis of {selectedStock?.symbol} including technical scores and rationale.</p>
+                )}
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => { setShowBookmarkModal(false); setBookmarkNotes(''); }}
+                  className="btn-secondary flex-1"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveBookmark}
+                  className="btn-primary flex-1"
+                >
+                  Save Bookmark
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Disclaimer */}
       <div className="card bg-yellow-900/20 border-yellow-800">
         <p className="text-xs text-yellow-400">
@@ -562,7 +952,7 @@ export default function Recommendations() {
   );
 }
 
-function ScoreCard({ label, score, highlight }: { label: string; score: number; highlight?: boolean }) {
+function ScoreCard({ label, score, delta, highlight }: { label: string; score: number; delta?: number | null; highlight?: boolean }) {
   const getScoreColor = (score: number) => {
     if (score >= 70) return 'text-green-400';
     if (score >= 50) return 'text-yellow-400';
@@ -572,9 +962,16 @@ function ScoreCard({ label, score, highlight }: { label: string; score: number; 
   return (
     <div className={`p-2 rounded-lg ${highlight ? 'bg-slate-600' : 'bg-slate-700/50'}`}>
       <p className="text-xs text-slate-400">{label}</p>
-      <p className={`text-lg font-bold ${getScoreColor(score)}`}>
-        {Math.round(score)}
-      </p>
+      <div className="flex items-center gap-1">
+        <p className={`text-lg font-bold ${getScoreColor(score)}`}>
+          {Math.round(score)}
+        </p>
+        {delta !== null && delta !== undefined && Math.abs(delta) > 0.5 && (
+          <span className={`text-xs ${delta > 0 ? 'text-green-400' : 'text-red-400'}`}>
+            {delta > 0 ? '↑' : '↓'}{Math.abs(delta).toFixed(0)}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
