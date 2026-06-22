@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { useStore } from '../../store/useStore';
 import { formatCurrency, formatPrice, formatPercent, formatDate } from '../../utils/format';
 import AddHoldingModal from './AddHoldingModal';
@@ -6,6 +6,8 @@ import AddTransactionModal from './AddTransactionModal';
 import type { Holding, HoldingWithPrice } from '../../../shared/types';
 
 type MarketTab = 'all' | 'india' | 'us';
+type SortField = 'symbol' | 'quantity' | 'avgPrice' | 'importedPrice' | 'currentPrice' | 'currentValue' | 'pnl' | 'pnlPercent' | 'dayChangePercent';
+type SortDirection = 'asc' | 'desc';
 
 export default function Portfolio() {
   const {
@@ -20,14 +22,43 @@ export default function Portfolio() {
   const [showAddHolding, setShowAddHolding] = useState(false);
   const [showAddTransaction, setShowAddTransaction] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<'value' | 'pnl' | 'name'>('value');
+  const [sortField, setSortField] = useState<SortField>('currentValue');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshStatus, setRefreshStatus] = useState<string>('');
   const [activeTab, setActiveTab] = useState<MarketTab>('all');
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const autoRefreshInterval = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     fetchHoldings();
   }, []);
+
+  // Auto-refresh effect
+  useEffect(() => {
+    if (autoRefresh) {
+      // Initial refresh
+      handleRefreshPrices();
+
+      // Set up interval for every 60 seconds
+      autoRefreshInterval.current = setInterval(() => {
+        handleRefreshPrices();
+      }, 60000);
+    } else {
+      // Clear interval when auto-refresh is disabled
+      if (autoRefreshInterval.current) {
+        clearInterval(autoRefreshInterval.current);
+        autoRefreshInterval.current = null;
+      }
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (autoRefreshInterval.current) {
+        clearInterval(autoRefreshInterval.current);
+      }
+    };
+  }, [autoRefresh]);
 
   // Separate holdings by market
   const { indiaHoldings, usHoldings } = useMemo(() => {
@@ -56,26 +87,75 @@ export default function Portfolio() {
         h.name.toLowerCase().includes(searchTerm.toLowerCase())
       )
       .sort((a, b) => {
-        switch (sortBy) {
-          case 'value':
-            return b.currentValue - a.currentValue;
+        let comparison = 0;
+        switch (sortField) {
+          case 'symbol':
+            comparison = a.symbol.localeCompare(b.symbol);
+            break;
+          case 'quantity':
+            comparison = a.quantity - b.quantity;
+            break;
+          case 'avgPrice':
+            comparison = a.avgPrice - b.avgPrice;
+            break;
+          case 'importedPrice':
+            comparison = (a.importedPrice || 0) - (b.importedPrice || 0);
+            break;
+          case 'currentPrice':
+            comparison = a.currentPrice - b.currentPrice;
+            break;
+          case 'currentValue':
+            comparison = a.currentValue - b.currentValue;
+            break;
           case 'pnl':
-            return b.pnlPercent - a.pnlPercent;
-          case 'name':
-            return a.symbol.localeCompare(b.symbol);
+            comparison = a.pnl - b.pnl;
+            break;
+          case 'pnlPercent':
+            comparison = a.pnlPercent - b.pnlPercent;
+            break;
+          case 'dayChangePercent':
+            comparison = a.dayChangePercent - b.dayChangePercent;
+            break;
           default:
-            return 0;
+            comparison = 0;
         }
+        return sortDirection === 'asc' ? comparison : -comparison;
       });
-  }, [tabHoldings, searchTerm, sortBy]);
+  }, [tabHoldings, searchTerm, sortField, sortDirection]);
 
-  // Calculate tab summaries
+  // Handle column header click for sorting
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('desc');
+    }
+  };
+
+  // Sort indicator component
+  const SortIndicator = ({ field }: { field: SortField }) => {
+    if (sortField !== field) return <span className="text-slate-500 ml-1">↕</span>;
+    return <span className="text-green-400 ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>;
+  };
+
+  // Calculate tab summaries with 1D return
   const tabSummaries = useMemo(() => {
-    const calcSummary = (holdings: HoldingWithPrice[]) => ({
-      count: holdings.length,
-      value: holdings.reduce((sum, h) => sum + h.currentValue, 0),
-      pnl: holdings.reduce((sum, h) => sum + h.pnl, 0),
-    });
+    const calcSummary = (holdings: HoldingWithPrice[]) => {
+      const value = holdings.reduce((sum, h) => sum + h.currentValue, 0);
+      const pnl = holdings.reduce((sum, h) => sum + h.pnl, 0);
+      const dayReturn = holdings.reduce((sum, h) => sum + (h.dayChange || 0) * h.quantity, 0);
+      const prevValue = value - dayReturn;
+      const dayReturnPercent = prevValue > 0 ? (dayReturn / prevValue) * 100 : 0;
+
+      return {
+        count: holdings.length,
+        value,
+        pnl,
+        dayReturn,
+        dayReturnPercent,
+      };
+    };
 
     return {
       all: calcSummary(holdingsWithPrices),
@@ -152,6 +232,16 @@ export default function Portfolio() {
         <div className="flex items-center gap-3">
           {holdingsWithPrices.length > 0 && (
             <>
+              <label className="flex items-center gap-2 text-slate-300 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={autoRefresh}
+                  onChange={(e) => setAutoRefresh(e.target.checked)}
+                  className="w-4 h-4 rounded border-slate-500 bg-slate-700 text-green-500 focus:ring-green-500 focus:ring-offset-slate-800"
+                />
+                <span className="text-sm">Auto-refresh (1 min)</span>
+                {autoRefresh && <span className="text-green-400 animate-pulse">●</span>}
+              </label>
               <button
                 onClick={handleRefreshPrices}
                 disabled={isRefreshing}
@@ -234,7 +324,7 @@ export default function Portfolio() {
 
       {/* Tab Summary Cards */}
       {tabHoldings.length > 0 && (
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-4 gap-4">
           <div className="card bg-gradient-to-br from-slate-800 to-slate-700">
             <p className="text-slate-400 text-sm">
               {activeTab === 'all' ? 'Total' : activeTab === 'india' ? 'India' : 'US'} Holdings
@@ -256,10 +346,25 @@ export default function Portfolio() {
               {formatCurrency(tabSummaries[activeTab].pnl, getCurrencyForTab())}
             </p>
           </div>
+          <div className="card bg-gradient-to-br from-slate-800 to-slate-700">
+            <p className="text-slate-400 text-sm">1D Return</p>
+            <p className={`text-2xl font-bold ${
+              tabSummaries[activeTab].dayReturn >= 0 ? 'text-profit' : 'text-loss'
+            }`}>
+              {tabSummaries[activeTab].dayReturn >= 0 ? '+' : ''}
+              {formatCurrency(tabSummaries[activeTab].dayReturn, getCurrencyForTab())}
+            </p>
+            <p className={`text-sm ${
+              tabSummaries[activeTab].dayReturnPercent >= 0 ? 'text-profit' : 'text-loss'
+            }`}>
+              {tabSummaries[activeTab].dayReturnPercent >= 0 ? '+' : ''}
+              {tabSummaries[activeTab].dayReturnPercent.toFixed(2)}%
+            </p>
+          </div>
         </div>
       )}
 
-      {/* Filters */}
+      {/* Search Filter */}
       <div className="flex items-center gap-4">
         <div className="flex-1">
           <input
@@ -270,15 +375,7 @@ export default function Portfolio() {
             className="input"
           />
         </div>
-        <select
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as any)}
-          className="select w-40"
-        >
-          <option value="value">Sort by Value</option>
-          <option value="pnl">Sort by P&L</option>
-          <option value="name">Sort by Name</option>
-        </select>
+        <p className="text-slate-400 text-sm">Click column headers to sort</p>
       </div>
 
       {/* Holdings Table */}
@@ -319,14 +416,54 @@ export default function Portfolio() {
           <table className="w-full">
             <thead>
               <tr className="bg-slate-700/50 text-left">
-                <th className="p-4 text-slate-300 font-medium">Stock</th>
-                <th className="p-4 text-slate-300 font-medium text-right">Qty</th>
-                <th className="p-4 text-slate-300 font-medium text-right">Avg Price</th>
-                <th className="p-4 text-slate-300 font-medium text-right">Import Price</th>
-                <th className="p-4 text-slate-300 font-medium text-right">Today's Price</th>
-                <th className="p-4 text-slate-300 font-medium text-right">Today's Value</th>
-                <th className="p-4 text-slate-300 font-medium text-right">P&L</th>
-                <th className="p-4 text-slate-300 font-medium text-right">Day Change</th>
+                <th
+                  className="p-4 text-slate-300 font-medium cursor-pointer hover:text-white transition-colors"
+                  onClick={() => handleSort('symbol')}
+                >
+                  Stock<SortIndicator field="symbol" />
+                </th>
+                <th
+                  className="p-4 text-slate-300 font-medium text-right cursor-pointer hover:text-white transition-colors"
+                  onClick={() => handleSort('quantity')}
+                >
+                  Qty<SortIndicator field="quantity" />
+                </th>
+                <th
+                  className="p-4 text-slate-300 font-medium text-right cursor-pointer hover:text-white transition-colors"
+                  onClick={() => handleSort('avgPrice')}
+                >
+                  Avg Price<SortIndicator field="avgPrice" />
+                </th>
+                <th
+                  className="p-4 text-slate-300 font-medium text-right cursor-pointer hover:text-white transition-colors"
+                  onClick={() => handleSort('importedPrice')}
+                >
+                  Import Price<SortIndicator field="importedPrice" />
+                </th>
+                <th
+                  className="p-4 text-slate-300 font-medium text-right cursor-pointer hover:text-white transition-colors"
+                  onClick={() => handleSort('currentPrice')}
+                >
+                  Today's Price<SortIndicator field="currentPrice" />
+                </th>
+                <th
+                  className="p-4 text-slate-300 font-medium text-right cursor-pointer hover:text-white transition-colors"
+                  onClick={() => handleSort('currentValue')}
+                >
+                  Today's Value<SortIndicator field="currentValue" />
+                </th>
+                <th
+                  className="p-4 text-slate-300 font-medium text-right cursor-pointer hover:text-white transition-colors"
+                  onClick={() => handleSort('pnl')}
+                >
+                  P&L<SortIndicator field="pnl" />
+                </th>
+                <th
+                  className="p-4 text-slate-300 font-medium text-right cursor-pointer hover:text-white transition-colors"
+                  onClick={() => handleSort('dayChangePercent')}
+                >
+                  Day Change<SortIndicator field="dayChangePercent" />
+                </th>
                 <th className="p-4 text-slate-300 font-medium text-center">Actions</th>
               </tr>
             </thead>
