@@ -693,8 +693,8 @@ app.get('/api/portfolio/health', async (req, res) => {
     const warnings = [];
     if (numHoldings < 5) warnings.push('Portfolio has less than 5 holdings - consider diversifying');
     if (numHoldings < 10) warnings.push('Portfolio could benefit from more diversification (10+ holdings recommended)');
-    if (maxWeight > 25) warnings.push(`Highest concentration is ${maxWeight.toFixed(1)}% - consider rebalancing`);
-    if (top5Weight > 70) warnings.push(`Top 5 holdings make up ${top5Weight.toFixed(1)}% of portfolio`);
+    if (maxWeight > 25) warnings.push(`Highest concentration is ${maxWeight.toFixed(2)}% - consider rebalancing`);
+    if (top5Weight > 70) warnings.push(`Top 5 holdings make up ${top5Weight.toFixed(2)}% of portfolio`);
     if (bigLosers.length > 0) warnings.push(`${bigLosers.length} holding(s) have lost more than 20%`);
     if (loserRatio > 0.5) warnings.push(`More than half of your holdings are in loss`);
 
@@ -707,7 +707,7 @@ app.get('/api/portfolio/health', async (req, res) => {
       .forEach(h => {
         recommendations.push({
           action: `Consider reducing ${h.symbol} position`,
-          reason: `${h.symbol} represents ${h.weight.toFixed(1)}% of your portfolio`,
+          reason: `${h.symbol} represents ${h.weight.toFixed(2)}% of your portfolio`,
           priority: h.weight > 25 ? 'HIGH' : 'MEDIUM',
           type: 'REBALANCE',
           symbol: h.symbol,
@@ -720,7 +720,7 @@ app.get('/api/portfolio/health', async (req, res) => {
       .forEach(h => {
         recommendations.push({
           action: `Review ${h.symbol} - significant loss`,
-          reason: `Down ${Math.abs(h.pnlPercent).toFixed(1)}% (₹${Math.abs(h.pnl).toLocaleString()} loss). Consider tax-loss harvesting or averaging down`,
+          reason: `Down ${Math.abs(h.pnlPercent).toFixed(2)}% (₹${Math.abs(h.pnl).toLocaleString()} loss). Consider tax-loss harvesting or averaging down`,
           priority: h.pnlPercent < -30 ? 'HIGH' : 'MEDIUM',
           type: 'REVIEW',
           symbol: h.symbol,
@@ -734,7 +734,7 @@ app.get('/api/portfolio/health', async (req, res) => {
       .forEach(h => {
         recommendations.push({
           action: `Consider booking partial profits in ${h.symbol}`,
-          reason: `Up ${h.pnlPercent.toFixed(1)}% with ${h.weight.toFixed(1)}% portfolio weight`,
+          reason: `Up ${h.pnlPercent.toFixed(2)}% with ${h.weight.toFixed(2)}% portfolio weight`,
           priority: 'LOW',
           type: 'PROFIT_BOOKING',
           symbol: h.symbol,
@@ -751,7 +751,7 @@ app.get('/api/portfolio/health', async (req, res) => {
       if (weight > 40 && sector !== 'Unknown') {
         recommendations.push({
           action: `Reduce ${sector} sector exposure`,
-          reason: `${sector} represents ${weight.toFixed(1)}% of portfolio - too concentrated`,
+          reason: `${sector} represents ${weight.toFixed(2)}% of portfolio - too concentrated`,
           priority: 'MEDIUM',
           type: 'DIVERSIFY',
         });
@@ -847,7 +847,7 @@ app.get('/api/analytics/export/excel', async (req, res) => {
       [{ v: 'Total Holdings', s: styles.label }, { v: health.metrics?.numHoldings }],
       [{ v: 'Winners', s: styles.label }, { v: health.metrics?.numWinners, s: styles.profit }],
       [{ v: 'Losers', s: styles.label }, { v: health.metrics?.numLosers, s: styles.loss }],
-      [{ v: 'Top 5 Concentration', s: styles.label }, { v: (health.metrics?.top5Weight || 0) / 100, s: { ...styles.value, numFmt: "0.0%" } }],
+      [{ v: 'Top 5 Concentration', s: styles.label }, { v: (health.metrics?.top5Weight || 0) / 100, s: { ...styles.value, numFmt: "0.00%" } }],
     ];
     const ws1 = XLSXStyle.utils.aoa_to_sheet(summaryData);
     ws1['!cols'] = [{ wch: 25 }, { wch: 20 }, { wch: 15 }];
@@ -882,13 +882,13 @@ app.get('/api/analytics/export/excel', async (req, res) => {
       [{ v: 'Market', s: styles.header }, { v: 'Value', s: styles.header }, { v: 'Allocation', s: styles.header }],
     ];
     (allocation.byMarket || []).forEach(m => {
-      allocData.push([{ v: m.name }, { v: m.value, s: { numFmt: "₹#,##0.00" } }, { v: m.percentage / 100, s: { numFmt: "0.0%" } }]);
+      allocData.push([{ v: m.name }, { v: m.value, s: { numFmt: "₹#,##0.00" } }, { v: m.percentage / 100, s: { numFmt: "0.00%" } }]);
     });
     allocData.push([]);
     allocData.push([{ v: 'BY TYPE', s: styles.sectionHeader }, '', '']);
     allocData.push([{ v: 'Type', s: styles.header }, { v: 'Value', s: styles.header }, { v: 'Allocation', s: styles.header }]);
     (allocation.byType || []).forEach(t => {
-      allocData.push([{ v: t.name }, { v: t.value, s: { numFmt: "₹#,##0.00" } }, { v: t.percentage / 100, s: { numFmt: "0.0%" } }]);
+      allocData.push([{ v: t.name }, { v: t.value, s: { numFmt: "₹#,##0.00" } }, { v: t.percentage / 100, s: { numFmt: "0.00%" } }]);
     });
     const ws3 = XLSXStyle.utils.aoa_to_sheet(allocData);
     ws3['!cols'] = [{ wch: 20 }, { wch: 18 }, { wch: 12 }];
@@ -931,11 +931,11 @@ app.get('/api/analytics/export/csv', async (req, res) => {
 
     let csv = 'Symbol,Name,Weight %,Current Value,P&L,P&L %\n';
     (health.holdings || []).forEach(h => {
-      csv += `"${h.symbol}","${h.name}",${(h.weight || 0).toFixed(2)}%,${h.currentValue || 0},${h.pnl || 0},${(h.pnlPercent || 0).toFixed(2)}%\n`;
+      csv += `"${h.symbol}","${h.name}",${(h.weight || 0).toFixed(2)}%,${(h.currentValue || 0).toFixed(2)},${(h.pnl || 0).toFixed(2)},${(h.pnlPercent || 0).toFixed(2)}%\n`;
     });
-    csv += `\nTotal Value,${health.metrics?.totalValue || 0}\n`;
-    csv += `Total Invested,${health.metrics?.totalInvested || 0}\n`;
-    csv += `Total P&L,${health.metrics?.totalPnL || 0}\n`;
+    csv += `\nTotal Value,${(health.metrics?.totalValue || 0).toFixed(2)}\n`;
+    csv += `Total Invested,${(health.metrics?.totalInvested || 0).toFixed(2)}\n`;
+    csv += `Total P&L,${(health.metrics?.totalPnL || 0).toFixed(2)}\n`;
     csv += `Overall Score,${health.overallScore}\n`;
 
     res.setHeader('Content-Type', 'text/csv');
@@ -970,7 +970,7 @@ app.get('/api/analytics/export/md', async (req, res) => {
     md += `## Top Holdings\n\n`;
     md += `| Symbol | Weight | P&L % |\n|--------|--------|-------|\n`;
     (health.holdings || []).slice(0, 10).forEach(h => {
-      md += `| ${h.symbol} | ${(h.weight || 0).toFixed(1)}% | ${(h.pnlPercent || 0).toFixed(2)}% |\n`;
+      md += `| ${h.symbol} | ${(h.weight || 0).toFixed(2)}% | ${(h.pnlPercent || 0).toFixed(2)}% |\n`;
     });
     md += `\n## Recommendations\n\n`;
     (health.recommendations || []).forEach(r => {
@@ -1110,8 +1110,8 @@ app.get('/api/top-picks/:market', async (req, res) => {
       if (distFrom52High > -5) rationale.push('Near 52-week high - strong momentum');
       if (distFrom52Low < 15) rationale.push('Near 52-week low - potential value or risk');
 
-      if (pnlPercent > 50) rationale.push(`Strong gain: ${pnlPercent.toFixed(1)}% profit`);
-      if (pnlPercent < -15) rationale.push(`Significant loss: ${pnlPercent.toFixed(1)}%`);
+      if (pnlPercent > 50) rationale.push(`Strong gain: ${pnlPercent.toFixed(2)}% profit`);
+      if (pnlPercent < -15) rationale.push(`Significant loss: ${pnlPercent.toFixed(2)}%`);
 
       // Calculate days held
       const purchaseDate = new Date(holding.purchaseDate);
@@ -1240,7 +1240,7 @@ app.get('/api/recommendations/alerts', async (req, res) => {
           type: dayChangePercent > 0 ? 'SURGE' : 'DROP',
           priority: Math.abs(dayChangePercent) > 5 ? 'HIGH' : 'MEDIUM',
           symbol: holding.symbol,
-          message: `${dayChangePercent > 0 ? 'Up' : 'Down'} ${Math.abs(dayChangePercent).toFixed(1)}% today`,
+          message: `${dayChangePercent > 0 ? 'Up' : 'Down'} ${Math.abs(dayChangePercent).toFixed(2)}% today`,
           value: dayChangePercent,
         });
       }
@@ -1251,7 +1251,7 @@ app.get('/api/recommendations/alerts', async (req, res) => {
           type: 'CONCENTRATION',
           priority: allocation > 15 ? 'HIGH' : 'MEDIUM',
           symbol: holding.symbol,
-          message: `High allocation: ${allocation.toFixed(1)}% of portfolio`,
+          message: `High allocation: ${allocation.toFixed(2)}% of portfolio`,
           value: allocation,
         });
       }
@@ -1262,7 +1262,7 @@ app.get('/api/recommendations/alerts', async (req, res) => {
           type: 'LOSS',
           priority: pnlPercent < -30 ? 'HIGH' : 'MEDIUM',
           symbol: holding.symbol,
-          message: `Down ${Math.abs(pnlPercent).toFixed(1)}% from purchase`,
+          message: `Down ${Math.abs(pnlPercent).toFixed(2)}% from purchase`,
           value: pnlPercent,
         });
       }
@@ -1273,7 +1273,7 @@ app.get('/api/recommendations/alerts', async (req, res) => {
           type: 'PROFIT',
           priority: 'LOW',
           symbol: holding.symbol,
-          message: `Up ${pnlPercent.toFixed(1)}% - consider partial profit booking`,
+          message: `Up ${pnlPercent.toFixed(2)}% - consider partial profit booking`,
           value: pnlPercent,
         });
       }
@@ -1392,10 +1392,10 @@ app.get('/api/recommendations/export/csv/:type', async (req, res) => {
       for (const h of data.holdings) {
         const pnlPercent = h.avgPrice > 0 ? ((h.currentPrice || h.avgPrice) - h.avgPrice) / h.avgPrice * 100 : 0;
         if (pnlPercent < -20) {
-          csvContent += `LOSS,${pnlPercent < -30 ? 'HIGH' : 'MEDIUM'},"${h.symbol}","Down ${Math.abs(pnlPercent).toFixed(1)}% from purchase",${pnlPercent.toFixed(2)}\n`;
+          csvContent += `LOSS,${pnlPercent < -30 ? 'HIGH' : 'MEDIUM'},"${h.symbol}","Down ${Math.abs(pnlPercent).toFixed(2)}% from purchase",${pnlPercent.toFixed(2)}\n`;
         }
         if (pnlPercent > 50) {
-          csvContent += `PROFIT,LOW,"${h.symbol}","Up ${pnlPercent.toFixed(1)}% - consider profit booking",${pnlPercent.toFixed(2)}\n`;
+          csvContent += `PROFIT,LOW,"${h.symbol}","Up ${pnlPercent.toFixed(2)}% - consider profit booking",${pnlPercent.toFixed(2)}\n`;
         }
       }
     } else if (type === 'sectors') {
@@ -1572,7 +1572,7 @@ app.get('/api/recommendations/export/excel', async (req, res) => {
 
       ws2Data.push([
         { v: r.sector, s: rowStyle }, { v: r.value, s: { ...rowStyle, numFmt: "₹#,##0.00" } },
-        { v: r.pct / 100, s: { ...rowStyle, numFmt: "0.00%" } }, { v: r.bench / 100, s: { ...rowStyle, numFmt: "0%" } },
+        { v: r.pct / 100, s: { ...rowStyle, numFmt: "0.00%" } }, { v: r.bench / 100, s: { ...rowStyle, numFmt: "0.00%" } },
         { v: r.status, s: statusStyle }, { v: r.deviation / 100, s: { ...devStyle, numFmt: "+0.00%;-0.00%" } }
       ]);
     });
@@ -1590,10 +1590,10 @@ app.get('/api/recommendations/export/excel', async (req, res) => {
       const currentValue = (h.currentPrice || h.avgPrice) * h.quantity;
       const allocation = sectorTotal > 0 ? (currentValue / sectorTotal) * 100 : 0;
 
-      if (Math.abs(dayChange) > 3) alertRows.push({ priority: Math.abs(dayChange) > 5 ? 'HIGH' : 'MEDIUM', type: dayChange > 0 ? 'SURGE' : 'DROP', symbol: h.symbol, message: `${dayChange > 0 ? 'Up' : 'Down'} ${Math.abs(dayChange).toFixed(1)}% today`, value: dayChange });
-      if (allocation > 10) alertRows.push({ priority: allocation > 15 ? 'HIGH' : 'MEDIUM', type: 'CONCENTRATION', symbol: h.symbol, message: `High allocation: ${allocation.toFixed(1)}%`, value: allocation });
-      if (pnlPercent < -20) alertRows.push({ priority: pnlPercent < -30 ? 'HIGH' : 'MEDIUM', type: 'LOSS', symbol: h.symbol, message: `Down ${Math.abs(pnlPercent).toFixed(1)}% from purchase`, value: pnlPercent });
-      if (pnlPercent > 50) alertRows.push({ priority: 'LOW', type: 'PROFIT', symbol: h.symbol, message: `Up ${pnlPercent.toFixed(1)}% - consider profit booking`, value: pnlPercent });
+      if (Math.abs(dayChange) > 3) alertRows.push({ priority: Math.abs(dayChange) > 5 ? 'HIGH' : 'MEDIUM', type: dayChange > 0 ? 'SURGE' : 'DROP', symbol: h.symbol, message: `${dayChange > 0 ? 'Up' : 'Down'} ${Math.abs(dayChange).toFixed(2)}% today`, value: dayChange });
+      if (allocation > 10) alertRows.push({ priority: allocation > 15 ? 'HIGH' : 'MEDIUM', type: 'CONCENTRATION', symbol: h.symbol, message: `High allocation: ${allocation.toFixed(2)}%`, value: allocation });
+      if (pnlPercent < -20) alertRows.push({ priority: pnlPercent < -30 ? 'HIGH' : 'MEDIUM', type: 'LOSS', symbol: h.symbol, message: `Down ${Math.abs(pnlPercent).toFixed(2)}% from purchase`, value: pnlPercent });
+      if (pnlPercent > 50) alertRows.push({ priority: 'LOW', type: 'PROFIT', symbol: h.symbol, message: `Up ${pnlPercent.toFixed(2)}% - consider profit booking`, value: pnlPercent });
     }
     const priorityOrder = { HIGH: 0, MEDIUM: 1, LOW: 2 };
     alertRows.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
@@ -3569,23 +3569,23 @@ app.get('/api/tax/export/excel/:id', (req, res) => {
       [],
       [{ v: 'CAPITAL GAINS SUMMARY', s: styles.sectionHeader }, '', '', ''],
       [{ v: 'Category', s: styles.header }, { v: 'Profit', s: styles.header }, { v: 'Loss', s: styles.header }, { v: 'Net', s: styles.header }],
-      [{ v: 'Short Term (STCG)', s: styles.stcg }, { v: summary.stcgProfit || 0, s: { ...styles.profit, numFmt: "₹#,##0" } }, { v: summary.stcgLoss || 0, s: { ...styles.loss, numFmt: "₹#,##0" } }, { v: summary.netSTCG || 0, s: { numFmt: "₹#,##0" } }],
-      [{ v: 'Long Term (LTCG)', s: styles.ltcg }, { v: summary.ltcgProfit || 0, s: { ...styles.profit, numFmt: "₹#,##0" } }, { v: summary.ltcgLoss || 0, s: { ...styles.loss, numFmt: "₹#,##0" } }, { v: summary.netLTCG || 0, s: { numFmt: "₹#,##0" } }],
+      [{ v: 'Short Term (STCG)', s: styles.stcg }, { v: summary.stcgProfit || 0, s: { ...styles.profit, numFmt: "₹#,##0.00" } }, { v: summary.stcgLoss || 0, s: { ...styles.loss, numFmt: "₹#,##0.00" } }, { v: summary.netSTCG || 0, s: { numFmt: "₹#,##0.00" } }],
+      [{ v: 'Long Term (LTCG)', s: styles.ltcg }, { v: summary.ltcgProfit || 0, s: { ...styles.profit, numFmt: "₹#,##0.00" } }, { v: summary.ltcgLoss || 0, s: { ...styles.loss, numFmt: "₹#,##0.00" } }, { v: summary.netLTCG || 0, s: { numFmt: "₹#,##0.00" } }],
       [],
       [{ v: 'TAX LIABILITY', s: styles.sectionHeader }, '', '', ''],
-      [{ v: 'Taxable STCG (15%)', s: styles.label }, { v: summary.taxableSTCG || 0, s: { numFmt: "₹#,##0" } }],
-      [{ v: 'Taxable LTCG (10%)', s: styles.label }, { v: summary.taxableLTCG || 0, s: { numFmt: "₹#,##0" } }, { v: 'After ₹1.25L exemption' }],
-      [{ v: 'Est. STCG Tax', s: styles.label }, { v: summary.estimatedSTCGTax || 0, s: { numFmt: "₹#,##0" } }],
-      [{ v: 'Est. LTCG Tax', s: styles.label }, { v: summary.estimatedLTCGTax || 0, s: { numFmt: "₹#,##0" } }],
-      [{ v: 'TOTAL ESTIMATED TAX', s: { ...styles.label, font: { bold: true, sz: 12 } } }, { v: summary.totalEstimatedTax || 0, s: { font: { bold: true, sz: 12 }, numFmt: "₹#,##0" } }],
+      [{ v: 'Taxable STCG (15%)', s: styles.label }, { v: summary.taxableSTCG || 0, s: { numFmt: "₹#,##0.00" } }],
+      [{ v: 'Taxable LTCG (10%)', s: styles.label }, { v: summary.taxableLTCG || 0, s: { numFmt: "₹#,##0.00" } }, { v: 'After ₹1.25L exemption' }],
+      [{ v: 'Est. STCG Tax', s: styles.label }, { v: summary.estimatedSTCGTax || 0, s: { numFmt: "₹#,##0.00" } }],
+      [{ v: 'Est. LTCG Tax', s: styles.label }, { v: summary.estimatedLTCGTax || 0, s: { numFmt: "₹#,##0.00" } }],
+      [{ v: 'TOTAL ESTIMATED TAX', s: { ...styles.label, font: { bold: true, sz: 12 } } }, { v: summary.totalEstimatedTax || 0, s: { font: { bold: true, sz: 12 }, numFmt: "₹#,##0.00" } }],
       [],
       [{ v: 'STATISTICS', s: styles.sectionHeader }, '', '', ''],
       [{ v: 'Total Transactions', s: styles.label }, { v: summary.totalTransactions }],
       [{ v: 'STCG Count', s: styles.label }, { v: summary.stcgCount }],
       [{ v: 'LTCG Count', s: styles.label }, { v: summary.ltcgCount }],
-      [{ v: 'Total Buy Value', s: styles.label }, { v: summary.totalBuyValue || 0, s: { numFmt: "₹#,##0" } }],
-      [{ v: 'Total Sell Value', s: styles.label }, { v: summary.totalSellValue || 0, s: { numFmt: "₹#,##0" } }],
-      [{ v: 'Total Gain/Loss', s: styles.label }, { v: summary.totalGain || 0, s: { ...(summary.totalGain >= 0 ? styles.profit : styles.loss), numFmt: "₹#,##0" } }],
+      [{ v: 'Total Buy Value', s: styles.label }, { v: summary.totalBuyValue || 0, s: { numFmt: "₹#,##0.00" } }],
+      [{ v: 'Total Sell Value', s: styles.label }, { v: summary.totalSellValue || 0, s: { numFmt: "₹#,##0.00" } }],
+      [{ v: 'Total Gain/Loss', s: styles.label }, { v: summary.totalGain || 0, s: { ...(summary.totalGain >= 0 ? styles.profit : styles.loss), numFmt: "₹#,##0.00" } }],
     ];
     const ws1 = XLSXStyle.utils.aoa_to_sheet(summaryData);
     ws1['!cols'] = [{ wch: 25 }, { wch: 18 }, { wch: 18 }, { wch: 18 }];
@@ -3654,17 +3654,17 @@ app.get('/api/tax/export/csv/:id', (req, res) => {
     let csv = `Tax Analysis Report - FY ${analysis.fiscalYear}\n`;
     csv += `File: ${analysis.fileName}\n\n`;
     csv += `SUMMARY\n`;
-    csv += `STCG Profit,${summary.stcgProfit || 0}\n`;
-    csv += `STCG Loss,${summary.stcgLoss || 0}\n`;
-    csv += `Net STCG,${summary.netSTCG || 0}\n`;
-    csv += `LTCG Profit,${summary.ltcgProfit || 0}\n`;
-    csv += `LTCG Loss,${summary.ltcgLoss || 0}\n`;
-    csv += `Net LTCG,${summary.netLTCG || 0}\n`;
-    csv += `Total Estimated Tax,${summary.totalEstimatedTax || 0}\n\n`;
+    csv += `STCG Profit,${(summary.stcgProfit || 0).toFixed(2)}\n`;
+    csv += `STCG Loss,${(summary.stcgLoss || 0).toFixed(2)}\n`;
+    csv += `Net STCG,${(summary.netSTCG || 0).toFixed(2)}\n`;
+    csv += `LTCG Profit,${(summary.ltcgProfit || 0).toFixed(2)}\n`;
+    csv += `LTCG Loss,${(summary.ltcgLoss || 0).toFixed(2)}\n`;
+    csv += `Net LTCG,${(summary.netLTCG || 0).toFixed(2)}\n`;
+    csv += `Total Estimated Tax,${(summary.totalEstimatedTax || 0).toFixed(2)}\n\n`;
     csv += `TRANSACTIONS\n`;
     csv += `Symbol,Name,Buy Date,Sell Date,Qty,Buy Price,Sell Price,Gain/Loss,Type,Days Held\n`;
     transactions.forEach(t => {
-      csv += `"${t.symbol}","${t.name}",${t.buyDate || '-'},${t.sellDate || '-'},${t.quantity},${t.buyPrice || 0},${t.sellPrice || 0},${t.gain || 0},${t.classification?.type || '-'},${t.classification?.holdingDays || '-'}\n`;
+      csv += `"${t.symbol}","${t.name}",${t.buyDate || '-'},${t.sellDate || '-'},${t.quantity},${(t.buyPrice || 0).toFixed(2)},${(t.sellPrice || 0).toFixed(2)},${(t.gain || 0).toFixed(2)},${t.classification?.type || '-'},${t.classification?.holdingDays || '-'}\n`;
     });
 
     res.setHeader('Content-Type', 'text/csv');
