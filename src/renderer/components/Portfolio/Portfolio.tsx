@@ -42,6 +42,7 @@ export default function Portfolio() {
   const [activeTab, setActiveTab] = useState<MarketTab>('all');
   const [autoRefreshInterval, setAutoRefreshIntervalValue] = useState(0);
   const [nextRefreshIn, setNextRefreshIn] = useState<number | null>(null);
+  const [previousDayReturn, setPreviousDayReturn] = useState<number | null>(null);
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -50,7 +51,12 @@ export default function Portfolio() {
   }, []);
 
   // Silent refresh - only updates price data without full loading state
-  const handleSilentRefresh = async () => {
+  const handleSilentRefresh = async (currentDayReturn?: number) => {
+    // Store previous day return before refresh
+    if (currentDayReturn !== undefined) {
+      setPreviousDayReturn(currentDayReturn);
+    }
+
     try {
       const response = await fetch('/api/refresh-prices', { method: 'POST' });
       const result = await response.json();
@@ -80,8 +86,9 @@ export default function Portfolio() {
     setNextRefreshIn(null);
 
     if (autoRefreshInterval > 0) {
-      // Initial silent refresh
-      handleSilentRefresh();
+      // Initial silent refresh with current day return
+      const currentReturn = holdingsWithPrices.reduce((sum, h) => sum + (h.dayChange || 0) * h.quantity, 0);
+      handleSilentRefresh(currentReturn);
 
       // Set next refresh countdown
       let remainingTime = autoRefreshInterval / 1000;
@@ -98,7 +105,8 @@ export default function Portfolio() {
 
       // Set up refresh interval
       refreshIntervalRef.current = setInterval(() => {
-        handleSilentRefresh();
+        const currentReturn = holdingsWithPrices.reduce((sum, h) => sum + (h.dayChange || 0) * h.quantity, 0);
+        handleSilentRefresh(currentReturn);
       }, autoRefreshInterval);
     }
 
@@ -206,11 +214,13 @@ export default function Portfolio() {
     return <span className="text-green-400 ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>;
   };
 
-  // Calculate tab summaries with 1D return
+  // Calculate tab summaries with 1D return and P&L percentage
   const tabSummaries = useMemo(() => {
     const calcSummary = (holdings: HoldingWithPrice[]) => {
       const value = holdings.reduce((sum, h) => sum + h.currentValue, 0);
+      const invested = holdings.reduce((sum, h) => sum + h.avgPrice * h.quantity, 0);
       const pnl = holdings.reduce((sum, h) => sum + h.pnl, 0);
+      const pnlPercent = invested > 0 ? (pnl / invested) * 100 : 0;
       const dayReturn = holdings.reduce((sum, h) => sum + (h.dayChange || 0) * h.quantity, 0);
       const prevValue = value - dayReturn;
       const dayReturnPercent = prevValue > 0 ? (dayReturn / prevValue) * 100 : 0;
@@ -218,7 +228,9 @@ export default function Portfolio() {
       return {
         count: holdings.length,
         value,
+        invested,
         pnl,
+        pnlPercent,
         dayReturn,
         dayReturnPercent,
       };
@@ -420,6 +432,12 @@ export default function Portfolio() {
               {tabSummaries[activeTab].pnl >= 0 ? '+' : ''}
               {formatCurrency(tabSummaries[activeTab].pnl, getCurrencyForTab())}
             </p>
+            <p className={`text-sm ${
+              tabSummaries[activeTab].pnlPercent >= 0 ? 'text-profit' : 'text-loss'
+            }`}>
+              {tabSummaries[activeTab].pnlPercent >= 0 ? '+' : ''}
+              {tabSummaries[activeTab].pnlPercent.toFixed(2)}%
+            </p>
           </div>
           <div className="card bg-gradient-to-br from-slate-800 to-slate-700">
             <p className="text-slate-400 text-sm">1D Return</p>
@@ -428,6 +446,14 @@ export default function Portfolio() {
             }`}>
               {tabSummaries[activeTab].dayReturn >= 0 ? '+' : ''}
               {formatCurrency(tabSummaries[activeTab].dayReturn, getCurrencyForTab())}
+              {previousDayReturn !== null && activeTab === 'all' && (
+                <sub className={`text-xs ml-1 ${
+                  (tabSummaries[activeTab].dayReturn - previousDayReturn) >= 0 ? 'text-green-400' : 'text-red-400'
+                }`}>
+                  {(tabSummaries[activeTab].dayReturn - previousDayReturn) >= 0 ? '+' : ''}
+                  {formatCurrency(tabSummaries[activeTab].dayReturn - previousDayReturn, getCurrencyForTab())}
+                </sub>
+              )}
             </p>
             <p className={`text-sm ${
               tabSummaries[activeTab].dayReturnPercent >= 0 ? 'text-profit' : 'text-loss'
