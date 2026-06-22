@@ -12,6 +12,12 @@ const yahooFinance = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Helper function to format numbers with exactly 2 decimal places
+const fmt2 = (num) => {
+  const n = Number(num) || 0;
+  return n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
 // File upload setup
 const upload = multer({ dest: 'uploads/' });
 
@@ -959,9 +965,9 @@ app.get('/api/analytics/export/md', async (req, res) => {
     md += `Generated: ${new Date().toLocaleString()}\n\n`;
     md += `## Portfolio Overview\n\n`;
     md += `| Metric | Value |\n|--------|-------|\n`;
-    md += `| Total Value | ₹${(health.metrics?.totalValue || 0).toLocaleString()} |\n`;
-    md += `| Total Invested | ₹${(health.metrics?.totalInvested || 0).toLocaleString()} |\n`;
-    md += `| Total P&L | ₹${(health.metrics?.totalPnL || 0).toLocaleString()} (${(health.metrics?.totalPnLPercent || 0).toFixed(2)}%) |\n`;
+    md += `| Total Value | ₹${fmt2(health.metrics?.totalValue)} |\n`;
+    md += `| Total Invested | ₹${fmt2(health.metrics?.totalInvested)} |\n`;
+    md += `| Total P&L | ₹${fmt2(health.metrics?.totalPnL)} (${(health.metrics?.totalPnLPercent || 0).toFixed(2)}%) |\n`;
     md += `| Holdings | ${health.metrics?.numHoldings} (${health.metrics?.numWinners} winners, ${health.metrics?.numLosers} losers) |\n\n`;
     md += `## Health Scores\n\n`;
     md += `- **Overall**: ${health.overallScore}/100\n`;
@@ -3690,20 +3696,20 @@ app.get('/api/tax/export/md/:id', (req, res) => {
     md += `**Generated:** ${new Date().toLocaleString()}\n\n`;
     md += `## Capital Gains Summary\n\n`;
     md += `| Category | Profit | Loss | Net |\n|----------|--------|------|-----|\n`;
-    md += `| Short Term (STCG) | ₹${(summary.stcgProfit || 0).toLocaleString()} | ₹${(summary.stcgLoss || 0).toLocaleString()} | ₹${(summary.netSTCG || 0).toLocaleString()} |\n`;
-    md += `| Long Term (LTCG) | ₹${(summary.ltcgProfit || 0).toLocaleString()} | ₹${(summary.ltcgLoss || 0).toLocaleString()} | ₹${(summary.netLTCG || 0).toLocaleString()} |\n\n`;
+    md += `| Short Term (STCG) | ₹${fmt2(summary.stcgProfit)} | ₹${fmt2(summary.stcgLoss)} | ₹${fmt2(summary.netSTCG)} |\n`;
+    md += `| Long Term (LTCG) | ₹${fmt2(summary.ltcgProfit)} | ₹${fmt2(summary.ltcgLoss)} | ₹${fmt2(summary.netLTCG)} |\n\n`;
     md += `## Tax Liability\n\n`;
-    md += `- **Taxable STCG:** ₹${(summary.taxableSTCG || 0).toLocaleString()} @ 15%\n`;
-    md += `- **Taxable LTCG:** ₹${(summary.taxableLTCG || 0).toLocaleString()} @ 10% (after ₹1.25L exemption)\n`;
-    md += `- **Est. STCG Tax:** ₹${(summary.estimatedSTCGTax || 0).toLocaleString()}\n`;
-    md += `- **Est. LTCG Tax:** ₹${(summary.estimatedLTCGTax || 0).toLocaleString()}\n`;
-    md += `- **TOTAL ESTIMATED TAX:** ₹${(summary.totalEstimatedTax || 0).toLocaleString()}\n\n`;
+    md += `- **Taxable STCG:** ₹${fmt2(summary.taxableSTCG)} @ 15%\n`;
+    md += `- **Taxable LTCG:** ₹${fmt2(summary.taxableLTCG)} @ 10% (after ₹1.25L exemption)\n`;
+    md += `- **Est. STCG Tax:** ₹${fmt2(summary.estimatedSTCGTax)}\n`;
+    md += `- **Est. LTCG Tax:** ₹${fmt2(summary.estimatedLTCGTax)}\n`;
+    md += `- **TOTAL ESTIMATED TAX:** ₹${fmt2(summary.totalEstimatedTax)}\n\n`;
     md += `## Statistics\n\n`;
     md += `- Total Transactions: ${summary.totalTransactions}\n`;
     md += `- STCG Transactions: ${summary.stcgCount}\n`;
     md += `- LTCG Transactions: ${summary.ltcgCount}\n`;
-    md += `- Total Buy Value: ₹${(summary.totalBuyValue || 0).toLocaleString()}\n`;
-    md += `- Total Sell Value: ₹${(summary.totalSellValue || 0).toLocaleString()}\n\n`;
+    md += `- Total Buy Value: ₹${fmt2(summary.totalBuyValue)}\n`;
+    md += `- Total Sell Value: ₹${fmt2(summary.totalSellValue)}\n\n`;
     if (analysis.insights?.length) {
       md += `## Tax Insights\n\n`;
       analysis.insights.forEach(i => {
