@@ -716,3 +716,36 @@ Click any column header to sort: Symbol, Qty, Avg Price, Current Price, Value, P
 | `ai_bookmarks.json` | Saved AI chat answers |
 | `tax_analysis.json` | Tax analysis results |
 | `tax_templates.json` | Learned column mappings for Excel formats |
+| `recommendations_bookmarks.json` | Saved recommendation snapshots & bookmarks |
+
+---
+
+## Recommendations Module - Complete Feature List
+
+### Data Persistence
+- Recommendations cached in browser localStorage
+- Persists between sessions (no re-fetch needed on page load)
+- Market selection (NSE/NYSE) remembered
+- Last refresh timestamp saved
+
+### Export Options
+| Format | Description |
+|--------|-------------|
+| Excel (.xlsx) | Multi-sheet report: Summary, Portfolio, Sectors, Alerts |
+| CSV (Portfolio) | Holdings with P&L, signals, tax status |
+| CSV (Sectors) | Allocation vs benchmark analysis |
+| CSV (Alerts) | Prioritized risk alerts |
+
+### Bookmarks
+- Save entire portfolio snapshot
+- Save individual stock analysis
+- Add notes to bookmarks
+- View bookmarked data in Portfolio Insights
+- Compare saved vs current analysis
+
+### UI Features
+- Sticky table header while scrolling
+- Floating stock details panel
+- Delta indicators after refresh (↑↓)
+- Signal change tracking (HOLD → BUY)
+- "Viewing bookmark" mode with exit option

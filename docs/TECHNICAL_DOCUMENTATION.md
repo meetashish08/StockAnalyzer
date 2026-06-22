@@ -795,6 +795,11 @@ AI-powered portfolio analysis providing actionable insights, sector analysis, an
 | GET | `/api/top-picks/:market` | Portfolio-based recommendations with technical scores |
 | GET | `/api/recommendations/sectors` | Sector allocation vs benchmark analysis |
 | GET | `/api/recommendations/alerts` | Risk and opportunity alerts |
+| GET | `/api/recommendations/bookmarks` | List saved recommendation bookmarks |
+| POST | `/api/recommendations/bookmarks` | Save a recommendation bookmark |
+| DELETE | `/api/recommendations/bookmarks/:id` | Delete a bookmark |
+| GET | `/api/recommendations/export/excel` | Export recommendations as Excel (multi-sheet) |
+| GET | `/api/recommendations/export/csv/:type` | Export as CSV (portfolio/sectors/alerts) |
 
 ### Features
 
@@ -882,6 +887,61 @@ Real-time monitoring for portfolio risks and opportunities:
 | LOSS | Total loss > 20% | MEDIUM/HIGH |
 | PROFIT | Total gain > 50% | LOW |
 | TAX | LTCG in 65 days | MEDIUM |
+
+#### 4. Bookmarks Tab
+Save and manage recommendation snapshots:
+
+**Storage**: `recommendations_bookmarks.json`
+```json
+{
+  "bookmarks": [
+    {
+      "id": 1,
+      "type": "portfolio",  // or "stock"
+      "symbol": null,       // stock symbol if type is "stock"
+      "data": { /* snapshot */ },
+      "notes": "User notes",
+      "market": "NSE",
+      "createdAt": "2026-06-22T..."
+    }
+  ],
+  "nextId": 2
+}
+```
+
+**Features**:
+- Save entire portfolio snapshot or individual stock
+- Add optional notes
+- View bookmarked data in Portfolio Insights
+- Compare historical vs current analysis
+- Delete outdated bookmarks
+
+#### 5. Export Reports
+Download recommendations in multiple formats:
+
+**Excel Export** (4 sheets):
+- **Summary**: Portfolio overview, holdings breakdown, signals summary
+- **Portfolio**: All holdings with P&L, signals, tax status
+- **Sectors**: Allocation vs benchmark with status
+- **Alerts**: Prioritized risk/opportunity alerts
+
+**CSV Export**:
+- Separate files for portfolio, sectors, alerts
+
+#### 6. Data Persistence
+Recommendations persist between sessions using localStorage:
+- `rec_recommendations`: Last fetched recommendations
+- `rec_sectors`: Sector analysis data
+- `rec_alerts`: Active alerts
+- `rec_lastRefresh`: Timestamp of last refresh
+- `rec_market`: Selected market (NSE/NYSE)
+
+#### 7. UI Features
+- **Sticky table header**: Stays fixed while scrolling
+- **Floating stock details**: Panel stays visible while browsing
+- **Delta indicators**: Show score changes after refresh (↑3 / ↓5)
+- **Signal change tracking**: Shows "HOLD → BUY" transitions
+- **Viewing bookmark mode**: Load and view saved snapshots
 
 ---
 
