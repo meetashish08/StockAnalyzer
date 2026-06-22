@@ -1208,7 +1208,7 @@ app.get('/api/recommendations/export/csv/:type', async (req, res) => {
   }
 });
 
-// Export recommendations as Excel
+// Export recommendations as Excel with styling
 app.get('/api/recommendations/export/excel', async (req, res) => {
   try {
     const { market } = req.query;
@@ -1217,12 +1217,19 @@ app.get('/api/recommendations/export/excel', async (req, res) => {
     // Create workbook
     const wb = XLSX.utils.book_new();
 
+    // Helper to add cell styling info (stored in comments for post-processing)
+    const addCellMeta = (ws, row, col, style) => {
+      const cellRef = XLSX.utils.encode_cell({ r: row, c: col });
+      if (!ws[cellRef]) return;
+      ws[cellRef].s = style;
+    };
+
     // Portfolio sheet
     const portfolioData = [];
-    portfolioData.push(['Portfolio Insights Report', '', '', '', '', '', '', '', '', '']);
-    portfolioData.push(['Generated:', new Date().toLocaleString(), '', '', '', '', '', '', '', '']);
+    portfolioData.push(['PORTFOLIO INSIGHTS REPORT', '', '', '', '', '', '', '', '', '', '']);
+    portfolioData.push(['Generated:', new Date().toLocaleString(), '', 'Market:', market || 'NSE', '', '', '', '', '', '']);
     portfolioData.push([]);
-    portfolioData.push(['Symbol', 'Name', 'Market', 'Qty', 'Avg Price', 'Current Price', 'P&L', 'P&L %', 'Tax Status', 'Days Held']);
+    portfolioData.push(['Symbol', 'Name', 'Market', 'Qty', 'Avg Price', 'Current Price', 'P&L', 'P&L %', 'Signal', 'Tax Status', 'Days Held']);
 
     const marketFilter = market || 'NSE';
     const marketHoldings = data.holdings.filter(h => {
@@ -1231,7 +1238,9 @@ app.get('/api/recommendations/export/excel', async (req, res) => {
       return true;
     });
 
-    let totalInvested = 0, totalValue = 0;
+    let totalInvested = 0, totalValue = 0, totalPnl = 0;
+    const rowData = [];
+
     for (const h of marketHoldings) {
       const currentPrice = h.currentPrice || h.avgPrice;
       const pnl = (currentPrice - h.avgPrice) * h.quantity;
@@ -1240,26 +1249,53 @@ app.get('/api/recommendations/export/excel', async (req, res) => {
       const daysHeld = Math.floor((new Date() - purchaseDate) / (1000 * 60 * 60 * 24));
       const taxStatus = daysHeld >= 365 ? 'LTCG' : 'STCG';
 
+      // Determine signal based on P&L
+      let signal = 'HOLD';
+      if (pnlPercent > 30) signal = 'STRONG BUY';
+      else if (pnlPercent > 10) signal = 'BUY';
+      else if (pnlPercent < -20) signal = 'STRONG SELL';
+      else if (pnlPercent < -10) signal = 'SELL';
+
       totalInvested += h.avgPrice * h.quantity;
       totalValue += currentPrice * h.quantity;
+      totalPnl += pnl;
 
-      portfolioData.push([h.symbol, h.name, h.market, h.quantity, h.avgPrice, currentPrice, pnl, pnlPercent.toFixed(2) + '%', taxStatus, daysHeld]);
+      rowData.push({
+        row: [h.symbol, h.name, h.market, h.quantity, h.avgPrice, currentPrice, pnl, pnlPercent.toFixed(2) + '%', signal, taxStatus, daysHeld],
+        pnl,
+        pnlPercent,
+        signal,
+        taxStatus,
+      });
     }
 
+    // Sort by P&L descending
+    rowData.sort((a, b) => b.pnl - a.pnl);
+    rowData.forEach(r => portfolioData.push(r.row));
+
     portfolioData.push([]);
-    portfolioData.push(['Total Invested:', totalInvested.toFixed(2)]);
-    portfolioData.push(['Current Value:', totalValue.toFixed(2)]);
-    portfolioData.push(['Total P&L:', (totalValue - totalInvested).toFixed(2)]);
+    portfolioData.push(['SUMMARY', '', '', '', '', '', '', '', '', '', '']);
+    portfolioData.push(['Total Invested:', totalInvested.toFixed(2), '', 'Holdings:', marketHoldings.length, '', '', '', '', '', '']);
+    portfolioData.push(['Current Value:', totalValue.toFixed(2), '', 'Profitable:', rowData.filter(r => r.pnl > 0).length, '', '', '', '', '', '']);
+    portfolioData.push(['Total P&L:', totalPnl.toFixed(2), '', 'In Loss:', rowData.filter(r => r.pnl < 0).length, '', '', '', '', '', '']);
+    portfolioData.push(['P&L %:', ((totalValue - totalInvested) / totalInvested * 100).toFixed(2) + '%', '', '', '', '', '', '', '', '', '']);
 
     const ws1 = XLSX.utils.aoa_to_sheet(portfolioData);
+
+    // Set column widths
+    ws1['!cols'] = [
+      { wch: 25 }, { wch: 35 }, { wch: 8 }, { wch: 8 }, { wch: 12 },
+      { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 12 }, { wch: 10 }, { wch: 10 }
+    ];
+
     XLSX.utils.book_append_sheet(wb, ws1, 'Portfolio');
 
     // Sectors sheet
     const sectorData = [];
-    sectorData.push(['Sector Analysis']);
-    sectorData.push(['Generated:', new Date().toLocaleString()]);
+    sectorData.push(['SECTOR ANALYSIS', '', '', '', '']);
+    sectorData.push(['Generated:', new Date().toLocaleString(), '', '', '']);
     sectorData.push([]);
-    sectorData.push(['Sector', 'Value', 'Allocation %', 'Benchmark %', 'Status']);
+    sectorData.push(['Sector', 'Value', 'Allocation %', 'Benchmark %', 'Status', 'Deviation']);
 
     let sectorTotal = 0;
     const sectorValues = {};
@@ -1270,23 +1306,44 @@ app.get('/api/recommendations/export/excel', async (req, res) => {
       sectorValues[sector] = (sectorValues[sector] || 0) + value;
     }
 
-    const benchmark = { 'Financial Services': 25, 'IT': 15, 'Consumer Goods': 12, 'Pharma': 10, 'Auto': 8, 'Energy': 8, 'Infrastructure': 7, 'Metals': 5 };
+    const benchmark = { 'Financial Services': 25, 'IT': 15, 'Consumer Goods': 12, 'Pharma': 10, 'Auto': 8, 'Energy': 8, 'Infrastructure': 7, 'Metals': 5, 'Telecom': 4, 'Real Estate': 3 };
+    const sectorRows = [];
+
     for (const [sector, value] of Object.entries(sectorValues)) {
       const pct = sectorTotal > 0 ? (value / sectorTotal) * 100 : 0;
       const bench = benchmark[sector] || 5;
-      const status = pct > bench * 1.5 ? 'Overweight' : pct < bench * 0.5 ? 'Underweight' : 'Normal';
-      sectorData.push([sector, value.toFixed(2), pct.toFixed(2) + '%', bench + '%', status]);
+      const deviation = pct - bench;
+      const status = pct > bench * 1.5 ? 'OVERWEIGHT' : pct < bench * 0.5 ? 'UNDERWEIGHT' : 'NORMAL';
+      sectorRows.push({
+        row: [sector, value.toFixed(2), pct.toFixed(2) + '%', bench + '%', status, (deviation > 0 ? '+' : '') + deviation.toFixed(2) + '%'],
+        pct,
+        status,
+        deviation,
+      });
     }
 
+    // Sort by allocation descending
+    sectorRows.sort((a, b) => b.pct - a.pct);
+    sectorRows.forEach(r => sectorData.push(r.row));
+
+    sectorData.push([]);
+    sectorData.push(['Total Portfolio Value:', sectorTotal.toFixed(2), '', '', '', '']);
+    sectorData.push(['Sectors Tracked:', sectorRows.length, '', '', '', '']);
+    sectorData.push(['Overweight:', sectorRows.filter(r => r.status === 'OVERWEIGHT').length, '', '', '', '']);
+    sectorData.push(['Underweight:', sectorRows.filter(r => r.status === 'UNDERWEIGHT').length, '', '', '', '']);
+
     const ws2 = XLSX.utils.aoa_to_sheet(sectorData);
+    ws2['!cols'] = [{ wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 12 }];
     XLSX.utils.book_append_sheet(wb, ws2, 'Sectors');
 
     // Alerts sheet
     const alertsData = [];
-    alertsData.push(['Portfolio Alerts']);
-    alertsData.push(['Generated:', new Date().toLocaleString()]);
+    alertsData.push(['PORTFOLIO ALERTS', '', '', '', '']);
+    alertsData.push(['Generated:', new Date().toLocaleString(), '', '', '']);
     alertsData.push([]);
-    alertsData.push(['Type', 'Priority', 'Symbol', 'Message']);
+    alertsData.push(['Priority', 'Type', 'Symbol', 'Message', 'Value']);
+
+    const alertRows = [];
 
     for (const h of data.holdings) {
       const pnlPercent = h.avgPrice > 0 ? ((h.currentPrice || h.avgPrice) - h.avgPrice) / h.avgPrice * 100 : 0;
@@ -1295,27 +1352,97 @@ app.get('/api/recommendations/export/excel', async (req, res) => {
       const allocation = sectorTotal > 0 ? (currentValue / sectorTotal) * 100 : 0;
 
       if (Math.abs(dayChange) > 3) {
-        alertsData.push([dayChange > 0 ? 'SURGE' : 'DROP', Math.abs(dayChange) > 5 ? 'HIGH' : 'MEDIUM', h.symbol, `${dayChange > 0 ? 'Up' : 'Down'} ${Math.abs(dayChange).toFixed(1)}% today`]);
+        const priority = Math.abs(dayChange) > 5 ? 'HIGH' : 'MEDIUM';
+        alertRows.push({
+          row: [priority, dayChange > 0 ? 'SURGE' : 'DROP', h.symbol, `${dayChange > 0 ? 'Up' : 'Down'} ${Math.abs(dayChange).toFixed(1)}% today`, dayChange.toFixed(2) + '%'],
+          priority,
+          type: dayChange > 0 ? 'SURGE' : 'DROP',
+        });
       }
       if (allocation > 10) {
-        alertsData.push(['CONCENTRATION', allocation > 15 ? 'HIGH' : 'MEDIUM', h.symbol, `High allocation: ${allocation.toFixed(1)}%`]);
+        const priority = allocation > 15 ? 'HIGH' : 'MEDIUM';
+        alertRows.push({
+          row: [priority, 'CONCENTRATION', h.symbol, `High allocation: ${allocation.toFixed(1)}%`, allocation.toFixed(2) + '%'],
+          priority,
+          type: 'CONCENTRATION',
+        });
       }
       if (pnlPercent < -20) {
-        alertsData.push(['LOSS', pnlPercent < -30 ? 'HIGH' : 'MEDIUM', h.symbol, `Down ${Math.abs(pnlPercent).toFixed(1)}% from purchase`]);
+        const priority = pnlPercent < -30 ? 'HIGH' : 'MEDIUM';
+        alertRows.push({
+          row: [priority, 'LOSS', h.symbol, `Down ${Math.abs(pnlPercent).toFixed(1)}% from purchase`, pnlPercent.toFixed(2) + '%'],
+          priority,
+          type: 'LOSS',
+        });
       }
       if (pnlPercent > 50) {
-        alertsData.push(['PROFIT', 'LOW', h.symbol, `Up ${pnlPercent.toFixed(1)}% - consider profit booking`]);
+        alertRows.push({
+          row: ['LOW', 'PROFIT', h.symbol, `Up ${pnlPercent.toFixed(1)}% - consider profit booking`, pnlPercent.toFixed(2) + '%'],
+          priority: 'LOW',
+          type: 'PROFIT',
+        });
       }
     }
 
+    // Sort by priority
+    const priorityOrder = { HIGH: 0, MEDIUM: 1, LOW: 2 };
+    alertRows.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+    alertRows.forEach(r => alertsData.push(r.row));
+
+    alertsData.push([]);
+    alertsData.push(['ALERT SUMMARY', '', '', '', '']);
+    alertsData.push(['Total Alerts:', alertRows.length, '', '', '']);
+    alertsData.push(['High Priority:', alertRows.filter(r => r.priority === 'HIGH').length, '', '', '']);
+    alertsData.push(['Medium Priority:', alertRows.filter(r => r.priority === 'MEDIUM').length, '', '', '']);
+    alertsData.push(['Low Priority:', alertRows.filter(r => r.priority === 'LOW').length, '', '', '']);
+
     const ws3 = XLSX.utils.aoa_to_sheet(alertsData);
+    ws3['!cols'] = [{ wch: 12 }, { wch: 15 }, { wch: 25 }, { wch: 40 }, { wch: 12 }];
     XLSX.utils.book_append_sheet(wb, ws3, 'Alerts');
+
+    // Summary sheet
+    const summaryData = [];
+    summaryData.push(['PORTFOLIO RECOMMENDATIONS SUMMARY', '', '']);
+    summaryData.push(['Generated:', new Date().toLocaleString(), '']);
+    summaryData.push(['Market:', market || 'NSE', '']);
+    summaryData.push([]);
+    summaryData.push(['PORTFOLIO OVERVIEW', '', '']);
+    summaryData.push(['Total Holdings:', marketHoldings.length, '']);
+    summaryData.push(['Total Invested:', '₹' + totalInvested.toLocaleString('en-IN', { maximumFractionDigits: 2 }), '']);
+    summaryData.push(['Current Value:', '₹' + totalValue.toLocaleString('en-IN', { maximumFractionDigits: 2 }), '']);
+    summaryData.push(['Total P&L:', '₹' + totalPnl.toLocaleString('en-IN', { maximumFractionDigits: 2 }), totalPnl >= 0 ? 'PROFIT' : 'LOSS']);
+    summaryData.push(['P&L %:', ((totalValue - totalInvested) / totalInvested * 100).toFixed(2) + '%', '']);
+    summaryData.push([]);
+    summaryData.push(['HOLDINGS BREAKDOWN', '', '']);
+    summaryData.push(['Profitable Holdings:', rowData.filter(r => r.pnl > 0).length, '']);
+    summaryData.push(['Loss-making Holdings:', rowData.filter(r => r.pnl < 0).length, '']);
+    summaryData.push(['LTCG Eligible:', rowData.filter(r => r.taxStatus === 'LTCG').length, '']);
+    summaryData.push(['STCG Holdings:', rowData.filter(r => r.taxStatus === 'STCG').length, '']);
+    summaryData.push([]);
+    summaryData.push(['SIGNALS SUMMARY', '', '']);
+    summaryData.push(['Strong Buy:', rowData.filter(r => r.signal === 'STRONG BUY').length, '']);
+    summaryData.push(['Buy:', rowData.filter(r => r.signal === 'BUY').length, '']);
+    summaryData.push(['Hold:', rowData.filter(r => r.signal === 'HOLD').length, '']);
+    summaryData.push(['Sell:', rowData.filter(r => r.signal === 'SELL').length, '']);
+    summaryData.push(['Strong Sell:', rowData.filter(r => r.signal === 'STRONG SELL').length, '']);
+    summaryData.push([]);
+    summaryData.push(['RISK ALERTS', '', '']);
+    summaryData.push(['Total Alerts:', alertRows.length, '']);
+    summaryData.push(['High Priority Alerts:', alertRows.filter(r => r.priority === 'HIGH').length, 'Requires immediate attention']);
+    summaryData.push([]);
+    summaryData.push(['DISCLAIMER', '', '']);
+    summaryData.push(['This report is for informational purposes only.', '', '']);
+    summaryData.push(['Not financial advice. Do your own research.', '', '']);
+
+    const ws4 = XLSX.utils.aoa_to_sheet(summaryData);
+    ws4['!cols'] = [{ wch: 30 }, { wch: 25 }, { wch: 25 }];
+    XLSX.utils.book_append_sheet(wb, ws4, 'Summary');
 
     // Generate buffer
     const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename=recommendations_report_${timestamp}.xlsx`);
+    res.setHeader('Content-Disposition', `attachment; filename=portfolio_recommendations_${timestamp}.xlsx`);
     res.send(buf);
   } catch (error) {
     console.error('Excel export error:', error);

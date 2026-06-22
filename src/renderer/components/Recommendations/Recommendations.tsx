@@ -54,6 +54,15 @@ interface Bookmark {
   createdAt: string;
 }
 
+// LocalStorage keys for persistence
+const STORAGE_KEYS = {
+  recommendations: 'rec_recommendations',
+  sectors: 'rec_sectors',
+  alerts: 'rec_alerts',
+  lastRefresh: 'rec_lastRefresh',
+  market: 'rec_market',
+};
+
 export default function Recommendations() {
   const [activeTab, setActiveTab] = useState<TabType>('portfolio');
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
@@ -71,18 +80,82 @@ export default function Recommendations() {
   const [bookmarkType, setBookmarkType] = useState<'portfolio' | 'stock'>('portfolio');
   const [showChanges, setShowChanges] = useState(true);
   const [refreshStatus, setRefreshStatus] = useState('');
+  const [viewingBookmark, setViewingBookmark] = useState<Bookmark | null>(null);
   const exportMenuRef = useRef<HTMLDivElement>(null);
+  const tableContainerRef = useRef<HTMLDivElement>(null);
+
+  // Load persisted data on mount
+  useEffect(() => {
+    const savedMarket = localStorage.getItem(STORAGE_KEYS.market);
+    if (savedMarket === 'NSE' || savedMarket === 'NYSE') {
+      setMarket(savedMarket);
+    }
+
+    const savedRecommendations = localStorage.getItem(STORAGE_KEYS.recommendations);
+    const savedSectors = localStorage.getItem(STORAGE_KEYS.sectors);
+    const savedAlerts = localStorage.getItem(STORAGE_KEYS.alerts);
+    const savedLastRefresh = localStorage.getItem(STORAGE_KEYS.lastRefresh);
+
+    if (savedRecommendations) {
+      try {
+        const parsed = JSON.parse(savedRecommendations);
+        setRecommendations(parsed);
+        if (parsed.length > 0) setSelectedStock(parsed[0]);
+      } catch {}
+    }
+    if (savedSectors) {
+      try { setSectors(JSON.parse(savedSectors)); } catch {}
+    }
+    if (savedAlerts) {
+      try { setAlerts(JSON.parse(savedAlerts)); } catch {}
+    }
+    if (savedLastRefresh) {
+      setLastRefreshTime(new Date(savedLastRefresh));
+    }
+
+    fetchBookmarks();
+  }, []);
+
+  // Save data to localStorage when it changes
+  useEffect(() => {
+    if (recommendations.length > 0) {
+      localStorage.setItem(STORAGE_KEYS.recommendations, JSON.stringify(recommendations));
+    }
+  }, [recommendations]);
+
+  useEffect(() => {
+    if (sectors.sectors.length > 0) {
+      localStorage.setItem(STORAGE_KEYS.sectors, JSON.stringify(sectors));
+    }
+  }, [sectors]);
+
+  useEffect(() => {
+    if (alerts.length > 0) {
+      localStorage.setItem(STORAGE_KEYS.alerts, JSON.stringify(alerts));
+    }
+  }, [alerts]);
+
+  useEffect(() => {
+    if (lastRefreshTime) {
+      localStorage.setItem(STORAGE_KEYS.lastRefresh, lastRefreshTime.toISOString());
+    }
+  }, [lastRefreshTime]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.market, market);
+  }, [market]);
 
   const fetchRecommendations = async (storePrevious = true) => {
     if (storePrevious && recommendations.length > 0) {
       setPreviousRecommendations([...recommendations]);
     }
     setIsLoading(true);
+    setViewingBookmark(null);
     try {
       const response = await fetch(`/api/top-picks/${market}`);
       const data = await response.json();
       setRecommendations(data);
-      if (data.length > 0 && !selectedStock) setSelectedStock(data[0]);
+      if (data.length > 0) setSelectedStock(data[0]);
       setLastRefreshTime(new Date());
     } catch (error) {
       console.error('Failed to fetch recommendations:', error);
@@ -121,13 +194,6 @@ export default function Recommendations() {
     }
   };
 
-  useEffect(() => {
-    fetchRecommendations(false);
-    fetchSectors();
-    fetchAlerts();
-    fetchBookmarks();
-  }, [market]);
-
   // Close export menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -141,14 +207,15 @@ export default function Recommendations() {
 
   const handleRefresh = async () => {
     setRefreshStatus('Refreshing...');
+    const prevRecs = [...recommendations];
     await fetchRecommendations(true);
     await fetchSectors();
     await fetchAlerts();
 
     // Count signal changes
-    if (previousRecommendations) {
+    if (prevRecs.length > 0) {
       const changes = recommendations.filter(r => {
-        const prev = previousRecommendations.find(p => p.symbol === r.symbol);
+        const prev = prevRecs.find(p => p.symbol === r.symbol);
         return prev && prev.signal !== r.signal;
       }).length;
       setRefreshStatus(changes > 0 ? `Updated - ${changes} signal(s) changed` : 'Updated');
@@ -160,8 +227,6 @@ export default function Recommendations() {
 
   const handleExport = async (format: 'csv' | 'excel', type?: string) => {
     setShowExportMenu(false);
-    const timestamp = new Date().toISOString().split('T')[0];
-
     if (format === 'excel') {
       window.open(`/api/recommendations/export/excel?market=${market}`, '_blank');
     } else if (format === 'csv' && type) {
@@ -202,8 +267,50 @@ export default function Recommendations() {
     try {
       await fetch(`/api/recommendations/bookmarks/${id}`, { method: 'DELETE' });
       await fetchBookmarks();
+      if (viewingBookmark?.id === id) {
+        setViewingBookmark(null);
+      }
     } catch (error) {
       console.error('Failed to delete bookmark:', error);
+    }
+  };
+
+  const handleViewBookmark = (bookmark: Bookmark) => {
+    if (bookmark.type === 'portfolio' && bookmark.data.recommendations) {
+      setViewingBookmark(bookmark);
+      setRecommendations(bookmark.data.recommendations);
+      if (bookmark.data.sectors) setSectors(bookmark.data.sectors);
+      if (bookmark.data.alerts) setAlerts(bookmark.data.alerts);
+      if (bookmark.data.recommendations.length > 0) {
+        setSelectedStock(bookmark.data.recommendations[0]);
+      }
+      setActiveTab('portfolio');
+    } else if (bookmark.type === 'stock' && bookmark.data) {
+      setViewingBookmark(bookmark);
+      setSelectedStock(bookmark.data);
+      setActiveTab('portfolio');
+    }
+  };
+
+  const handleExitBookmarkView = () => {
+    setViewingBookmark(null);
+    // Reload from localStorage
+    const savedRecommendations = localStorage.getItem(STORAGE_KEYS.recommendations);
+    const savedSectors = localStorage.getItem(STORAGE_KEYS.sectors);
+    const savedAlerts = localStorage.getItem(STORAGE_KEYS.alerts);
+
+    if (savedRecommendations) {
+      try {
+        const parsed = JSON.parse(savedRecommendations);
+        setRecommendations(parsed);
+        if (parsed.length > 0) setSelectedStock(parsed[0]);
+      } catch {}
+    }
+    if (savedSectors) {
+      try { setSectors(JSON.parse(savedSectors)); } catch {}
+    }
+    if (savedAlerts) {
+      try { setAlerts(JSON.parse(savedAlerts)); } catch {}
     }
   };
 
@@ -277,7 +384,9 @@ export default function Recommendations() {
     const minutes = Math.floor(seconds / 60);
     if (minutes < 60) return `${minutes} min ago`;
     const hours = Math.floor(minutes / 60);
-    return `${hours} hr ago`;
+    if (hours < 24) return `${hours} hr ago`;
+    const days = Math.floor(hours / 24);
+    return `${days} day${days > 1 ? 's' : ''} ago`;
   };
 
   const DeltaIndicator = ({ value }: { value: number | null }) => {
@@ -301,10 +410,28 @@ export default function Recommendations() {
 
         <div className="flex items-center gap-3">
           {/* Last Updated */}
-          {lastRefreshTime && (
+          {lastRefreshTime && !viewingBookmark && (
             <span className="text-xs text-slate-500">
               Updated: {formatTimeAgo(lastRefreshTime)}
             </span>
+          )}
+
+          {/* Viewing Bookmark Banner */}
+          {viewingBookmark && (
+            <div className="flex items-center gap-2 px-3 py-1 bg-blue-900/30 rounded-lg">
+              <span className="text-sm text-blue-400">
+                Viewing: {viewingBookmark.type === 'portfolio' ? 'Saved snapshot' : viewingBookmark.symbol}
+                <span className="text-xs text-slate-500 ml-2">
+                  ({new Date(viewingBookmark.createdAt).toLocaleDateString()})
+                </span>
+              </span>
+              <button
+                onClick={handleExitBookmarkView}
+                className="text-xs text-blue-300 hover:text-white underline"
+              >
+                Exit
+              </button>
+            </div>
           )}
 
           {/* Refresh Button */}
@@ -482,15 +609,21 @@ export default function Recommendations() {
             <div className="card text-center py-12">
               <div className="text-6xl mb-4">📊</div>
               <h3 className="text-xl font-semibold text-white mb-2">No Holdings Found</h3>
-              <p className="text-slate-400">Add holdings to your portfolio to see recommendations.</p>
+              <p className="text-slate-400 mb-4">Add holdings to your portfolio to see recommendations.</p>
+              <button onClick={handleRefresh} className="btn-primary">
+                Load Recommendations
+              </button>
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Stock List */}
+              {/* Stock List with Sticky Header */}
               <div className="lg:col-span-2">
-                <div className="card p-0 overflow-hidden">
+                <div
+                  ref={tableContainerRef}
+                  className="card p-0 overflow-auto max-h-[calc(100vh-280px)]"
+                >
                   <table className="w-full">
-                    <thead>
+                    <thead className="sticky top-0 z-10 bg-slate-800">
                       <tr className="bg-slate-700/50 text-left">
                         <th className="p-3 text-slate-300 font-medium">Stock</th>
                         <th className="p-3 text-slate-300 font-medium text-center">Signal</th>
@@ -519,13 +652,15 @@ export default function Recommendations() {
                               <p className="font-medium text-white">{stock.symbol}</p>
                               <p className="text-xs text-slate-400 truncate max-w-[150px]">{stock.name}</p>
                             </td>
-                            <td className="p-3 text-center">
-                              <span className={`px-2 py-1 rounded text-xs font-medium ${getSignalColor(stock.signal)}`}>
-                                {stock.signal.replace('_', ' ')}
-                              </span>
-                              {signalChange && (
-                                <p className="text-xs text-yellow-400 mt-1">{signalChange}</p>
-                              )}
+                            <td className="p-3">
+                              <div className="flex flex-col items-center justify-center">
+                                <span className={`inline-flex items-center justify-center px-2 py-1 rounded text-xs font-medium whitespace-nowrap min-w-[90px] ${getSignalColor(stock.signal)}`}>
+                                  {stock.signal.replace('_', ' ')}
+                                </span>
+                                {signalChange && (
+                                  <p className="text-xs text-yellow-400 mt-1 text-center">{signalChange}</p>
+                                )}
+                              </div>
                             </td>
                             <td className="p-3 text-right">
                               <div className="flex items-center justify-end gap-2">
@@ -575,102 +710,104 @@ export default function Recommendations() {
                 </div>
               </div>
 
-              {/* Stock Details */}
+              {/* Stock Details - Sticky */}
               <div className="lg:col-span-1">
-                {selectedStock ? (
-                  <div className="card space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-xl font-bold text-white">{selectedStock.symbol}</h3>
-                        <p className="text-slate-400 text-sm">{selectedStock.market} • {selectedStock.daysHeld} days held</p>
-                      </div>
-                      <span className={`px-3 py-1 rounded text-sm font-medium ${getSignalColor(selectedStock.signal)}`}>
-                        {selectedStock.signal.replace('_', ' ')}
-                      </span>
-                    </div>
-
-                    {/* Price Info */}
-                    <div className="grid grid-cols-2 gap-3 p-3 bg-slate-700/50 rounded-lg">
-                      <div>
-                        <p className="text-xs text-slate-400">Avg Price</p>
-                        <p className="text-white font-medium">{formatCurrency(selectedStock.avgPrice, 'INR')}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-slate-400">Current Price</p>
-                        <p className="text-white font-medium">{formatCurrency(selectedStock.currentPrice, 'INR')}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-slate-400">52W Low</p>
-                        <p className="text-slate-300">{formatCurrency(selectedStock.low52Week, 'INR')}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-slate-400">52W High</p>
-                        <p className="text-slate-300">{formatCurrency(selectedStock.high52Week, 'INR')}</p>
-                      </div>
-                    </div>
-
-                    {/* Score Breakdown */}
-                    <div>
-                      <p className="text-sm font-medium text-slate-300 mb-2">Score Breakdown</p>
-                      <div className="grid grid-cols-2 gap-2">
-                        <ScoreCard label="Trend" score={selectedStock.technicalScore} delta={getScoreDelta(selectedStock.symbol, 'technicalScore')} />
-                        <ScoreCard label="Momentum" score={selectedStock.momentumScore} delta={getScoreDelta(selectedStock.symbol, 'momentumScore')} />
-                        <ScoreCard label="Value" score={selectedStock.valueScore} delta={getScoreDelta(selectedStock.symbol, 'valueScore')} />
-                        <ScoreCard label="Overall" score={selectedStock.overallScore} delta={getScoreDelta(selectedStock.symbol, 'overallScore')} highlight />
-                      </div>
-                    </div>
-
-                    {/* Moving Averages */}
-                    <div className="p-3 bg-slate-700/50 rounded-lg">
-                      <p className="text-xs text-slate-400 mb-2">Moving Averages</p>
-                      <div className="space-y-1 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-slate-400">50 DMA</span>
-                          <span className={selectedStock.currentPrice > selectedStock.ma50 ? 'text-green-400' : 'text-red-400'}>
-                            {formatCurrency(selectedStock.ma50, 'INR')}
-                            {selectedStock.currentPrice > selectedStock.ma50 ? ' ↑' : ' ↓'}
-                          </span>
+                <div className="sticky top-4">
+                  {selectedStock ? (
+                    <div className="card space-y-4 max-h-[calc(100vh-280px)] overflow-auto">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-xl font-bold text-white">{selectedStock.symbol}</h3>
+                          <p className="text-slate-400 text-sm">{selectedStock.market} • {selectedStock.daysHeld} days held</p>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-400">200 DMA</span>
-                          <span className={selectedStock.currentPrice > selectedStock.ma200 ? 'text-green-400' : 'text-red-400'}>
-                            {formatCurrency(selectedStock.ma200, 'INR')}
-                            {selectedStock.currentPrice > selectedStock.ma200 ? ' ↑' : ' ↓'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Analysis */}
-                    <div className="pt-2 border-t border-slate-700">
-                      <p className="text-sm font-medium text-slate-300 mb-2">Analysis</p>
-                      <ul className="space-y-2">
-                        {selectedStock.rationale.map((reason, idx) => (
-                          <li key={idx} className="flex items-start gap-2 text-sm text-slate-400">
-                            <span className="text-green-500 mt-0.5">•</span>
-                            {reason}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    {/* P&L Summary */}
-                    <div className={`p-3 rounded-lg ${selectedStock.pnl >= 0 ? 'bg-green-900/20' : 'bg-red-900/20'}`}>
-                      <div className="flex justify-between items-center">
-                        <span className="text-slate-400">P&L</span>
-                        <span className={`font-bold ${selectedStock.pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                          {selectedStock.pnl >= 0 ? '+' : ''}{formatCurrency(selectedStock.pnl, 'INR')}
-                          <span className="text-sm ml-1">({selectedStock.pnlPercent >= 0 ? '+' : ''}{selectedStock.pnlPercent.toFixed(1)}%)</span>
+                        <span className={`inline-flex items-center justify-center px-3 py-1 rounded text-sm font-medium whitespace-nowrap min-w-[90px] ${getSignalColor(selectedStock.signal)}`}>
+                          {selectedStock.signal.replace('_', ' ')}
                         </span>
                       </div>
+
+                      {/* Price Info */}
+                      <div className="grid grid-cols-2 gap-3 p-3 bg-slate-700/50 rounded-lg">
+                        <div>
+                          <p className="text-xs text-slate-400">Avg Price</p>
+                          <p className="text-white font-medium">{formatCurrency(selectedStock.avgPrice, 'INR')}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-400">Current Price</p>
+                          <p className="text-white font-medium">{formatCurrency(selectedStock.currentPrice, 'INR')}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-400">52W Low</p>
+                          <p className="text-slate-300">{formatCurrency(selectedStock.low52Week, 'INR')}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-400">52W High</p>
+                          <p className="text-slate-300">{formatCurrency(selectedStock.high52Week, 'INR')}</p>
+                        </div>
+                      </div>
+
+                      {/* Score Breakdown */}
+                      <div>
+                        <p className="text-sm font-medium text-slate-300 mb-2">Score Breakdown</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          <ScoreCard label="Trend" score={selectedStock.technicalScore} delta={getScoreDelta(selectedStock.symbol, 'technicalScore')} />
+                          <ScoreCard label="Momentum" score={selectedStock.momentumScore} delta={getScoreDelta(selectedStock.symbol, 'momentumScore')} />
+                          <ScoreCard label="Value" score={selectedStock.valueScore} delta={getScoreDelta(selectedStock.symbol, 'valueScore')} />
+                          <ScoreCard label="Overall" score={selectedStock.overallScore} delta={getScoreDelta(selectedStock.symbol, 'overallScore')} highlight />
+                        </div>
+                      </div>
+
+                      {/* Moving Averages */}
+                      <div className="p-3 bg-slate-700/50 rounded-lg">
+                        <p className="text-xs text-slate-400 mb-2">Moving Averages</p>
+                        <div className="space-y-1 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-slate-400">50 DMA</span>
+                            <span className={selectedStock.currentPrice > selectedStock.ma50 ? 'text-green-400' : 'text-red-400'}>
+                              {formatCurrency(selectedStock.ma50, 'INR')}
+                              {selectedStock.currentPrice > selectedStock.ma50 ? ' ↑' : ' ↓'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-400">200 DMA</span>
+                            <span className={selectedStock.currentPrice > selectedStock.ma200 ? 'text-green-400' : 'text-red-400'}>
+                              {formatCurrency(selectedStock.ma200, 'INR')}
+                              {selectedStock.currentPrice > selectedStock.ma200 ? ' ↑' : ' ↓'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Analysis */}
+                      <div className="pt-2 border-t border-slate-700">
+                        <p className="text-sm font-medium text-slate-300 mb-2">Analysis</p>
+                        <ul className="space-y-2">
+                          {selectedStock.rationale.map((reason, idx) => (
+                            <li key={idx} className="flex items-start gap-2 text-sm text-slate-400">
+                              <span className="text-green-500 mt-0.5">•</span>
+                              {reason}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* P&L Summary */}
+                      <div className={`p-3 rounded-lg ${selectedStock.pnl >= 0 ? 'bg-green-900/20' : 'bg-red-900/20'}`}>
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-400">P&L</span>
+                          <span className={`font-bold ${selectedStock.pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            {selectedStock.pnl >= 0 ? '+' : ''}{formatCurrency(selectedStock.pnl, 'INR')}
+                            <span className="text-sm ml-1">({selectedStock.pnlPercent >= 0 ? '+' : ''}{selectedStock.pnlPercent.toFixed(1)}%)</span>
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <div className="card text-center py-12">
-                    <div className="text-4xl mb-4">👆</div>
-                    <p className="text-slate-400">Select a stock to view details</p>
-                  </div>
-                )}
+                  ) : (
+                    <div className="card text-center py-12">
+                      <div className="text-4xl mb-4">👆</div>
+                      <p className="text-slate-400">Select a stock to view details</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -847,7 +984,7 @@ export default function Recommendations() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {bookmarks.map((bookmark) => (
-                <div key={bookmark.id} className="card">
+                <div key={bookmark.id} className="card hover:bg-slate-700/50 transition-colors">
                   <div className="flex items-start justify-between mb-3">
                     <div>
                       <span className={`text-xs px-2 py-0.5 rounded ${
@@ -859,27 +996,44 @@ export default function Recommendations() {
                         {new Date(bookmark.createdAt).toLocaleString()}
                       </p>
                     </div>
-                    <button
-                      onClick={() => handleDeleteBookmark(bookmark.id)}
-                      className="text-slate-400 hover:text-red-400 transition-colors"
-                    >
-                      🗑️
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleViewBookmark(bookmark)}
+                        className="text-blue-400 hover:text-blue-300 transition-colors text-sm"
+                        title="View this bookmark"
+                      >
+                        👁️ View
+                      </button>
+                      <button
+                        onClick={() => handleDeleteBookmark(bookmark.id)}
+                        className="text-slate-400 hover:text-red-400 transition-colors"
+                        title="Delete bookmark"
+                      >
+                        🗑️
+                      </button>
+                    </div>
                   </div>
 
                   {bookmark.type === 'portfolio' && bookmark.data.summary && (
                     <div className="text-sm text-slate-300 mb-2">
                       <p>{bookmark.data.summary.total} holdings ({bookmark.data.summary.market})</p>
+                      {bookmark.data.recommendations && (
+                        <p className="text-xs text-slate-500 mt-1">
+                          {bookmark.data.recommendations.filter((r: any) => r.signal?.includes('BUY')).length} BUY signals
+                        </p>
+                      )}
                     </div>
                   )}
 
                   {bookmark.type === 'stock' && bookmark.data && (
                     <div className="text-sm mb-2">
                       <p className="text-white font-medium">{bookmark.data.symbol}</p>
-                      <p className={`${bookmark.data.signal?.includes('BUY') ? 'text-green-400' : bookmark.data.signal?.includes('SELL') ? 'text-red-400' : 'text-yellow-400'}`}>
-                        Signal: {bookmark.data.signal}
-                      </p>
-                      <p className="text-slate-400">Score: {bookmark.data.overallScore}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded text-xs font-medium ${getSignalColor(bookmark.data.signal || 'HOLD')}`}>
+                          {(bookmark.data.signal || 'HOLD').replace('_', ' ')}
+                        </span>
+                        <span className="text-slate-400 text-xs">Score: {bookmark.data.overallScore}</span>
+                      </div>
                     </div>
                   )}
 
@@ -888,6 +1042,14 @@ export default function Recommendations() {
                       "{bookmark.notes}"
                     </p>
                   )}
+
+                  {/* Quick View Button */}
+                  <button
+                    onClick={() => handleViewBookmark(bookmark)}
+                    className="w-full mt-3 py-2 bg-slate-700 hover:bg-slate-600 rounded text-sm text-slate-300 transition-colors"
+                  >
+                    Open in Portfolio Insights
+                  </button>
                 </div>
               ))}
             </div>
