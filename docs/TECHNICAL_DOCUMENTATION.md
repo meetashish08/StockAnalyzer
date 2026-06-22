@@ -784,6 +784,142 @@ if (isShortTerm && stcg !== 0) {
 
 ---
 
+## Recommendations Module
+
+### Overview
+AI-powered portfolio analysis providing actionable insights, sector analysis, and risk alerts based on technical indicators.
+
+### Endpoints
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/top-picks/:market` | Portfolio-based recommendations with technical scores |
+| GET | `/api/recommendations/sectors` | Sector allocation vs benchmark analysis |
+| GET | `/api/recommendations/alerts` | Risk and opportunity alerts |
+
+### Features
+
+#### 1. Portfolio Insights Tab
+Analyzes each holding using Yahoo Finance data:
+
+**Technical Scoring (0-100)**
+```javascript
+// Trend Score
+if (price > ma200) score += 20;  // Above 200 DMA
+if (price > ma50) score += 15;   // Above 50 DMA
+if (ma50 > ma200) score += 15;   // Golden cross
+
+// Momentum Score
+if (dayChange > 2%) score += 20;
+if (distFrom52High > -5%) score += 20;  // Near 52-week high
+
+// Value Score (P/E based)
+if (pe < 15) score = 80;
+else if (pe < 25) score = 65;
+```
+
+**Signal Generation**
+| Overall Score | P&L % | Signal |
+|---------------|-------|--------|
+| ≥ 75 | > -10% | STRONG_BUY |
+| ≥ 60 | - | BUY |
+| 46-59 | - | HOLD |
+| ≤ 45 | - | SELL |
+| ≤ 30 or P&L < -20% | - | STRONG_SELL |
+
+**Response Data**
+```typescript
+interface Recommendation {
+  symbol: string;
+  name: string;
+  currentPrice: number;
+  avgPrice: number;
+  pnl: number;
+  pnlPercent: number;
+  technicalScore: number;    // Trend analysis (0-100)
+  momentumScore: number;     // Recent performance (0-100)
+  valueScore: number;        // P/E based valuation (0-100)
+  overallScore: number;      // Weighted average
+  signal: 'STRONG_BUY' | 'BUY' | 'HOLD' | 'SELL' | 'STRONG_SELL';
+  rationale: string[];       // Human-readable analysis
+  high52Week: number;
+  low52Week: number;
+  ma50: number;              // 50-day moving average
+  ma200: number;             // 200-day moving average
+  daysHeld: number;
+  taxStatus: 'STCG' | 'LTCG';
+}
+```
+
+#### 2. Sector Analysis Tab
+Compares portfolio allocation against benchmark (Nifty 50 weights):
+
+```javascript
+const benchmarkAllocation = {
+  'Financial Services': 25,
+  'IT': 15,
+  'Consumer Goods': 12,
+  'Pharma': 10,
+  'Auto': 8,
+  'Energy': 8,
+  // ...
+};
+```
+
+**Output**
+- Sector allocation bar charts with benchmark markers
+- Overweight sectors (>1.5x benchmark)
+- Underweight sectors (<0.5x benchmark)
+- Missing sectors for diversification
+
+#### 3. Alerts Tab
+Real-time monitoring for portfolio risks and opportunities:
+
+| Alert Type | Condition | Priority |
+|------------|-----------|----------|
+| SURGE | Daily gain > 3% | MEDIUM/HIGH |
+| DROP | Daily loss > 3% | MEDIUM/HIGH |
+| CONCENTRATION | Allocation > 10% | MEDIUM/HIGH |
+| LOSS | Total loss > 20% | MEDIUM/HIGH |
+| PROFIT | Total gain > 50% | LOW |
+| TAX | LTCG in 65 days | MEDIUM |
+
+---
+
+## Portfolio Module Enhancements
+
+### Auto-Refresh Feature
+Configurable auto-refresh with dropdown intervals:
+- Off, 1 min, 2 min, 5 min, 10 min, 15 min, 30 min, 1 hour, 2 hours
+
+**Silent Refresh**
+Updates only price fields without full loading state:
+- `currentPrice`, `dayChange`, `dayChangePercent`, `previousClose`
+- Shows countdown timer: "Next: Xm Xs"
+- Brief status message after refresh
+
+### Summary Cards
+| Card | Display |
+|------|---------|
+| Total Holdings | Count with tab filter |
+| Total Value | Current portfolio value |
+| Total P&L | Amount + percentage |
+| 1D Return | Today's gain/loss + change since last refresh (subscript) |
+
+### REIT Price Fix
+REITs use BSE exchange for accurate pricing (NSE data often stale):
+```javascript
+const USE_BSE_EXCHANGE = ['EMBASSY', 'BIRET', 'MINDSPACE'];
+
+function getYahooSymbol(symbol, market) {
+  if (USE_BSE_EXCHANGE.includes(mappedSymbol)) {
+    return `${mappedSymbol}.BO`;  // Force BSE
+  }
+  // ... normal logic
+}
+```
+
+---
+
 ## Future Improvements
 
 1. **Database**: Migrate from JSON to SQLite/PostgreSQL
@@ -791,5 +927,8 @@ if (isShortTerm && stcg !== 0) {
 3. **Real-time Updates**: WebSocket for live price updates
 4. **More Brokers**: Add Zerodha, Angel One, Upstox parsers
 5. **Mobile App**: React Native version
-6. **Alerts**: Price alerts and notifications
+6. **Advanced Alerts**: Price targets, stop-loss notifications
 7. **Advanced Tax**: Support for debt funds, grandfathering clause
+8. **Market Screener**: Screen Nifty 200 by technical indicators
+9. **Watchlist**: Track stocks not in portfolio
+10. **Correlation Analysis**: Identify correlated holdings

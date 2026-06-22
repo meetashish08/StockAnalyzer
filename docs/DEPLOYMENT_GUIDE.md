@@ -644,12 +644,54 @@ For issues and feature requests:
 | Feature | URL | Description |
 |---------|-----|-------------|
 | Dashboard | http://localhost:3001/ | Portfolio overview & summary |
-| Portfolio | http://localhost:3001/portfolio | Holdings with India/US tabs |
-| Recommendations | http://localhost:3001/recommendations | Stock recommendations |
+| Portfolio | http://localhost:3001/portfolio | Holdings with India/US tabs, auto-refresh, sortable columns |
+| Recommendations | http://localhost:3001/recommendations | Portfolio insights, sector analysis & alerts |
 | Analytics | http://localhost:3001/analytics | Charts & health scores |
 | Tax Analysis | http://localhost:3001/tax-analysis | Capital gains & ITR helper (Excel + AIS import) |
 | Import | http://localhost:3001/import | Import from brokers |
 | AI Assistant | http://localhost:3001/ai-chat | AI chat with bookmarks |
+
+### Recommendations Module Details
+
+The Recommendations page provides three analysis tabs:
+
+**Portfolio Insights**
+- Technical analysis for each holding (trend, momentum, value scores)
+- Signal recommendations: STRONG_BUY, BUY, HOLD, SELL, STRONG_SELL
+- 50/200 DMA analysis with visual indicators
+- 52-week high/low context
+- P&L tracking with STCG/LTCG tax status
+- Detailed rationale for each recommendation
+
+**Sector Analysis**
+- Current vs benchmark allocation comparison (Nifty 50 weights)
+- Visual bar charts with benchmark markers
+- Overweight/underweight sector warnings
+- Missing sector identification for diversification
+
+**Alerts**
+- Large daily moves (>3% up or down)
+- Concentrated positions (>10% allocation)
+- Significant losses (>20% from purchase)
+- Profit booking opportunities (>50% gain)
+- LTCG qualification countdown (approaching 365 days)
+
+### Portfolio Module Features
+
+**Auto-Refresh**
+- Dropdown to select refresh interval: Off, 1-2-5-10-15-30 min, 1-2 hours
+- Countdown timer showing time until next refresh
+- Silent refresh updates only price fields without loading spinner
+- Status message shows "Auto-updated X stocks" briefly
+
+**Summary Cards**
+- Total Holdings count
+- Total Value (current)
+- Total P&L with percentage
+- 1D Return with change from last refresh in subscript
+
+**Sortable Columns**
+Click any column header to sort: Symbol, Qty, Avg Price, Current Price, Value, P&L, 1D Change
 
 ---
 
