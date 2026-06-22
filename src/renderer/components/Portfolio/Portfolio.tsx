@@ -9,6 +9,19 @@ type MarketTab = 'all' | 'india' | 'us';
 type SortField = 'symbol' | 'quantity' | 'avgPrice' | 'importedPrice' | 'currentPrice' | 'currentValue' | 'pnl' | 'pnlPercent' | 'dayChangePercent';
 type SortDirection = 'asc' | 'desc';
 
+// Auto-refresh interval options in milliseconds
+const REFRESH_INTERVALS = [
+  { label: 'Off', value: 0 },
+  { label: '1 min', value: 60000 },
+  { label: '2 min', value: 120000 },
+  { label: '5 min', value: 300000 },
+  { label: '10 min', value: 600000 },
+  { label: '15 min', value: 900000 },
+  { label: '30 min', value: 1800000 },
+  { label: '1 hour', value: 3600000 },
+  { label: '2 hours', value: 7200000 },
+];
+
 export default function Portfolio() {
   const {
     holdingsWithPrices,
@@ -27,38 +40,92 @@ export default function Portfolio() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshStatus, setRefreshStatus] = useState<string>('');
   const [activeTab, setActiveTab] = useState<MarketTab>('all');
-  const [autoRefresh, setAutoRefresh] = useState(false);
-  const autoRefreshInterval = useRef<NodeJS.Timeout | null>(null);
+  const [autoRefreshInterval, setAutoRefreshIntervalValue] = useState(0);
+  const [nextRefreshIn, setNextRefreshIn] = useState<number | null>(null);
+  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const countdownRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     fetchHoldings();
   }, []);
 
-  // Auto-refresh effect
-  useEffect(() => {
-    if (autoRefresh) {
-      // Initial refresh
-      handleRefreshPrices();
+  // Silent refresh - only updates price data without full loading state
+  const handleSilentRefresh = async () => {
+    try {
+      const response = await fetch('/api/refresh-prices', { method: 'POST' });
+      const result = await response.json();
 
-      // Set up interval for every 60 seconds
-      autoRefreshInterval.current = setInterval(() => {
-        handleRefreshPrices();
-      }, 60000);
-    } else {
-      // Clear interval when auto-refresh is disabled
-      if (autoRefreshInterval.current) {
-        clearInterval(autoRefreshInterval.current);
-        autoRefreshInterval.current = null;
+      if (result.success) {
+        // Fetch updated holdings without showing loading indicator
+        await fetchHoldings();
+        setRefreshStatus(`Auto-updated ${result.updated} stocks`);
+        setTimeout(() => setRefreshStatus(''), 3000);
       }
+    } catch (error) {
+      console.error('Silent refresh failed:', error);
+    }
+  };
+
+  // Auto-refresh effect with countdown
+  useEffect(() => {
+    // Clear existing intervals
+    if (refreshIntervalRef.current) {
+      clearInterval(refreshIntervalRef.current);
+      refreshIntervalRef.current = null;
+    }
+    if (countdownRef.current) {
+      clearInterval(countdownRef.current);
+      countdownRef.current = null;
+    }
+    setNextRefreshIn(null);
+
+    if (autoRefreshInterval > 0) {
+      // Initial silent refresh
+      handleSilentRefresh();
+
+      // Set next refresh countdown
+      let remainingTime = autoRefreshInterval / 1000;
+      setNextRefreshIn(remainingTime);
+
+      // Countdown timer (updates every second)
+      countdownRef.current = setInterval(() => {
+        remainingTime -= 1;
+        if (remainingTime <= 0) {
+          remainingTime = autoRefreshInterval / 1000;
+        }
+        setNextRefreshIn(remainingTime);
+      }, 1000);
+
+      // Set up refresh interval
+      refreshIntervalRef.current = setInterval(() => {
+        handleSilentRefresh();
+      }, autoRefreshInterval);
     }
 
-    // Cleanup on unmount
+    // Cleanup on unmount or interval change
     return () => {
-      if (autoRefreshInterval.current) {
-        clearInterval(autoRefreshInterval.current);
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+      }
+      if (countdownRef.current) {
+        clearInterval(countdownRef.current);
       }
     };
-  }, [autoRefresh]);
+  }, [autoRefreshInterval]);
+
+  // Format countdown display
+  const formatCountdown = (seconds: number): string => {
+    if (seconds >= 3600) {
+      const hours = Math.floor(seconds / 3600);
+      const mins = Math.floor((seconds % 3600) / 60);
+      return `${hours}h ${mins}m`;
+    } else if (seconds >= 60) {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${mins}m ${secs}s`;
+    }
+    return `${seconds}s`;
+  };
 
   // Separate holdings by market
   const { indiaHoldings, usHoldings } = useMemo(() => {
@@ -232,16 +299,24 @@ export default function Portfolio() {
         <div className="flex items-center gap-3">
           {holdingsWithPrices.length > 0 && (
             <>
-              <label className="flex items-center gap-2 text-slate-300 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={autoRefresh}
-                  onChange={(e) => setAutoRefresh(e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-500 bg-slate-700 text-green-500 focus:ring-green-500 focus:ring-offset-slate-800"
-                />
-                <span className="text-sm">Auto-refresh (1 min)</span>
-                {autoRefresh && <span className="text-green-400 animate-pulse">●</span>}
-              </label>
+              <div className="flex items-center gap-2">
+                <label className="text-slate-400 text-sm">Auto-refresh:</label>
+                <select
+                  value={autoRefreshInterval}
+                  onChange={(e) => setAutoRefreshIntervalValue(Number(e.target.value))}
+                  className="select text-sm py-1 px-2 w-24"
+                >
+                  {REFRESH_INTERVALS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+                {autoRefreshInterval > 0 && nextRefreshIn !== null && (
+                  <span className="text-xs text-green-400 flex items-center gap-1">
+                    <span className="animate-pulse">●</span>
+                    Next: {formatCountdown(nextRefreshIn)}
+                  </span>
+                )}
+              </div>
               <button
                 onClick={handleRefreshPrices}
                 disabled={isRefreshing}
