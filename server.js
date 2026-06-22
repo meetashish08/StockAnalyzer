@@ -176,9 +176,21 @@ const SYMBOL_MAP = {
   'VEDANTAPOWER': 'VEDPOWER',
 };
 
+// REITs that need BSE exchange for accurate prices (NSE data is often stale)
+const USE_BSE_EXCHANGE = [
+  'EMBASSY',
+  'BIRET',
+  'MINDSPACE',
+];
+
 function getYahooSymbol(symbol, market) {
   // Check if we have a mapped symbol
   const mappedSymbol = SYMBOL_MAP[symbol.toUpperCase()] || symbol;
+
+  // Force BSE for REITs (more accurate pricing)
+  if (USE_BSE_EXCHANGE.includes(mappedSymbol.toUpperCase())) {
+    return `${mappedSymbol}.BO`;
+  }
 
   switch (market) {
     case 'NSE': return `${mappedSymbol}.NS`;
@@ -840,8 +852,14 @@ app.post('/api/refresh-prices', async (req, res) => {
   for (const holding of data.holdings) {
     const mapped = SYMBOL_MAP[holding.symbol.toUpperCase()] || holding.symbol;
 
-    // Try NSE first, then BSE
-    const symbolsToTry = [`${mapped}.NS`, `${mapped}.BO`, mapped];
+    // For REITs, use BSE first (NSE data is often stale)
+    // For others, try NSE first, then BSE
+    let symbolsToTry;
+    if (USE_BSE_EXCHANGE.includes(mapped.toUpperCase())) {
+      symbolsToTry = [`${mapped}.BO`, `${mapped}.NS`, mapped];
+    } else {
+      symbolsToTry = [`${mapped}.NS`, `${mapped}.BO`, mapped];
+    }
 
     let success = false;
     for (const sym of symbolsToTry) {
