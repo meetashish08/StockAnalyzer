@@ -12,11 +12,14 @@ const yahooFinance = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Helper function to format numbers with exactly 2 decimal places
+// Helper function to format numbers with exactly 2 decimal places (for display strings)
 const fmt2 = (num) => {
   const n = Number(num) || 0;
   return n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
+
+// Helper function to round numbers to 2 decimal places (for Excel cell values)
+const r2 = (num) => Math.round((Number(num) || 0) * 100) / 100;
 
 // File upload setup
 const upload = multer({ dest: 'uploads/' });
@@ -839,10 +842,10 @@ app.get('/api/analytics/export/excel', async (req, res) => {
       [{ v: `Generated: ${new Date().toLocaleString()}`, s: { font: { italic: true, color: { rgb: "6B7280" } } } }],
       [],
       [{ v: 'PORTFOLIO OVERVIEW', s: styles.sectionHeader }, { v: '', s: styles.sectionHeader }, { v: '', s: styles.sectionHeader }],
-      [{ v: 'Total Value', s: styles.label }, { v: health.metrics?.totalValue || 0, s: { ...styles.value, numFmt: "₹#,##0.00" } }],
-      [{ v: 'Total Invested', s: styles.label }, { v: health.metrics?.totalInvested || 0, s: { ...styles.value, numFmt: "₹#,##0.00" } }],
-      [{ v: 'Total P&L', s: styles.label }, { v: health.metrics?.totalPnL || 0, s: { ...(health.metrics?.totalPnL >= 0 ? styles.profit : styles.loss), numFmt: "₹#,##0.00" } }],
-      [{ v: 'P&L %', s: styles.label }, { v: (health.metrics?.totalPnLPercent || 0) / 100, s: { ...(health.metrics?.totalPnL >= 0 ? styles.profit : styles.loss), numFmt: "0.00%" } }],
+      [{ v: 'Total Value', s: styles.label }, { v: r2(health.metrics?.totalValue), s: { ...styles.value, numFmt: "₹#,##0.00" } }],
+      [{ v: 'Total Invested', s: styles.label }, { v: r2(health.metrics?.totalInvested), s: { ...styles.value, numFmt: "₹#,##0.00" } }],
+      [{ v: 'Total P&L', s: styles.label }, { v: r2(health.metrics?.totalPnL), s: { ...(health.metrics?.totalPnL >= 0 ? styles.profit : styles.loss), numFmt: "₹#,##0.00" } }],
+      [{ v: 'P&L %', s: styles.label }, { v: r2((health.metrics?.totalPnLPercent || 0) / 100), s: { ...(health.metrics?.totalPnL >= 0 ? styles.profit : styles.loss), numFmt: "0.00%" } }],
       [],
       [{ v: 'HEALTH SCORES', s: styles.sectionHeader }, { v: '', s: styles.sectionHeader }, { v: '', s: styles.sectionHeader }],
       [{ v: 'Overall Score', s: styles.label }, { v: health.overallScore }],
@@ -853,7 +856,7 @@ app.get('/api/analytics/export/excel', async (req, res) => {
       [{ v: 'Total Holdings', s: styles.label }, { v: health.metrics?.numHoldings }],
       [{ v: 'Winners', s: styles.label }, { v: health.metrics?.numWinners, s: styles.profit }],
       [{ v: 'Losers', s: styles.label }, { v: health.metrics?.numLosers, s: styles.loss }],
-      [{ v: 'Top 5 Concentration', s: styles.label }, { v: (health.metrics?.top5Weight || 0) / 100, s: { ...styles.value, numFmt: "0.00%" } }],
+      [{ v: 'Top 5 Concentration', s: styles.label }, { v: r2((health.metrics?.top5Weight || 0) / 100), s: { ...styles.value, numFmt: "0.00%" } }],
     ];
     const ws1 = XLSXStyle.utils.aoa_to_sheet(summaryData);
     ws1['!cols'] = [{ wch: 25 }, { wch: 20 }, { wch: 15 }];
@@ -870,10 +873,10 @@ app.get('/api/analytics/export/excel', async (req, res) => {
       const pnlStyle = h.pnl >= 0 ? styles.profit : styles.loss;
       holdingsData.push([
         { v: h.symbol }, { v: h.name },
-        { v: (h.weight || 0) / 100, s: { numFmt: "0.00%" } },
-        { v: h.currentValue || 0, s: { numFmt: "₹#,##0.00" } },
-        { v: h.pnl || 0, s: { ...pnlStyle, numFmt: "₹#,##0.00" } },
-        { v: (h.pnlPercent || 0) / 100, s: { ...pnlStyle, numFmt: "0.00%" } },
+        { v: r2((h.weight || 0) / 100), s: { numFmt: "0.00%" } },
+        { v: r2(h.currentValue), s: { numFmt: "₹#,##0.00" } },
+        { v: r2(h.pnl), s: { ...pnlStyle, numFmt: "₹#,##0.00" } },
+        { v: r2((h.pnlPercent || 0) / 100), s: { ...pnlStyle, numFmt: "0.00%" } },
       ]);
     });
     const ws2 = XLSXStyle.utils.aoa_to_sheet(holdingsData);
@@ -888,13 +891,13 @@ app.get('/api/analytics/export/excel', async (req, res) => {
       [{ v: 'Market', s: styles.header }, { v: 'Value', s: styles.header }, { v: 'Allocation', s: styles.header }],
     ];
     (allocation.byMarket || []).forEach(m => {
-      allocData.push([{ v: m.name }, { v: m.value, s: { numFmt: "₹#,##0.00" } }, { v: m.percentage / 100, s: { numFmt: "0.00%" } }]);
+      allocData.push([{ v: m.name }, { v: r2(m.value), s: { numFmt: "₹#,##0.00" } }, { v: r2(m.percentage / 100), s: { numFmt: "0.00%" } }]);
     });
     allocData.push([]);
     allocData.push([{ v: 'BY TYPE', s: styles.sectionHeader }, '', '']);
     allocData.push([{ v: 'Type', s: styles.header }, { v: 'Value', s: styles.header }, { v: 'Allocation', s: styles.header }]);
     (allocation.byType || []).forEach(t => {
-      allocData.push([{ v: t.name }, { v: t.value, s: { numFmt: "₹#,##0.00" } }, { v: t.percentage / 100, s: { numFmt: "0.00%" } }]);
+      allocData.push([{ v: t.name }, { v: r2(t.value), s: { numFmt: "₹#,##0.00" } }, { v: r2(t.percentage / 100), s: { numFmt: "0.00%" } }]);
     });
     const ws3 = XLSXStyle.utils.aoa_to_sheet(allocData);
     ws3['!cols'] = [{ wch: 20 }, { wch: 18 }, { wch: 12 }];
@@ -1526,18 +1529,18 @@ app.get('/api/recommendations/export/excel', async (req, res) => {
 
       ws1Data.push([
         { v: r.symbol, s: rowStyle }, { v: r.name, s: rowStyle }, { v: r.market, s: rowStyle }, { v: r.qty, s: { ...rowStyle, alignment: { horizontal: "right" } } },
-        { v: r.avgPrice, s: { ...rowStyle, numFmt: "₹#,##0.00" } }, { v: r.currentPrice, s: { ...rowStyle, numFmt: "₹#,##0.00" } },
-        { v: r.pnl, s: { ...pnlStyle, numFmt: "₹#,##0.00" } }, { v: r.pnlPercent / 100, s: { ...pnlStyle, numFmt: "0.00%" } },
+        { v: r2(r.avgPrice), s: { ...rowStyle, numFmt: "₹#,##0.00" } }, { v: r2(r.currentPrice), s: { ...rowStyle, numFmt: "₹#,##0.00" } },
+        { v: r2(r.pnl), s: { ...pnlStyle, numFmt: "₹#,##0.00" } }, { v: r2(r.pnlPercent / 100), s: { ...pnlStyle, numFmt: "0.00%" } },
         { v: r.signal, s: signalStyle }, { v: r.taxStatus, s: taxStyle }, { v: r.daysHeld, s: { ...rowStyle, alignment: { horizontal: "right" } } }
       ]);
     });
 
     ws1Data.push(['', '', '', '', '', '', '', '', '', '', '']);
     ws1Data.push([{ v: 'SUMMARY', s: styles.sectionHeader }, { v: '', s: styles.sectionHeader }, { v: '', s: styles.sectionHeader }, { v: '', s: styles.sectionHeader }, { v: '', s: styles.sectionHeader }, '', '', '', '', '', '']);
-    ws1Data.push([{ v: 'Total Invested', s: styles.summaryLabel }, { v: totalInvested, s: { ...styles.summaryValue, numFmt: "₹#,##0.00" } }, '', { v: 'Holdings', s: styles.summaryLabel }, { v: marketHoldings.length, s: styles.summaryValue }]);
-    ws1Data.push([{ v: 'Current Value', s: styles.summaryLabel }, { v: totalValue, s: { ...styles.summaryValue, numFmt: "₹#,##0.00" } }, '', { v: 'Profitable', s: styles.summaryLabel }, { v: rowData.filter(r => r.pnl > 0).length, s: { ...styles.summaryValue, ...styles.profit } }]);
-    ws1Data.push([{ v: 'Total P&L', s: styles.summaryLabel }, { v: totalPnl, s: { ...(totalPnl >= 0 ? styles.profit : styles.loss), numFmt: "₹#,##0.00" } }, '', { v: 'In Loss', s: styles.summaryLabel }, { v: rowData.filter(r => r.pnl < 0).length, s: { ...styles.summaryValue, ...styles.loss } }]);
-    ws1Data.push([{ v: 'P&L %', s: styles.summaryLabel }, { v: (totalValue - totalInvested) / totalInvested, s: { ...(totalPnl >= 0 ? styles.profit : styles.loss), numFmt: "0.00%" } }]);
+    ws1Data.push([{ v: 'Total Invested', s: styles.summaryLabel }, { v: r2(totalInvested), s: { ...styles.summaryValue, numFmt: "₹#,##0.00" } }, '', { v: 'Holdings', s: styles.summaryLabel }, { v: marketHoldings.length, s: styles.summaryValue }]);
+    ws1Data.push([{ v: 'Current Value', s: styles.summaryLabel }, { v: r2(totalValue), s: { ...styles.summaryValue, numFmt: "₹#,##0.00" } }, '', { v: 'Profitable', s: styles.summaryLabel }, { v: rowData.filter(r => r.pnl > 0).length, s: { ...styles.summaryValue, ...styles.profit } }]);
+    ws1Data.push([{ v: 'Total P&L', s: styles.summaryLabel }, { v: r2(totalPnl), s: { ...(totalPnl >= 0 ? styles.profit : styles.loss), numFmt: "₹#,##0.00" } }, '', { v: 'In Loss', s: styles.summaryLabel }, { v: rowData.filter(r => r.pnl < 0).length, s: { ...styles.summaryValue, ...styles.loss } }]);
+    ws1Data.push([{ v: 'P&L %', s: styles.summaryLabel }, { v: r2((totalValue - totalInvested) / totalInvested), s: { ...(totalPnl >= 0 ? styles.profit : styles.loss), numFmt: "0.00%" } }]);
 
     const ws1 = XLSXStyle.utils.aoa_to_sheet(ws1Data);
     ws1['!cols'] = [{ wch: 22 }, { wch: 30 }, { wch: 8 }, { wch: 6 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 12 }, { wch: 8 }, { wch: 6 }];
@@ -1577,9 +1580,9 @@ app.get('/api/recommendations/export/excel', async (req, res) => {
       const devStyle = r.deviation >= 0 ? styles.profit : styles.loss;
 
       ws2Data.push([
-        { v: r.sector, s: rowStyle }, { v: r.value, s: { ...rowStyle, numFmt: "₹#,##0.00" } },
-        { v: r.pct / 100, s: { ...rowStyle, numFmt: "0.00%" } }, { v: r.bench / 100, s: { ...rowStyle, numFmt: "0.00%" } },
-        { v: r.status, s: statusStyle }, { v: r.deviation / 100, s: { ...devStyle, numFmt: "+0.00%;-0.00%" } }
+        { v: r.sector, s: rowStyle }, { v: r2(r.value), s: { ...rowStyle, numFmt: "₹#,##0.00" } },
+        { v: r2(r.pct / 100), s: { ...rowStyle, numFmt: "0.00%" } }, { v: r2(r.bench / 100), s: { ...rowStyle, numFmt: "0.00%" } },
+        { v: r.status, s: statusStyle }, { v: r2(r.deviation / 100), s: { ...devStyle, numFmt: "+0.00%;-0.00%" } }
       ]);
     });
 
@@ -1618,7 +1621,7 @@ app.get('/api/recommendations/export/excel', async (req, res) => {
       ws3Data.push([
         { v: r.priority, s: priorityStyle }, { v: r.type, s: { ...rowStyle, ...typeStyle } },
         { v: r.symbol, s: rowStyle }, { v: r.message, s: rowStyle },
-        { v: r.value / 100, s: { ...rowStyle, numFmt: "0.00%" } }
+        { v: r2(r.value / 100), s: { ...rowStyle, numFmt: "0.00%" } }
       ]);
     });
 
@@ -1634,10 +1637,10 @@ app.get('/api/recommendations/export/excel', async (req, res) => {
     ws4Data.push([]);
     ws4Data.push([{ v: 'PORTFOLIO OVERVIEW', s: styles.sectionHeader }, { v: '', s: styles.sectionHeader }, { v: '', s: styles.sectionHeader }]);
     ws4Data.push([{ v: 'Total Holdings', s: styles.summaryLabel }, { v: marketHoldings.length, s: styles.summaryValue }]);
-    ws4Data.push([{ v: 'Total Invested', s: styles.summaryLabel }, { v: totalInvested, s: { ...styles.summaryValue, numFmt: "₹#,##0.00" } }]);
-    ws4Data.push([{ v: 'Current Value', s: styles.summaryLabel }, { v: totalValue, s: { ...styles.summaryValue, numFmt: "₹#,##0.00" } }]);
-    ws4Data.push([{ v: 'Total P&L', s: styles.summaryLabel }, { v: totalPnl, s: { ...(totalPnl >= 0 ? styles.profit : styles.loss), numFmt: "₹#,##0.00" } }, { v: totalPnl >= 0 ? 'PROFIT' : 'LOSS', s: totalPnl >= 0 ? styles.strongBuy : styles.strongSell }]);
-    ws4Data.push([{ v: 'P&L %', s: styles.summaryLabel }, { v: (totalValue - totalInvested) / totalInvested, s: { ...(totalPnl >= 0 ? styles.profit : styles.loss), numFmt: "0.00%" } }]);
+    ws4Data.push([{ v: 'Total Invested', s: styles.summaryLabel }, { v: r2(totalInvested), s: { ...styles.summaryValue, numFmt: "₹#,##0.00" } }]);
+    ws4Data.push([{ v: 'Current Value', s: styles.summaryLabel }, { v: r2(totalValue), s: { ...styles.summaryValue, numFmt: "₹#,##0.00" } }]);
+    ws4Data.push([{ v: 'Total P&L', s: styles.summaryLabel }, { v: r2(totalPnl), s: { ...(totalPnl >= 0 ? styles.profit : styles.loss), numFmt: "₹#,##0.00" } }, { v: totalPnl >= 0 ? 'PROFIT' : 'LOSS', s: totalPnl >= 0 ? styles.strongBuy : styles.strongSell }]);
+    ws4Data.push([{ v: 'P&L %', s: styles.summaryLabel }, { v: r2((totalValue - totalInvested) / totalInvested), s: { ...(totalPnl >= 0 ? styles.profit : styles.loss), numFmt: "0.00%" } }]);
     ws4Data.push([]);
     ws4Data.push([{ v: 'SIGNALS BREAKDOWN', s: styles.sectionHeader }, { v: '', s: styles.sectionHeader }, { v: '', s: styles.sectionHeader }]);
     ws4Data.push([{ v: 'Strong Buy', s: styles.strongBuy }, { v: rowData.filter(r => r.signal === 'STRONG BUY').length, s: styles.summaryValue }]);
@@ -3575,23 +3578,23 @@ app.get('/api/tax/export/excel/:id', (req, res) => {
       [],
       [{ v: 'CAPITAL GAINS SUMMARY', s: styles.sectionHeader }, '', '', ''],
       [{ v: 'Category', s: styles.header }, { v: 'Profit', s: styles.header }, { v: 'Loss', s: styles.header }, { v: 'Net', s: styles.header }],
-      [{ v: 'Short Term (STCG)', s: styles.stcg }, { v: summary.stcgProfit || 0, s: { ...styles.profit, numFmt: "₹#,##0.00" } }, { v: summary.stcgLoss || 0, s: { ...styles.loss, numFmt: "₹#,##0.00" } }, { v: summary.netSTCG || 0, s: { numFmt: "₹#,##0.00" } }],
-      [{ v: 'Long Term (LTCG)', s: styles.ltcg }, { v: summary.ltcgProfit || 0, s: { ...styles.profit, numFmt: "₹#,##0.00" } }, { v: summary.ltcgLoss || 0, s: { ...styles.loss, numFmt: "₹#,##0.00" } }, { v: summary.netLTCG || 0, s: { numFmt: "₹#,##0.00" } }],
+      [{ v: 'Short Term (STCG)', s: styles.stcg }, { v: r2(summary.stcgProfit), s: { ...styles.profit, numFmt: "₹#,##0.00" } }, { v: r2(summary.stcgLoss), s: { ...styles.loss, numFmt: "₹#,##0.00" } }, { v: r2(summary.netSTCG), s: { numFmt: "₹#,##0.00" } }],
+      [{ v: 'Long Term (LTCG)', s: styles.ltcg }, { v: r2(summary.ltcgProfit), s: { ...styles.profit, numFmt: "₹#,##0.00" } }, { v: r2(summary.ltcgLoss), s: { ...styles.loss, numFmt: "₹#,##0.00" } }, { v: r2(summary.netLTCG), s: { numFmt: "₹#,##0.00" } }],
       [],
       [{ v: 'TAX LIABILITY', s: styles.sectionHeader }, '', '', ''],
-      [{ v: 'Taxable STCG (15%)', s: styles.label }, { v: summary.taxableSTCG || 0, s: { numFmt: "₹#,##0.00" } }],
-      [{ v: 'Taxable LTCG (10%)', s: styles.label }, { v: summary.taxableLTCG || 0, s: { numFmt: "₹#,##0.00" } }, { v: 'After ₹1.25L exemption' }],
-      [{ v: 'Est. STCG Tax', s: styles.label }, { v: summary.estimatedSTCGTax || 0, s: { numFmt: "₹#,##0.00" } }],
-      [{ v: 'Est. LTCG Tax', s: styles.label }, { v: summary.estimatedLTCGTax || 0, s: { numFmt: "₹#,##0.00" } }],
-      [{ v: 'TOTAL ESTIMATED TAX', s: { ...styles.label, font: { bold: true, sz: 12 } } }, { v: summary.totalEstimatedTax || 0, s: { font: { bold: true, sz: 12 }, numFmt: "₹#,##0.00" } }],
+      [{ v: 'Taxable STCG (15%)', s: styles.label }, { v: r2(summary.taxableSTCG), s: { numFmt: "₹#,##0.00" } }],
+      [{ v: 'Taxable LTCG (10%)', s: styles.label }, { v: r2(summary.taxableLTCG), s: { numFmt: "₹#,##0.00" } }, { v: 'After ₹1.25L exemption' }],
+      [{ v: 'Est. STCG Tax', s: styles.label }, { v: r2(summary.estimatedSTCGTax), s: { numFmt: "₹#,##0.00" } }],
+      [{ v: 'Est. LTCG Tax', s: styles.label }, { v: r2(summary.estimatedLTCGTax), s: { numFmt: "₹#,##0.00" } }],
+      [{ v: 'TOTAL ESTIMATED TAX', s: { ...styles.label, font: { bold: true, sz: 12 } } }, { v: r2(summary.totalEstimatedTax), s: { font: { bold: true, sz: 12 }, numFmt: "₹#,##0.00" } }],
       [],
       [{ v: 'STATISTICS', s: styles.sectionHeader }, '', '', ''],
       [{ v: 'Total Transactions', s: styles.label }, { v: summary.totalTransactions }],
       [{ v: 'STCG Count', s: styles.label }, { v: summary.stcgCount }],
       [{ v: 'LTCG Count', s: styles.label }, { v: summary.ltcgCount }],
-      [{ v: 'Total Buy Value', s: styles.label }, { v: summary.totalBuyValue || 0, s: { numFmt: "₹#,##0.00" } }],
-      [{ v: 'Total Sell Value', s: styles.label }, { v: summary.totalSellValue || 0, s: { numFmt: "₹#,##0.00" } }],
-      [{ v: 'Total Gain/Loss', s: styles.label }, { v: summary.totalGain || 0, s: { ...(summary.totalGain >= 0 ? styles.profit : styles.loss), numFmt: "₹#,##0.00" } }],
+      [{ v: 'Total Buy Value', s: styles.label }, { v: r2(summary.totalBuyValue), s: { numFmt: "₹#,##0.00" } }],
+      [{ v: 'Total Sell Value', s: styles.label }, { v: r2(summary.totalSellValue), s: { numFmt: "₹#,##0.00" } }],
+      [{ v: 'Total Gain/Loss', s: styles.label }, { v: r2(summary.totalGain), s: { ...(summary.totalGain >= 0 ? styles.profit : styles.loss), numFmt: "₹#,##0.00" } }],
     ];
     const ws1 = XLSXStyle.utils.aoa_to_sheet(summaryData);
     ws1['!cols'] = [{ wch: 25 }, { wch: 18 }, { wch: 18 }, { wch: 18 }];
@@ -3610,9 +3613,9 @@ app.get('/api/tax/export/excel/:id', (req, res) => {
       txnData.push([
         { v: t.symbol }, { v: t.name },
         { v: t.buyDate || '-' }, { v: t.sellDate || '-' },
-        { v: t.quantity }, { v: t.buyPrice || 0, s: { numFmt: "#,##0.00" } },
-        { v: t.sellPrice || 0, s: { numFmt: "#,##0.00" } },
-        { v: t.gain || 0, s: { ...gainStyle, numFmt: "#,##0.00" } },
+        { v: t.quantity }, { v: r2(t.buyPrice), s: { numFmt: "#,##0.00" } },
+        { v: r2(t.sellPrice), s: { numFmt: "#,##0.00" } },
+        { v: r2(t.gain), s: { ...gainStyle, numFmt: "#,##0.00" } },
         { v: t.classification?.type || '-', s: typeStyle },
         { v: t.classification?.holdingDays || '-' },
       ]);
