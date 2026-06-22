@@ -205,7 +205,8 @@ app.post('/api/holdings', (req, res) => {
     isin,
     quantity,
     avgPrice,
-    currentPrice: currentPrice || 0,
+    importedPrice: currentPrice || 0,      // Value as of Excel load date (preserved)
+    currentPrice: currentPrice || 0,        // Today's live value (updated by refresh)
     purchaseDate,
     type: type || 'STOCK',
     sector,
@@ -378,10 +379,13 @@ app.get('/api/portfolio/summary', async (req, res) => {
       const invested = holding.avgPrice * holding.quantity;
       totalInvested += invested;
 
-      // Use stored currentPrice if available
+      // Use stored currentPrice and dayChange if available
       if (holding.currentPrice && holding.currentPrice > 0) {
         currentValue += holding.currentPrice * holding.quantity;
-        // No day change data from import
+        // Use stored day change data if available (from refresh-prices)
+        if (holding.dayChange !== undefined) {
+          dayChange += holding.dayChange * holding.quantity;
+        }
       } else {
         // Fallback to Yahoo API
         try {
@@ -845,6 +849,9 @@ app.post('/api/refresh-prices', async (req, res) => {
         const quote = await yahooFinance.quote(sym);
         if (quote && quote.regularMarketPrice) {
           holding.currentPrice = quote.regularMarketPrice;
+          holding.dayChange = quote.regularMarketChange || 0;
+          holding.dayChangePercent = quote.regularMarketChangePercent || 0;
+          holding.previousClose = quote.regularMarketPreviousClose || 0;
           holding.lastPriceUpdate = new Date().toISOString();
           updated++;
           success = true;

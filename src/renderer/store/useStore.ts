@@ -53,8 +53,8 @@ export const useStore = create<StoreState>((set, get) => ({
       for (const holding of holdings) {
         // Use stored currentPrice from import, or fall back to avgPrice
         let currentPrice = holding.currentPrice || holding.avgPrice;
-        let dayChange = 0;
-        let dayChangePercent = 0;
+        let dayChange = holding.dayChange || 0;
+        let dayChangePercent = holding.dayChangePercent || 0;
 
         // Only fetch from API if no currentPrice is stored
         if (!holding.currentPrice) {
@@ -72,6 +72,7 @@ export const useStore = create<StoreState>((set, get) => ({
         }
 
         const currentValue = currentPrice * holding.quantity;
+        const importedValue = (holding.importedPrice || holding.avgPrice) * holding.quantity;
         const investedValue = holding.avgPrice * holding.quantity;
         const pnl = currentValue - investedValue;
         const pnlPercent = investedValue > 0 ? (pnl / investedValue) * 100 : 0;
@@ -79,6 +80,8 @@ export const useStore = create<StoreState>((set, get) => ({
         holdingsWithPrices.push({
           ...holding,
           currentPrice,
+          importedPrice: holding.importedPrice,
+          importedValue,
           currentValue,
           pnl,
           pnlPercent,

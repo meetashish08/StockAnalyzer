@@ -13,7 +13,12 @@ export interface Holding {
   isin?: string;
   quantity: number;
   avgPrice: number;
-  currentPrice?: number; // Stored from import (e.g., Groww closing price)
+  importedPrice?: number;  // Value as of Excel import date (preserved)
+  currentPrice?: number;   // Today's live market price (updated by refresh)
+  dayChange?: number;      // Today's price change
+  dayChangePercent?: number;
+  previousClose?: number;
+  lastPriceUpdate?: string;
   purchaseDate: string;
   type: AssetType;
   sector?: string;
@@ -117,6 +122,8 @@ export interface PortfolioSummary {
 
 export interface HoldingWithPrice extends Holding {
   currentPrice: number;
+  importedPrice?: number;
+  importedValue?: number;
   currentValue: number;
   pnl: number;
   pnlPercent: number;

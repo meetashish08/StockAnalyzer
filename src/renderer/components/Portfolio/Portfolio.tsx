@@ -322,8 +322,9 @@ export default function Portfolio() {
                 <th className="p-4 text-slate-300 font-medium">Stock</th>
                 <th className="p-4 text-slate-300 font-medium text-right">Qty</th>
                 <th className="p-4 text-slate-300 font-medium text-right">Avg Price</th>
-                <th className="p-4 text-slate-300 font-medium text-right">Current Price</th>
-                <th className="p-4 text-slate-300 font-medium text-right">Current Value</th>
+                <th className="p-4 text-slate-300 font-medium text-right">Import Price</th>
+                <th className="p-4 text-slate-300 font-medium text-right">Today's Price</th>
+                <th className="p-4 text-slate-300 font-medium text-right">Today's Value</th>
                 <th className="p-4 text-slate-300 font-medium text-right">P&L</th>
                 <th className="p-4 text-slate-300 font-medium text-right">Day Change</th>
                 <th className="p-4 text-slate-300 font-medium text-center">Actions</th>
@@ -348,6 +349,9 @@ export default function Portfolio() {
                     </td>
                     <td className="p-4 text-right text-slate-300">
                       {formatPrice(holding.avgPrice, currency)}
+                    </td>
+                    <td className="p-4 text-right text-slate-400">
+                      {holding.importedPrice ? formatPrice(holding.importedPrice, currency) : '-'}
                     </td>
                     <td className="p-4 text-right text-white">
                       {formatPrice(holding.currentPrice, currency)}
