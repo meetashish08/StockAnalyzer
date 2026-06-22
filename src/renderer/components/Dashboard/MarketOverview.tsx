@@ -21,48 +21,47 @@ export default function MarketOverview() {
   const [marketData, setMarketData] = useState<MarketIndex[]>(indices);
   const [isLoading, setIsLoading] = useState(true);
   const [lastFetchTime, setLastFetchTime] = useState<Date | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchMarketData() {
       setIsLoading(true);
+      setError(null);
       try {
         const fetchTime = new Date();
-        const updatedData = await Promise.all(
-          indices.map(async (index) => {
-            try {
-              const quote = await window.electronAPI.getQuote(index.symbol, 'NYSE');
-              if (quote) {
-                return {
-                  ...index,
-                  value: quote.price,
-                  change: quote.change,
-                  changePercent: quote.changePercent,
-                  lastUpdated: fetchTime,
-                };
-              }
-            } catch {
-              // Return mock data if API fails
+        const response = await fetch('http://localhost:3001/api/market-indices');
+
+        if (response.ok) {
+          const data = await response.json();
+          const updatedData = indices.map(index => {
+            const liveData = data.find((d: any) => d.symbol === index.symbol);
+            if (liveData) {
+              return {
+                ...index,
+                value: liveData.price,
+                change: liveData.change,
+                changePercent: liveData.changePercent,
+                lastUpdated: fetchTime,
+              };
             }
-            return {
-              ...index,
-              value: index.name.includes('NIFTY') ? 23500 + Math.random() * 200 :
-                     index.name.includes('SENSEX') ? 77500 + Math.random() * 300 :
-                     index.name.includes('S&P') ? 5400 + Math.random() * 50 :
-                     17800 + Math.random() * 100,
-              change: (Math.random() - 0.4) * 200,
-              changePercent: (Math.random() - 0.4) * 1.5,
-              lastUpdated: fetchTime,
-            };
-          })
-        );
-        setMarketData(updatedData);
-        setLastFetchTime(fetchTime);
+            return { ...index, lastUpdated: fetchTime };
+          });
+          setMarketData(updatedData);
+          setLastFetchTime(fetchTime);
+        } else {
+          setError('Failed to fetch market data');
+        }
+      } catch (err) {
+        console.error('Market data fetch error:', err);
+        setError('Unable to connect to server');
       } finally {
         setIsLoading(false);
       }
     }
 
     fetchMarketData();
+    const interval = setInterval(fetchMarketData, 60000);
+    return () => clearInterval(interval);
   }, []);
 
   const formatLastUpdated = (date: Date | null) => {

@@ -149,6 +149,32 @@ export default function TaxAnalysis() {
   const [itrReport, setItrReport] = useState<any>(null);
   const [editedMappings, setEditedMappings] = useState<Record<string, AIMapping>>({});
   const [uploadMode, setUploadMode] = useState<UploadMode>('excel');
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async (format: 'excel' | 'csv' | 'md') => {
+    if (!currentAnalysis) return;
+    setExporting(true);
+    setShowExportMenu(false);
+    try {
+      const timestamp = new Date().toISOString().split('T')[0];
+      const response = await fetch(`/api/tax/export/${format}/${currentAnalysis.id}`);
+      if (!response.ok) throw new Error('Export failed');
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const ext = format === 'excel' ? 'xlsx' : format;
+      a.download = `tax_analysis_${currentAnalysis.fiscalYear}_${timestamp}.${ext}`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Export error:', error);
+      alert('Export failed. Please try again.');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const fetchAnalyses = useCallback(async () => {
     try {
@@ -390,15 +416,45 @@ export default function TaxAnalysis() {
           </h1>
           <p className="text-slate-400 mt-1">AI-powered Excel analysis for ITR filing</p>
         </div>
-        {currentAnalysis && (
-          <div className="text-right">
-            <p className="text-sm text-slate-400">{currentAnalysis.fileName}</p>
-            <p className="text-sm text-green-400">FY {currentAnalysis.fiscalYear}</p>
-            {currentAnalysis.sheets[0]?.sourceGuess && (
-              <p className="text-xs text-blue-400">Detected: {currentAnalysis.sheets[0].sourceGuess}</p>
-            )}
-          </div>
-        )}
+        <div className="flex items-center gap-4">
+          {currentAnalysis && (
+            <div className="relative">
+              <button
+                onClick={() => setShowExportMenu(!showExportMenu)}
+                disabled={exporting}
+                className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-white text-sm font-medium transition-colors"
+              >
+                {exporting ? (
+                  <><span className="animate-spin">⏳</span> Exporting...</>
+                ) : (
+                  <>📥 Export</>
+                )}
+              </button>
+              {showExportMenu && (
+                <div className="absolute right-0 mt-2 w-48 bg-slate-800 border border-slate-600 rounded-lg shadow-xl z-50">
+                  <button onClick={() => handleExport('excel')} className="w-full text-left px-4 py-3 hover:bg-slate-700 text-white flex items-center gap-2 rounded-t-lg">
+                    📊 Excel (.xlsx)
+                  </button>
+                  <button onClick={() => handleExport('csv')} className="w-full text-left px-4 py-3 hover:bg-slate-700 text-white flex items-center gap-2">
+                    📄 CSV (.csv)
+                  </button>
+                  <button onClick={() => handleExport('md')} className="w-full text-left px-4 py-3 hover:bg-slate-700 text-white flex items-center gap-2 rounded-b-lg">
+                    📝 Markdown (.md)
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+          {currentAnalysis && (
+            <div className="text-right">
+              <p className="text-sm text-slate-400">{currentAnalysis.fileName}</p>
+              <p className="text-sm text-green-400">FY {currentAnalysis.fiscalYear}</p>
+              {currentAnalysis.sheets[0]?.sourceGuess && (
+                <p className="text-xs text-blue-400">Detected: {currentAnalysis.sheets[0].sourceGuess}</p>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Error Display */}

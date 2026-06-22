@@ -427,12 +427,39 @@ Cache results → Return response
 | GET | `/api/portfolio/summary` | - | `PortfolioSummary` |
 | GET | `/api/portfolio/allocation` | `?refresh=true` | `AllocationData` |
 | GET | `/api/portfolio/health` | `?refresh=true` | `HealthData` |
+| GET | `/api/analytics/export/excel` | - | Excel file (styled multi-sheet) |
+| GET | `/api/analytics/export/csv` | - | CSV file |
+| GET | `/api/analytics/export/md` | - | Markdown file |
+
+### Market Data
+| Method | Endpoint | Response |
+|--------|----------|----------|
+| GET | `/api/market-indices` | `[{symbol, name, price, change, changePercent}]` |
 
 ### Prices
 | Method | Endpoint | Response |
 |--------|----------|----------|
 | POST | `/api/refresh-prices` | `{success, updated, failed, total, errors}` |
 | GET | `/api/quote/:symbol/:market` | `StockQuote` |
+
+### Recommendations
+| Method | Endpoint | Query | Response |
+|--------|----------|-------|----------|
+| GET | `/api/top-picks/:market` | - | Analyzed holdings with signals |
+| GET | `/api/recommendations/sectors` | `?market=NSE` | Sector allocation analysis |
+| GET | `/api/recommendations/alerts` | `?market=NSE` | Portfolio alerts |
+| GET | `/api/recommendations/bookmarks` | - | Saved bookmarks |
+| POST | `/api/recommendations/bookmarks` | `{type, data, note}` | Create bookmark |
+| DELETE | `/api/recommendations/bookmarks/:id` | - | Delete bookmark |
+| GET | `/api/recommendations/export/excel` | `?market=NSE` | Styled Excel report |
+| GET | `/api/recommendations/export/csv/:type` | - | CSV export (portfolio/sectors/alerts) |
+
+### Tax Analysis Export
+| Method | Endpoint | Response |
+|--------|----------|----------|
+| GET | `/api/tax/export/excel/:id` | Styled Excel report |
+| GET | `/api/tax/export/csv/:id` | CSV file |
+| GET | `/api/tax/export/md/:id` | Markdown report |
 
 ### Utility
 | Method | Endpoint | Response |

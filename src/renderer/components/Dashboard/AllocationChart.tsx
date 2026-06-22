@@ -15,6 +15,14 @@ const COLORS = [
   '#06b6d4', // cyan
   '#ec4899', // pink
   '#f97316', // orange
+  '#14b8a6', // teal
+  '#a855f7', // violet
+  '#84cc16', // lime
+  '#0ea5e9', // sky
+  '#f43f5e', // rose
+  '#eab308', // yellow
+  '#6366f1', // indigo
+  '#64748b', // slate (for "Others" - always last)
 ];
 
 export default function AllocationChart({ holdings }: Props) {
@@ -35,12 +43,13 @@ export default function AllocationChart({ holdings }: Props) {
     .sort((a, b) => b.value - a.value)
     .slice(0, 8);
 
-  // Group remaining as "Others" if more than 8 holdings
+  // Group remaining as "Others" if more than 8 holdings (use index 15 color for Others)
   if (holdings.length > 8) {
-    const othersValue = holdings
+    const sortedHoldings = [...holdings].sort((a, b) => b.currentValue - a.currentValue);
+    const othersValue = sortedHoldings
       .slice(8)
       .reduce((sum, h) => sum + h.currentValue, 0);
-    const totalValue = holdings.reduce((sum, h) => sum + h.currentValue, 0);
+    const totalValue = sortedHoldings.reduce((sum, h) => sum + h.currentValue, 0);
     data.push({
       name: 'Others',
       value: othersValue,

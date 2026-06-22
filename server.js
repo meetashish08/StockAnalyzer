@@ -5,6 +5,7 @@ const cors = require('cors');
 const fs = require('fs');
 const multer = require('multer');
 const XLSX = require('xlsx');
+const XLSXStyle = require('xlsx-js-style');
 const YahooFinance = require('yahoo-finance2').default;
 const yahooFinance = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
 
@@ -299,6 +300,40 @@ app.post('/api/transactions', (req, res) => {
   saveData(data);
   invalidateCache();
   res.json(transaction);
+});
+
+// Get market indices (NIFTY 50, SENSEX, S&P 500, NASDAQ)
+app.get('/api/market-indices', async (req, res) => {
+  try {
+    const indices = [
+      { symbol: '^NSEI', name: 'NIFTY 50' },
+      { symbol: '^BSESN', name: 'SENSEX' },
+      { symbol: '^GSPC', name: 'S&P 500' },
+      { symbol: '^IXIC', name: 'NASDAQ' },
+    ];
+
+    const data = await Promise.all(indices.map(async (index) => {
+      try {
+        const quote = await yahooFinance.quote(index.symbol);
+        return {
+          symbol: index.symbol,
+          name: index.name,
+          price: quote.regularMarketPrice || 0,
+          change: quote.regularMarketChange || 0,
+          changePercent: quote.regularMarketChangePercent || 0,
+          previousClose: quote.regularMarketPreviousClose || 0,
+        };
+      } catch (err) {
+        console.log(`Failed to fetch ${index.symbol}:`, err.message);
+        return { symbol: index.symbol, name: index.name, price: 0, change: 0, changePercent: 0 };
+      }
+    }));
+
+    res.json(data);
+  } catch (error) {
+    console.error('Market indices error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // Get stock quote
@@ -769,6 +804,192 @@ app.get('/api/portfolio/health', async (req, res) => {
   }
 });
 
+// Analytics Export - Excel
+app.get('/api/analytics/export/excel', async (req, res) => {
+  try {
+    const timestamp = new Date().toISOString().split('T')[0];
+
+    // Get data
+    const healthRes = await axios.get(`http://localhost:${PORT}/api/portfolio/health`);
+    const allocationRes = await axios.get(`http://localhost:${PORT}/api/portfolio/allocation`);
+    const health = healthRes.data;
+    const allocation = allocationRes.data;
+
+    const styles = {
+      title: { font: { bold: true, sz: 16, color: { rgb: "FFFFFF" } }, fill: { fgColor: { rgb: "1E3A5F" } }, alignment: { horizontal: "center" } },
+      header: { font: { bold: true, sz: 11, color: { rgb: "FFFFFF" } }, fill: { fgColor: { rgb: "2563EB" } }, alignment: { horizontal: "center" } },
+      sectionHeader: { font: { bold: true, sz: 12, color: { rgb: "FFFFFF" } }, fill: { fgColor: { rgb: "475569" } }, alignment: { horizontal: "left" } },
+      profit: { font: { bold: true, color: { rgb: "059669" } } },
+      loss: { font: { bold: true, color: { rgb: "DC2626" } } },
+      label: { font: { bold: true }, fill: { fgColor: { rgb: "E2E8F0" } } },
+      value: { alignment: { horizontal: "right" } },
+    };
+
+    const wb = XLSXStyle.utils.book_new();
+
+    // Summary Sheet
+    const summaryData = [
+      [{ v: 'PORTFOLIO ANALYTICS REPORT', s: styles.title }, { v: '', s: styles.title }, { v: '', s: styles.title }],
+      [{ v: `Generated: ${new Date().toLocaleString()}`, s: { font: { italic: true, color: { rgb: "6B7280" } } } }],
+      [],
+      [{ v: 'PORTFOLIO OVERVIEW', s: styles.sectionHeader }, { v: '', s: styles.sectionHeader }, { v: '', s: styles.sectionHeader }],
+      [{ v: 'Total Value', s: styles.label }, { v: health.metrics?.totalValue || 0, s: { ...styles.value, numFmt: "₹#,##0.00" } }],
+      [{ v: 'Total Invested', s: styles.label }, { v: health.metrics?.totalInvested || 0, s: { ...styles.value, numFmt: "₹#,##0.00" } }],
+      [{ v: 'Total P&L', s: styles.label }, { v: health.metrics?.totalPnL || 0, s: { ...(health.metrics?.totalPnL >= 0 ? styles.profit : styles.loss), numFmt: "₹#,##0.00" } }],
+      [{ v: 'P&L %', s: styles.label }, { v: (health.metrics?.totalPnLPercent || 0) / 100, s: { ...(health.metrics?.totalPnL >= 0 ? styles.profit : styles.loss), numFmt: "0.00%" } }],
+      [],
+      [{ v: 'HEALTH SCORES', s: styles.sectionHeader }, { v: '', s: styles.sectionHeader }, { v: '', s: styles.sectionHeader }],
+      [{ v: 'Overall Score', s: styles.label }, { v: health.overallScore }],
+      [{ v: 'Diversification Score', s: styles.label }, { v: health.diversificationScore }],
+      [{ v: 'Risk Score', s: styles.label }, { v: health.riskScore }],
+      [],
+      [{ v: 'HOLDINGS BREAKDOWN', s: styles.sectionHeader }, { v: '', s: styles.sectionHeader }, { v: '', s: styles.sectionHeader }],
+      [{ v: 'Total Holdings', s: styles.label }, { v: health.metrics?.numHoldings }],
+      [{ v: 'Winners', s: styles.label }, { v: health.metrics?.numWinners, s: styles.profit }],
+      [{ v: 'Losers', s: styles.label }, { v: health.metrics?.numLosers, s: styles.loss }],
+      [{ v: 'Top 5 Concentration', s: styles.label }, { v: (health.metrics?.top5Weight || 0) / 100, s: { ...styles.value, numFmt: "0.0%" } }],
+    ];
+    const ws1 = XLSXStyle.utils.aoa_to_sheet(summaryData);
+    ws1['!cols'] = [{ wch: 25 }, { wch: 20 }, { wch: 15 }];
+    ws1['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 2 } }];
+    XLSXStyle.utils.book_append_sheet(wb, ws1, 'Summary');
+
+    // Holdings Sheet
+    const holdingsData = [
+      [{ v: 'HOLDINGS PERFORMANCE', s: styles.title }, '', '', '', '', ''],
+      [],
+      [{ v: 'Symbol', s: styles.header }, { v: 'Name', s: styles.header }, { v: 'Weight %', s: styles.header }, { v: 'Current Value', s: styles.header }, { v: 'P&L', s: styles.header }, { v: 'P&L %', s: styles.header }],
+    ];
+    (health.holdings || []).forEach((h, i) => {
+      const pnlStyle = h.pnl >= 0 ? styles.profit : styles.loss;
+      holdingsData.push([
+        { v: h.symbol }, { v: h.name },
+        { v: (h.weight || 0) / 100, s: { numFmt: "0.00%" } },
+        { v: h.currentValue || 0, s: { numFmt: "₹#,##0.00" } },
+        { v: h.pnl || 0, s: { ...pnlStyle, numFmt: "₹#,##0.00" } },
+        { v: (h.pnlPercent || 0) / 100, s: { ...pnlStyle, numFmt: "0.00%" } },
+      ]);
+    });
+    const ws2 = XLSXStyle.utils.aoa_to_sheet(holdingsData);
+    ws2['!cols'] = [{ wch: 18 }, { wch: 30 }, { wch: 10 }, { wch: 15 }, { wch: 15 }, { wch: 10 }];
+    XLSXStyle.utils.book_append_sheet(wb, ws2, 'Holdings');
+
+    // Allocation Sheet
+    const allocData = [
+      [{ v: 'PORTFOLIO ALLOCATION', s: styles.title }, '', '', ''],
+      [],
+      [{ v: 'BY MARKET', s: styles.sectionHeader }, '', '', ''],
+      [{ v: 'Market', s: styles.header }, { v: 'Value', s: styles.header }, { v: 'Allocation', s: styles.header }],
+    ];
+    (allocation.byMarket || []).forEach(m => {
+      allocData.push([{ v: m.name }, { v: m.value, s: { numFmt: "₹#,##0.00" } }, { v: m.percentage / 100, s: { numFmt: "0.0%" } }]);
+    });
+    allocData.push([]);
+    allocData.push([{ v: 'BY TYPE', s: styles.sectionHeader }, '', '']);
+    allocData.push([{ v: 'Type', s: styles.header }, { v: 'Value', s: styles.header }, { v: 'Allocation', s: styles.header }]);
+    (allocation.byType || []).forEach(t => {
+      allocData.push([{ v: t.name }, { v: t.value, s: { numFmt: "₹#,##0.00" } }, { v: t.percentage / 100, s: { numFmt: "0.0%" } }]);
+    });
+    const ws3 = XLSXStyle.utils.aoa_to_sheet(allocData);
+    ws3['!cols'] = [{ wch: 20 }, { wch: 18 }, { wch: 12 }];
+    XLSXStyle.utils.book_append_sheet(wb, ws3, 'Allocation');
+
+    // Recommendations Sheet
+    const recsData = [
+      [{ v: 'RECOMMENDATIONS & WARNINGS', s: styles.title }, '', '', ''],
+      [],
+      [{ v: 'Priority', s: styles.header }, { v: 'Action', s: styles.header }, { v: 'Reason', s: styles.header }, { v: 'Type', s: styles.header }],
+    ];
+    (health.recommendations || []).forEach(r => {
+      recsData.push([{ v: r.priority }, { v: r.action }, { v: r.reason }, { v: r.type }]);
+    });
+    recsData.push([]);
+    recsData.push([{ v: 'WARNINGS', s: styles.sectionHeader }, '', '', '']);
+    (health.warnings || []).forEach(w => {
+      recsData.push([{ v: '⚠️' }, { v: w }, '', '']);
+    });
+    const ws4 = XLSXStyle.utils.aoa_to_sheet(recsData);
+    ws4['!cols'] = [{ wch: 10 }, { wch: 35 }, { wch: 45 }, { wch: 15 }];
+    XLSXStyle.utils.book_append_sheet(wb, ws4, 'Recommendations');
+
+    const buf = XLSXStyle.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename=portfolio_analytics_${timestamp}.xlsx`);
+    res.send(buf);
+  } catch (error) {
+    console.error('Analytics Excel export error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Analytics Export - CSV
+app.get('/api/analytics/export/csv', async (req, res) => {
+  try {
+    const healthRes = await axios.get(`http://localhost:${PORT}/api/portfolio/health`);
+    const health = healthRes.data;
+    const timestamp = new Date().toISOString().split('T')[0];
+
+    let csv = 'Symbol,Name,Weight %,Current Value,P&L,P&L %\n';
+    (health.holdings || []).forEach(h => {
+      csv += `"${h.symbol}","${h.name}",${(h.weight || 0).toFixed(2)}%,${h.currentValue || 0},${h.pnl || 0},${(h.pnlPercent || 0).toFixed(2)}%\n`;
+    });
+    csv += `\nTotal Value,${health.metrics?.totalValue || 0}\n`;
+    csv += `Total Invested,${health.metrics?.totalInvested || 0}\n`;
+    csv += `Total P&L,${health.metrics?.totalPnL || 0}\n`;
+    csv += `Overall Score,${health.overallScore}\n`;
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename=portfolio_analytics_${timestamp}.csv`);
+    res.send(csv);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Analytics Export - Markdown
+app.get('/api/analytics/export/md', async (req, res) => {
+  try {
+    const healthRes = await axios.get(`http://localhost:${PORT}/api/portfolio/health`);
+    const allocationRes = await axios.get(`http://localhost:${PORT}/api/portfolio/allocation`);
+    const health = healthRes.data;
+    const allocation = allocationRes.data;
+    const timestamp = new Date().toISOString().split('T')[0];
+
+    let md = `# Portfolio Analytics Report\n\n`;
+    md += `Generated: ${new Date().toLocaleString()}\n\n`;
+    md += `## Portfolio Overview\n\n`;
+    md += `| Metric | Value |\n|--------|-------|\n`;
+    md += `| Total Value | ₹${(health.metrics?.totalValue || 0).toLocaleString()} |\n`;
+    md += `| Total Invested | ₹${(health.metrics?.totalInvested || 0).toLocaleString()} |\n`;
+    md += `| Total P&L | ₹${(health.metrics?.totalPnL || 0).toLocaleString()} (${(health.metrics?.totalPnLPercent || 0).toFixed(2)}%) |\n`;
+    md += `| Holdings | ${health.metrics?.numHoldings} (${health.metrics?.numWinners} winners, ${health.metrics?.numLosers} losers) |\n\n`;
+    md += `## Health Scores\n\n`;
+    md += `- **Overall**: ${health.overallScore}/100\n`;
+    md += `- **Diversification**: ${health.diversificationScore}/100\n`;
+    md += `- **Risk**: ${health.riskScore}/100\n\n`;
+    md += `## Top Holdings\n\n`;
+    md += `| Symbol | Weight | P&L % |\n|--------|--------|-------|\n`;
+    (health.holdings || []).slice(0, 10).forEach(h => {
+      md += `| ${h.symbol} | ${(h.weight || 0).toFixed(1)}% | ${(h.pnlPercent || 0).toFixed(2)}% |\n`;
+    });
+    md += `\n## Recommendations\n\n`;
+    (health.recommendations || []).forEach(r => {
+      md += `- **[${r.priority}]** ${r.action}: ${r.reason}\n`;
+    });
+    if (health.warnings?.length) {
+      md += `\n## Warnings\n\n`;
+      health.warnings.forEach(w => { md += `- ⚠️ ${w}\n`; });
+    }
+    md += `\n---\n*Report generated by Stock Analyzer*\n`;
+
+    res.setHeader('Content-Type', 'text/markdown');
+    res.setHeader('Content-Disposition', `attachment; filename=portfolio_analytics_${timestamp}.md`);
+    res.send(md);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Top picks - Portfolio-based recommendations
 app.get('/api/top-picks/:market', async (req, res) => {
   try {
@@ -1208,29 +1429,45 @@ app.get('/api/recommendations/export/csv/:type', async (req, res) => {
   }
 });
 
-// Export recommendations as Excel with styling
+// Export recommendations as Excel with professional styling
 app.get('/api/recommendations/export/excel', async (req, res) => {
   try {
     const { market } = req.query;
     const timestamp = new Date().toISOString().split('T')[0];
 
-    // Create workbook
-    const wb = XLSX.utils.book_new();
-
-    // Helper to add cell styling info (stored in comments for post-processing)
-    const addCellMeta = (ws, row, col, style) => {
-      const cellRef = XLSX.utils.encode_cell({ r: row, c: col });
-      if (!ws[cellRef]) return;
-      ws[cellRef].s = style;
+    // Style definitions
+    const styles = {
+      title: { font: { bold: true, sz: 16, color: { rgb: "FFFFFF" } }, fill: { fgColor: { rgb: "1E3A5F" } }, alignment: { horizontal: "center" } },
+      subtitle: { font: { bold: true, sz: 11, color: { rgb: "1E3A5F" } }, alignment: { horizontal: "left" } },
+      header: { font: { bold: true, sz: 11, color: { rgb: "FFFFFF" } }, fill: { fgColor: { rgb: "2563EB" } }, alignment: { horizontal: "center" }, border: { bottom: { style: "medium", color: { rgb: "1E3A5F" } } } },
+      headerGreen: { font: { bold: true, sz: 11, color: { rgb: "FFFFFF" } }, fill: { fgColor: { rgb: "059669" } }, alignment: { horizontal: "center" } },
+      headerRed: { font: { bold: true, sz: 11, color: { rgb: "FFFFFF" } }, fill: { fgColor: { rgb: "DC2626" } }, alignment: { horizontal: "center" } },
+      headerYellow: { font: { bold: true, sz: 11, color: { rgb: "000000" } }, fill: { fgColor: { rgb: "F59E0B" } }, alignment: { horizontal: "center" } },
+      dataOdd: { fill: { fgColor: { rgb: "F8FAFC" } }, alignment: { horizontal: "left" } },
+      dataEven: { fill: { fgColor: { rgb: "FFFFFF" } }, alignment: { horizontal: "left" } },
+      profit: { font: { bold: true, color: { rgb: "059669" } }, alignment: { horizontal: "right" } },
+      loss: { font: { bold: true, color: { rgb: "DC2626" } }, alignment: { horizontal: "right" } },
+      strongBuy: { font: { bold: true, color: { rgb: "FFFFFF" } }, fill: { fgColor: { rgb: "059669" } }, alignment: { horizontal: "center" } },
+      buy: { font: { bold: true, color: { rgb: "059669" } }, fill: { fgColor: { rgb: "D1FAE5" } }, alignment: { horizontal: "center" } },
+      hold: { font: { bold: true, color: { rgb: "92400E" } }, fill: { fgColor: { rgb: "FEF3C7" } }, alignment: { horizontal: "center" } },
+      sell: { font: { bold: true, color: { rgb: "DC2626" } }, fill: { fgColor: { rgb: "FEE2E2" } }, alignment: { horizontal: "center" } },
+      strongSell: { font: { bold: true, color: { rgb: "FFFFFF" } }, fill: { fgColor: { rgb: "DC2626" } }, alignment: { horizontal: "center" } },
+      ltcg: { font: { color: { rgb: "059669" } }, fill: { fgColor: { rgb: "D1FAE5" } }, alignment: { horizontal: "center" } },
+      stcg: { font: { color: { rgb: "92400E" } }, fill: { fgColor: { rgb: "FEF3C7" } }, alignment: { horizontal: "center" } },
+      summaryLabel: { font: { bold: true, sz: 11 }, fill: { fgColor: { rgb: "E2E8F0" } }, alignment: { horizontal: "left" } },
+      summaryValue: { font: { bold: true, sz: 11 }, alignment: { horizontal: "right" } },
+      sectionHeader: { font: { bold: true, sz: 12, color: { rgb: "FFFFFF" } }, fill: { fgColor: { rgb: "475569" } }, alignment: { horizontal: "left" } },
+      high: { font: { bold: true, color: { rgb: "FFFFFF" } }, fill: { fgColor: { rgb: "DC2626" } }, alignment: { horizontal: "center" } },
+      medium: { font: { bold: true, color: { rgb: "000000" } }, fill: { fgColor: { rgb: "F59E0B" } }, alignment: { horizontal: "center" } },
+      low: { font: { bold: true, color: { rgb: "059669" } }, fill: { fgColor: { rgb: "D1FAE5" } }, alignment: { horizontal: "center" } },
+      overweight: { font: { color: { rgb: "92400E" } }, fill: { fgColor: { rgb: "FEF3C7" } }, alignment: { horizontal: "center" } },
+      underweight: { font: { color: { rgb: "1E40AF" } }, fill: { fgColor: { rgb: "DBEAFE" } }, alignment: { horizontal: "center" } },
+      normal: { font: { color: { rgb: "059669" } }, fill: { fgColor: { rgb: "D1FAE5" } }, alignment: { horizontal: "center" } },
+      number: { alignment: { horizontal: "right" }, numFmt: "#,##0.00" },
+      percent: { alignment: { horizontal: "right" }, numFmt: "0.00%" },
     };
 
-    // Portfolio sheet
-    const portfolioData = [];
-    portfolioData.push(['PORTFOLIO INSIGHTS REPORT', '', '', '', '', '', '', '', '', '', '']);
-    portfolioData.push(['Generated:', new Date().toLocaleString(), '', 'Market:', market || 'NSE', '', '', '', '', '', '']);
-    portfolioData.push([]);
-    portfolioData.push(['Symbol', 'Name', 'Market', 'Qty', 'Avg Price', 'Current Price', 'P&L', 'P&L %', 'Signal', 'Tax Status', 'Days Held']);
-
+    const wb = XLSXStyle.utils.book_new();
     const marketFilter = market || 'NSE';
     const marketHoldings = data.holdings.filter(h => {
       if (marketFilter === 'NSE') return h.market === 'NSE' || h.market === 'BSE';
@@ -1238,6 +1475,7 @@ app.get('/api/recommendations/export/excel', async (req, res) => {
       return true;
     });
 
+    // Calculate totals
     let totalInvested = 0, totalValue = 0, totalPnl = 0;
     const rowData = [];
 
@@ -1249,7 +1487,6 @@ app.get('/api/recommendations/export/excel', async (req, res) => {
       const daysHeld = Math.floor((new Date() - purchaseDate) / (1000 * 60 * 60 * 24));
       const taxStatus = daysHeld >= 365 ? 'LTCG' : 'STCG';
 
-      // Determine signal based on P&L
       let signal = 'HOLD';
       if (pnlPercent > 30) signal = 'STRONG BUY';
       else if (pnlPercent > 10) signal = 'BUY';
@@ -1260,43 +1497,48 @@ app.get('/api/recommendations/export/excel', async (req, res) => {
       totalValue += currentPrice * h.quantity;
       totalPnl += pnl;
 
-      rowData.push({
-        row: [h.symbol, h.name, h.market, h.quantity, h.avgPrice, currentPrice, pnl, pnlPercent.toFixed(2) + '%', signal, taxStatus, daysHeld],
-        pnl,
-        pnlPercent,
-        signal,
-        taxStatus,
-      });
+      rowData.push({ symbol: h.symbol, name: h.name, market: h.market, qty: h.quantity, avgPrice: h.avgPrice, currentPrice, pnl, pnlPercent, signal, taxStatus, daysHeld });
     }
-
-    // Sort by P&L descending
     rowData.sort((a, b) => b.pnl - a.pnl);
-    rowData.forEach(r => portfolioData.push(r.row));
 
-    portfolioData.push([]);
-    portfolioData.push(['SUMMARY', '', '', '', '', '', '', '', '', '', '']);
-    portfolioData.push(['Total Invested:', totalInvested.toFixed(2), '', 'Holdings:', marketHoldings.length, '', '', '', '', '', '']);
-    portfolioData.push(['Current Value:', totalValue.toFixed(2), '', 'Profitable:', rowData.filter(r => r.pnl > 0).length, '', '', '', '', '', '']);
-    portfolioData.push(['Total P&L:', totalPnl.toFixed(2), '', 'In Loss:', rowData.filter(r => r.pnl < 0).length, '', '', '', '', '', '']);
-    portfolioData.push(['P&L %:', ((totalValue - totalInvested) / totalInvested * 100).toFixed(2) + '%', '', '', '', '', '', '', '', '', '']);
+    // === PORTFOLIO SHEET ===
+    const ws1Data = [];
+    ws1Data.push([{ v: 'PORTFOLIO INSIGHTS REPORT', s: styles.title }, { v: '', s: styles.title }, { v: '', s: styles.title }, { v: '', s: styles.title }, { v: '', s: styles.title }, { v: '', s: styles.title }, { v: '', s: styles.title }, { v: '', s: styles.title }, { v: '', s: styles.title }, { v: '', s: styles.title }, { v: '', s: styles.title }]);
+    ws1Data.push([{ v: `Generated: ${new Date().toLocaleString()}`, s: styles.subtitle }, '', '', '', { v: `Market: ${marketFilter}`, s: styles.subtitle }, '', '', '', '', '', '']);
+    ws1Data.push(['', '', '', '', '', '', '', '', '', '', '']);
+    ws1Data.push([
+      { v: 'Symbol', s: styles.header }, { v: 'Name', s: styles.header }, { v: 'Market', s: styles.header }, { v: 'Qty', s: styles.header },
+      { v: 'Avg Price', s: styles.header }, { v: 'Current', s: styles.header }, { v: 'P&L', s: styles.header }, { v: 'P&L %', s: styles.header },
+      { v: 'Signal', s: styles.header }, { v: 'Tax', s: styles.header }, { v: 'Days', s: styles.header }
+    ]);
 
-    const ws1 = XLSX.utils.aoa_to_sheet(portfolioData);
+    rowData.forEach((r, i) => {
+      const rowStyle = i % 2 === 0 ? styles.dataOdd : styles.dataEven;
+      const pnlStyle = r.pnl >= 0 ? styles.profit : styles.loss;
+      const signalStyle = r.signal === 'STRONG BUY' ? styles.strongBuy : r.signal === 'BUY' ? styles.buy : r.signal === 'HOLD' ? styles.hold : r.signal === 'SELL' ? styles.sell : styles.strongSell;
+      const taxStyle = r.taxStatus === 'LTCG' ? styles.ltcg : styles.stcg;
 
-    // Set column widths
-    ws1['!cols'] = [
-      { wch: 25 }, { wch: 35 }, { wch: 8 }, { wch: 8 }, { wch: 12 },
-      { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 12 }, { wch: 10 }, { wch: 10 }
-    ];
+      ws1Data.push([
+        { v: r.symbol, s: rowStyle }, { v: r.name, s: rowStyle }, { v: r.market, s: rowStyle }, { v: r.qty, s: { ...rowStyle, alignment: { horizontal: "right" } } },
+        { v: r.avgPrice, s: { ...rowStyle, numFmt: "₹#,##0.00" } }, { v: r.currentPrice, s: { ...rowStyle, numFmt: "₹#,##0.00" } },
+        { v: r.pnl, s: { ...pnlStyle, numFmt: "₹#,##0.00" } }, { v: r.pnlPercent / 100, s: { ...pnlStyle, numFmt: "0.00%" } },
+        { v: r.signal, s: signalStyle }, { v: r.taxStatus, s: taxStyle }, { v: r.daysHeld, s: { ...rowStyle, alignment: { horizontal: "right" } } }
+      ]);
+    });
 
-    XLSX.utils.book_append_sheet(wb, ws1, 'Portfolio');
+    ws1Data.push(['', '', '', '', '', '', '', '', '', '', '']);
+    ws1Data.push([{ v: 'SUMMARY', s: styles.sectionHeader }, { v: '', s: styles.sectionHeader }, { v: '', s: styles.sectionHeader }, { v: '', s: styles.sectionHeader }, { v: '', s: styles.sectionHeader }, '', '', '', '', '', '']);
+    ws1Data.push([{ v: 'Total Invested', s: styles.summaryLabel }, { v: totalInvested, s: { ...styles.summaryValue, numFmt: "₹#,##0.00" } }, '', { v: 'Holdings', s: styles.summaryLabel }, { v: marketHoldings.length, s: styles.summaryValue }]);
+    ws1Data.push([{ v: 'Current Value', s: styles.summaryLabel }, { v: totalValue, s: { ...styles.summaryValue, numFmt: "₹#,##0.00" } }, '', { v: 'Profitable', s: styles.summaryLabel }, { v: rowData.filter(r => r.pnl > 0).length, s: { ...styles.summaryValue, ...styles.profit } }]);
+    ws1Data.push([{ v: 'Total P&L', s: styles.summaryLabel }, { v: totalPnl, s: { ...(totalPnl >= 0 ? styles.profit : styles.loss), numFmt: "₹#,##0.00" } }, '', { v: 'In Loss', s: styles.summaryLabel }, { v: rowData.filter(r => r.pnl < 0).length, s: { ...styles.summaryValue, ...styles.loss } }]);
+    ws1Data.push([{ v: 'P&L %', s: styles.summaryLabel }, { v: (totalValue - totalInvested) / totalInvested, s: { ...(totalPnl >= 0 ? styles.profit : styles.loss), numFmt: "0.00%" } }]);
 
-    // Sectors sheet
-    const sectorData = [];
-    sectorData.push(['SECTOR ANALYSIS', '', '', '', '']);
-    sectorData.push(['Generated:', new Date().toLocaleString(), '', '', '']);
-    sectorData.push([]);
-    sectorData.push(['Sector', 'Value', 'Allocation %', 'Benchmark %', 'Status', 'Deviation']);
+    const ws1 = XLSXStyle.utils.aoa_to_sheet(ws1Data);
+    ws1['!cols'] = [{ wch: 22 }, { wch: 30 }, { wch: 8 }, { wch: 6 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 12 }, { wch: 8 }, { wch: 6 }];
+    ws1['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 10 } }];
+    XLSXStyle.utils.book_append_sheet(wb, ws1, 'Portfolio');
 
+    // === SECTORS SHEET ===
     let sectorTotal = 0;
     const sectorValues = {};
     for (const h of data.holdings) {
@@ -1308,139 +1550,109 @@ app.get('/api/recommendations/export/excel', async (req, res) => {
 
     const benchmark = { 'Financial Services': 25, 'IT': 15, 'Consumer Goods': 12, 'Pharma': 10, 'Auto': 8, 'Energy': 8, 'Infrastructure': 7, 'Metals': 5, 'Telecom': 4, 'Real Estate': 3 };
     const sectorRows = [];
-
     for (const [sector, value] of Object.entries(sectorValues)) {
       const pct = sectorTotal > 0 ? (value / sectorTotal) * 100 : 0;
       const bench = benchmark[sector] || 5;
       const deviation = pct - bench;
       const status = pct > bench * 1.5 ? 'OVERWEIGHT' : pct < bench * 0.5 ? 'UNDERWEIGHT' : 'NORMAL';
-      sectorRows.push({
-        row: [sector, value.toFixed(2), pct.toFixed(2) + '%', bench + '%', status, (deviation > 0 ? '+' : '') + deviation.toFixed(2) + '%'],
-        pct,
-        status,
-        deviation,
-      });
+      sectorRows.push({ sector, value, pct, bench, status, deviation });
     }
-
-    // Sort by allocation descending
     sectorRows.sort((a, b) => b.pct - a.pct);
-    sectorRows.forEach(r => sectorData.push(r.row));
 
-    sectorData.push([]);
-    sectorData.push(['Total Portfolio Value:', sectorTotal.toFixed(2), '', '', '', '']);
-    sectorData.push(['Sectors Tracked:', sectorRows.length, '', '', '', '']);
-    sectorData.push(['Overweight:', sectorRows.filter(r => r.status === 'OVERWEIGHT').length, '', '', '', '']);
-    sectorData.push(['Underweight:', sectorRows.filter(r => r.status === 'UNDERWEIGHT').length, '', '', '', '']);
+    const ws2Data = [];
+    ws2Data.push([{ v: 'SECTOR ANALYSIS', s: styles.title }, { v: '', s: styles.title }, { v: '', s: styles.title }, { v: '', s: styles.title }, { v: '', s: styles.title }, { v: '', s: styles.title }]);
+    ws2Data.push([{ v: `Generated: ${new Date().toLocaleString()}`, s: styles.subtitle }]);
+    ws2Data.push([]);
+    ws2Data.push([{ v: 'Sector', s: styles.header }, { v: 'Value', s: styles.header }, { v: 'Allocation', s: styles.header }, { v: 'Benchmark', s: styles.header }, { v: 'Status', s: styles.header }, { v: 'Deviation', s: styles.header }]);
 
-    const ws2 = XLSX.utils.aoa_to_sheet(sectorData);
-    ws2['!cols'] = [{ wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 12 }];
-    XLSX.utils.book_append_sheet(wb, ws2, 'Sectors');
+    sectorRows.forEach((r, i) => {
+      const rowStyle = i % 2 === 0 ? styles.dataOdd : styles.dataEven;
+      const statusStyle = r.status === 'OVERWEIGHT' ? styles.overweight : r.status === 'UNDERWEIGHT' ? styles.underweight : styles.normal;
+      const devStyle = r.deviation >= 0 ? styles.profit : styles.loss;
 
-    // Alerts sheet
-    const alertsData = [];
-    alertsData.push(['PORTFOLIO ALERTS', '', '', '', '']);
-    alertsData.push(['Generated:', new Date().toLocaleString(), '', '', '']);
-    alertsData.push([]);
-    alertsData.push(['Priority', 'Type', 'Symbol', 'Message', 'Value']);
+      ws2Data.push([
+        { v: r.sector, s: rowStyle }, { v: r.value, s: { ...rowStyle, numFmt: "₹#,##0.00" } },
+        { v: r.pct / 100, s: { ...rowStyle, numFmt: "0.00%" } }, { v: r.bench / 100, s: { ...rowStyle, numFmt: "0%" } },
+        { v: r.status, s: statusStyle }, { v: r.deviation / 100, s: { ...devStyle, numFmt: "+0.00%;-0.00%" } }
+      ]);
+    });
 
+    const ws2 = XLSXStyle.utils.aoa_to_sheet(ws2Data);
+    ws2['!cols'] = [{ wch: 20 }, { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 12 }];
+    ws2['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 5 } }];
+    XLSXStyle.utils.book_append_sheet(wb, ws2, 'Sectors');
+
+    // === ALERTS SHEET ===
     const alertRows = [];
-
     for (const h of data.holdings) {
       const pnlPercent = h.avgPrice > 0 ? ((h.currentPrice || h.avgPrice) - h.avgPrice) / h.avgPrice * 100 : 0;
       const dayChange = h.dayChangePercent || 0;
       const currentValue = (h.currentPrice || h.avgPrice) * h.quantity;
       const allocation = sectorTotal > 0 ? (currentValue / sectorTotal) * 100 : 0;
 
-      if (Math.abs(dayChange) > 3) {
-        const priority = Math.abs(dayChange) > 5 ? 'HIGH' : 'MEDIUM';
-        alertRows.push({
-          row: [priority, dayChange > 0 ? 'SURGE' : 'DROP', h.symbol, `${dayChange > 0 ? 'Up' : 'Down'} ${Math.abs(dayChange).toFixed(1)}% today`, dayChange.toFixed(2) + '%'],
-          priority,
-          type: dayChange > 0 ? 'SURGE' : 'DROP',
-        });
-      }
-      if (allocation > 10) {
-        const priority = allocation > 15 ? 'HIGH' : 'MEDIUM';
-        alertRows.push({
-          row: [priority, 'CONCENTRATION', h.symbol, `High allocation: ${allocation.toFixed(1)}%`, allocation.toFixed(2) + '%'],
-          priority,
-          type: 'CONCENTRATION',
-        });
-      }
-      if (pnlPercent < -20) {
-        const priority = pnlPercent < -30 ? 'HIGH' : 'MEDIUM';
-        alertRows.push({
-          row: [priority, 'LOSS', h.symbol, `Down ${Math.abs(pnlPercent).toFixed(1)}% from purchase`, pnlPercent.toFixed(2) + '%'],
-          priority,
-          type: 'LOSS',
-        });
-      }
-      if (pnlPercent > 50) {
-        alertRows.push({
-          row: ['LOW', 'PROFIT', h.symbol, `Up ${pnlPercent.toFixed(1)}% - consider profit booking`, pnlPercent.toFixed(2) + '%'],
-          priority: 'LOW',
-          type: 'PROFIT',
-        });
-      }
+      if (Math.abs(dayChange) > 3) alertRows.push({ priority: Math.abs(dayChange) > 5 ? 'HIGH' : 'MEDIUM', type: dayChange > 0 ? 'SURGE' : 'DROP', symbol: h.symbol, message: `${dayChange > 0 ? 'Up' : 'Down'} ${Math.abs(dayChange).toFixed(1)}% today`, value: dayChange });
+      if (allocation > 10) alertRows.push({ priority: allocation > 15 ? 'HIGH' : 'MEDIUM', type: 'CONCENTRATION', symbol: h.symbol, message: `High allocation: ${allocation.toFixed(1)}%`, value: allocation });
+      if (pnlPercent < -20) alertRows.push({ priority: pnlPercent < -30 ? 'HIGH' : 'MEDIUM', type: 'LOSS', symbol: h.symbol, message: `Down ${Math.abs(pnlPercent).toFixed(1)}% from purchase`, value: pnlPercent });
+      if (pnlPercent > 50) alertRows.push({ priority: 'LOW', type: 'PROFIT', symbol: h.symbol, message: `Up ${pnlPercent.toFixed(1)}% - consider profit booking`, value: pnlPercent });
     }
-
-    // Sort by priority
     const priorityOrder = { HIGH: 0, MEDIUM: 1, LOW: 2 };
     alertRows.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
-    alertRows.forEach(r => alertsData.push(r.row));
 
-    alertsData.push([]);
-    alertsData.push(['ALERT SUMMARY', '', '', '', '']);
-    alertsData.push(['Total Alerts:', alertRows.length, '', '', '']);
-    alertsData.push(['High Priority:', alertRows.filter(r => r.priority === 'HIGH').length, '', '', '']);
-    alertsData.push(['Medium Priority:', alertRows.filter(r => r.priority === 'MEDIUM').length, '', '', '']);
-    alertsData.push(['Low Priority:', alertRows.filter(r => r.priority === 'LOW').length, '', '', '']);
+    const ws3Data = [];
+    ws3Data.push([{ v: 'PORTFOLIO ALERTS', s: styles.title }, { v: '', s: styles.title }, { v: '', s: styles.title }, { v: '', s: styles.title }, { v: '', s: styles.title }]);
+    ws3Data.push([{ v: `Generated: ${new Date().toLocaleString()}`, s: styles.subtitle }]);
+    ws3Data.push([]);
+    ws3Data.push([{ v: 'Priority', s: styles.header }, { v: 'Type', s: styles.header }, { v: 'Symbol', s: styles.header }, { v: 'Message', s: styles.header }, { v: 'Value', s: styles.header }]);
 
-    const ws3 = XLSX.utils.aoa_to_sheet(alertsData);
-    ws3['!cols'] = [{ wch: 12 }, { wch: 15 }, { wch: 25 }, { wch: 40 }, { wch: 12 }];
-    XLSX.utils.book_append_sheet(wb, ws3, 'Alerts');
+    alertRows.forEach((r, i) => {
+      const rowStyle = i % 2 === 0 ? styles.dataOdd : styles.dataEven;
+      const priorityStyle = r.priority === 'HIGH' ? styles.high : r.priority === 'MEDIUM' ? styles.medium : styles.low;
+      const typeStyle = r.type === 'SURGE' || r.type === 'PROFIT' ? styles.profit : r.type === 'DROP' || r.type === 'LOSS' ? styles.loss : styles.hold;
 
-    // Summary sheet
-    const summaryData = [];
-    summaryData.push(['PORTFOLIO RECOMMENDATIONS SUMMARY', '', '']);
-    summaryData.push(['Generated:', new Date().toLocaleString(), '']);
-    summaryData.push(['Market:', market || 'NSE', '']);
-    summaryData.push([]);
-    summaryData.push(['PORTFOLIO OVERVIEW', '', '']);
-    summaryData.push(['Total Holdings:', marketHoldings.length, '']);
-    summaryData.push(['Total Invested:', '₹' + totalInvested.toLocaleString('en-IN', { maximumFractionDigits: 2 }), '']);
-    summaryData.push(['Current Value:', '₹' + totalValue.toLocaleString('en-IN', { maximumFractionDigits: 2 }), '']);
-    summaryData.push(['Total P&L:', '₹' + totalPnl.toLocaleString('en-IN', { maximumFractionDigits: 2 }), totalPnl >= 0 ? 'PROFIT' : 'LOSS']);
-    summaryData.push(['P&L %:', ((totalValue - totalInvested) / totalInvested * 100).toFixed(2) + '%', '']);
-    summaryData.push([]);
-    summaryData.push(['HOLDINGS BREAKDOWN', '', '']);
-    summaryData.push(['Profitable Holdings:', rowData.filter(r => r.pnl > 0).length, '']);
-    summaryData.push(['Loss-making Holdings:', rowData.filter(r => r.pnl < 0).length, '']);
-    summaryData.push(['LTCG Eligible:', rowData.filter(r => r.taxStatus === 'LTCG').length, '']);
-    summaryData.push(['STCG Holdings:', rowData.filter(r => r.taxStatus === 'STCG').length, '']);
-    summaryData.push([]);
-    summaryData.push(['SIGNALS SUMMARY', '', '']);
-    summaryData.push(['Strong Buy:', rowData.filter(r => r.signal === 'STRONG BUY').length, '']);
-    summaryData.push(['Buy:', rowData.filter(r => r.signal === 'BUY').length, '']);
-    summaryData.push(['Hold:', rowData.filter(r => r.signal === 'HOLD').length, '']);
-    summaryData.push(['Sell:', rowData.filter(r => r.signal === 'SELL').length, '']);
-    summaryData.push(['Strong Sell:', rowData.filter(r => r.signal === 'STRONG SELL').length, '']);
-    summaryData.push([]);
-    summaryData.push(['RISK ALERTS', '', '']);
-    summaryData.push(['Total Alerts:', alertRows.length, '']);
-    summaryData.push(['High Priority Alerts:', alertRows.filter(r => r.priority === 'HIGH').length, 'Requires immediate attention']);
-    summaryData.push([]);
-    summaryData.push(['DISCLAIMER', '', '']);
-    summaryData.push(['This report is for informational purposes only.', '', '']);
-    summaryData.push(['Not financial advice. Do your own research.', '', '']);
+      ws3Data.push([
+        { v: r.priority, s: priorityStyle }, { v: r.type, s: { ...rowStyle, ...typeStyle } },
+        { v: r.symbol, s: rowStyle }, { v: r.message, s: rowStyle },
+        { v: r.value / 100, s: { ...rowStyle, numFmt: "0.00%" } }
+      ]);
+    });
 
-    const ws4 = XLSX.utils.aoa_to_sheet(summaryData);
-    ws4['!cols'] = [{ wch: 30 }, { wch: 25 }, { wch: 25 }];
-    XLSX.utils.book_append_sheet(wb, ws4, 'Summary');
+    const ws3 = XLSXStyle.utils.aoa_to_sheet(ws3Data);
+    ws3['!cols'] = [{ wch: 10 }, { wch: 15 }, { wch: 22 }, { wch: 40 }, { wch: 10 }];
+    ws3['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 4 } }];
+    XLSXStyle.utils.book_append_sheet(wb, ws3, 'Alerts');
 
-    // Generate buffer
-    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    // === SUMMARY SHEET ===
+    const ws4Data = [];
+    ws4Data.push([{ v: 'PORTFOLIO RECOMMENDATIONS SUMMARY', s: styles.title }, { v: '', s: styles.title }, { v: '', s: styles.title }]);
+    ws4Data.push([{ v: `Generated: ${new Date().toLocaleString()}`, s: styles.subtitle }, '', { v: `Market: ${marketFilter}`, s: styles.subtitle }]);
+    ws4Data.push([]);
+    ws4Data.push([{ v: 'PORTFOLIO OVERVIEW', s: styles.sectionHeader }, { v: '', s: styles.sectionHeader }, { v: '', s: styles.sectionHeader }]);
+    ws4Data.push([{ v: 'Total Holdings', s: styles.summaryLabel }, { v: marketHoldings.length, s: styles.summaryValue }]);
+    ws4Data.push([{ v: 'Total Invested', s: styles.summaryLabel }, { v: totalInvested, s: { ...styles.summaryValue, numFmt: "₹#,##0.00" } }]);
+    ws4Data.push([{ v: 'Current Value', s: styles.summaryLabel }, { v: totalValue, s: { ...styles.summaryValue, numFmt: "₹#,##0.00" } }]);
+    ws4Data.push([{ v: 'Total P&L', s: styles.summaryLabel }, { v: totalPnl, s: { ...(totalPnl >= 0 ? styles.profit : styles.loss), numFmt: "₹#,##0.00" } }, { v: totalPnl >= 0 ? 'PROFIT' : 'LOSS', s: totalPnl >= 0 ? styles.strongBuy : styles.strongSell }]);
+    ws4Data.push([{ v: 'P&L %', s: styles.summaryLabel }, { v: (totalValue - totalInvested) / totalInvested, s: { ...(totalPnl >= 0 ? styles.profit : styles.loss), numFmt: "0.00%" } }]);
+    ws4Data.push([]);
+    ws4Data.push([{ v: 'SIGNALS BREAKDOWN', s: styles.sectionHeader }, { v: '', s: styles.sectionHeader }, { v: '', s: styles.sectionHeader }]);
+    ws4Data.push([{ v: 'Strong Buy', s: styles.strongBuy }, { v: rowData.filter(r => r.signal === 'STRONG BUY').length, s: styles.summaryValue }]);
+    ws4Data.push([{ v: 'Buy', s: styles.buy }, { v: rowData.filter(r => r.signal === 'BUY').length, s: styles.summaryValue }]);
+    ws4Data.push([{ v: 'Hold', s: styles.hold }, { v: rowData.filter(r => r.signal === 'HOLD').length, s: styles.summaryValue }]);
+    ws4Data.push([{ v: 'Sell', s: styles.sell }, { v: rowData.filter(r => r.signal === 'SELL').length, s: styles.summaryValue }]);
+    ws4Data.push([{ v: 'Strong Sell', s: styles.strongSell }, { v: rowData.filter(r => r.signal === 'STRONG SELL').length, s: styles.summaryValue }]);
+    ws4Data.push([]);
+    ws4Data.push([{ v: 'TAX STATUS', s: styles.sectionHeader }, { v: '', s: styles.sectionHeader }, { v: '', s: styles.sectionHeader }]);
+    ws4Data.push([{ v: 'LTCG Eligible', s: styles.ltcg }, { v: rowData.filter(r => r.taxStatus === 'LTCG').length, s: styles.summaryValue }]);
+    ws4Data.push([{ v: 'STCG Holdings', s: styles.stcg }, { v: rowData.filter(r => r.taxStatus === 'STCG').length, s: styles.summaryValue }]);
+    ws4Data.push([]);
+    ws4Data.push([{ v: 'DISCLAIMER', s: { font: { italic: true, sz: 10, color: { rgb: "6B7280" } } } }]);
+    ws4Data.push([{ v: 'This report is for informational purposes only. Not financial advice.', s: { font: { italic: true, sz: 9, color: { rgb: "9CA3AF" } } } }]);
 
+    const ws4 = XLSXStyle.utils.aoa_to_sheet(ws4Data);
+    ws4['!cols'] = [{ wch: 25 }, { wch: 20 }, { wch: 15 }];
+    ws4['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 2 } }];
+    XLSXStyle.utils.book_append_sheet(wb, ws4, 'Summary');
+
+    const buf = XLSXStyle.write(wb, { type: 'buffer', bookType: 'xlsx' });
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename=portfolio_recommendations_${timestamp}.xlsx`);
     res.send(buf);
@@ -3323,6 +3535,189 @@ app.get('/api/tax/itr-report/:id', (req, res) => {
     },
     notes,
   });
+});
+
+// Tax Analysis Export - Excel
+app.get('/api/tax/export/excel/:id', (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const analysis = taxData.analyses.find(a => a.id === id);
+    if (!analysis) return res.status(404).json({ error: 'Analysis not found' });
+
+    const timestamp = new Date().toISOString().split('T')[0];
+    const summary = analysis.summary;
+    const transactions = analysis.transactions || [];
+
+    const styles = {
+      title: { font: { bold: true, sz: 16, color: { rgb: "FFFFFF" } }, fill: { fgColor: { rgb: "1E3A5F" } }, alignment: { horizontal: "center" } },
+      header: { font: { bold: true, sz: 11, color: { rgb: "FFFFFF" } }, fill: { fgColor: { rgb: "2563EB" } }, alignment: { horizontal: "center" } },
+      sectionHeader: { font: { bold: true, sz: 12, color: { rgb: "FFFFFF" } }, fill: { fgColor: { rgb: "475569" } } },
+      profit: { font: { bold: true, color: { rgb: "059669" } } },
+      loss: { font: { bold: true, color: { rgb: "DC2626" } } },
+      stcg: { fill: { fgColor: { rgb: "FEF3C7" } } },
+      ltcg: { fill: { fgColor: { rgb: "D1FAE5" } } },
+      label: { font: { bold: true }, fill: { fgColor: { rgb: "E2E8F0" } } },
+    };
+
+    const wb = XLSXStyle.utils.book_new();
+
+    // Summary Sheet
+    const summaryData = [
+      [{ v: `TAX ANALYSIS REPORT - FY ${analysis.fiscalYear}`, s: styles.title }, '', '', ''],
+      [{ v: `File: ${analysis.fileName}`, s: { font: { italic: true, color: { rgb: "6B7280" } } } }],
+      [{ v: `Generated: ${new Date().toLocaleString()}` }],
+      [],
+      [{ v: 'CAPITAL GAINS SUMMARY', s: styles.sectionHeader }, '', '', ''],
+      [{ v: 'Category', s: styles.header }, { v: 'Profit', s: styles.header }, { v: 'Loss', s: styles.header }, { v: 'Net', s: styles.header }],
+      [{ v: 'Short Term (STCG)', s: styles.stcg }, { v: summary.stcgProfit || 0, s: { ...styles.profit, numFmt: "₹#,##0" } }, { v: summary.stcgLoss || 0, s: { ...styles.loss, numFmt: "₹#,##0" } }, { v: summary.netSTCG || 0, s: { numFmt: "₹#,##0" } }],
+      [{ v: 'Long Term (LTCG)', s: styles.ltcg }, { v: summary.ltcgProfit || 0, s: { ...styles.profit, numFmt: "₹#,##0" } }, { v: summary.ltcgLoss || 0, s: { ...styles.loss, numFmt: "₹#,##0" } }, { v: summary.netLTCG || 0, s: { numFmt: "₹#,##0" } }],
+      [],
+      [{ v: 'TAX LIABILITY', s: styles.sectionHeader }, '', '', ''],
+      [{ v: 'Taxable STCG (15%)', s: styles.label }, { v: summary.taxableSTCG || 0, s: { numFmt: "₹#,##0" } }],
+      [{ v: 'Taxable LTCG (10%)', s: styles.label }, { v: summary.taxableLTCG || 0, s: { numFmt: "₹#,##0" } }, { v: 'After ₹1.25L exemption' }],
+      [{ v: 'Est. STCG Tax', s: styles.label }, { v: summary.estimatedSTCGTax || 0, s: { numFmt: "₹#,##0" } }],
+      [{ v: 'Est. LTCG Tax', s: styles.label }, { v: summary.estimatedLTCGTax || 0, s: { numFmt: "₹#,##0" } }],
+      [{ v: 'TOTAL ESTIMATED TAX', s: { ...styles.label, font: { bold: true, sz: 12 } } }, { v: summary.totalEstimatedTax || 0, s: { font: { bold: true, sz: 12 }, numFmt: "₹#,##0" } }],
+      [],
+      [{ v: 'STATISTICS', s: styles.sectionHeader }, '', '', ''],
+      [{ v: 'Total Transactions', s: styles.label }, { v: summary.totalTransactions }],
+      [{ v: 'STCG Count', s: styles.label }, { v: summary.stcgCount }],
+      [{ v: 'LTCG Count', s: styles.label }, { v: summary.ltcgCount }],
+      [{ v: 'Total Buy Value', s: styles.label }, { v: summary.totalBuyValue || 0, s: { numFmt: "₹#,##0" } }],
+      [{ v: 'Total Sell Value', s: styles.label }, { v: summary.totalSellValue || 0, s: { numFmt: "₹#,##0" } }],
+      [{ v: 'Total Gain/Loss', s: styles.label }, { v: summary.totalGain || 0, s: { ...(summary.totalGain >= 0 ? styles.profit : styles.loss), numFmt: "₹#,##0" } }],
+    ];
+    const ws1 = XLSXStyle.utils.aoa_to_sheet(summaryData);
+    ws1['!cols'] = [{ wch: 25 }, { wch: 18 }, { wch: 18 }, { wch: 18 }];
+    ws1['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 3 } }];
+    XLSXStyle.utils.book_append_sheet(wb, ws1, 'Summary');
+
+    // Transactions Sheet
+    const txnData = [
+      [{ v: 'TRANSACTIONS', s: styles.title }, '', '', '', '', '', '', '', '', ''],
+      [],
+      [{ v: 'Symbol', s: styles.header }, { v: 'Name', s: styles.header }, { v: 'Buy Date', s: styles.header }, { v: 'Sell Date', s: styles.header }, { v: 'Qty', s: styles.header }, { v: 'Buy Price', s: styles.header }, { v: 'Sell Price', s: styles.header }, { v: 'Gain/Loss', s: styles.header }, { v: 'Type', s: styles.header }, { v: 'Days Held', s: styles.header }],
+    ];
+    transactions.forEach(t => {
+      const gainStyle = (t.gain || 0) >= 0 ? styles.profit : styles.loss;
+      const typeStyle = t.classification?.type === 'STCG' ? styles.stcg : styles.ltcg;
+      txnData.push([
+        { v: t.symbol }, { v: t.name },
+        { v: t.buyDate || '-' }, { v: t.sellDate || '-' },
+        { v: t.quantity }, { v: t.buyPrice || 0, s: { numFmt: "#,##0.00" } },
+        { v: t.sellPrice || 0, s: { numFmt: "#,##0.00" } },
+        { v: t.gain || 0, s: { ...gainStyle, numFmt: "#,##0.00" } },
+        { v: t.classification?.type || '-', s: typeStyle },
+        { v: t.classification?.holdingDays || '-' },
+      ]);
+    });
+    const ws2 = XLSXStyle.utils.aoa_to_sheet(txnData);
+    ws2['!cols'] = [{ wch: 15 }, { wch: 25 }, { wch: 12 }, { wch: 12 }, { wch: 8 }, { wch: 12 }, { wch: 12 }, { wch: 15 }, { wch: 8 }, { wch: 10 }];
+    XLSXStyle.utils.book_append_sheet(wb, ws2, 'Transactions');
+
+    // Insights Sheet
+    const insightsData = [
+      [{ v: 'TAX INSIGHTS', s: styles.title }, '', ''],
+      [],
+    ];
+    (analysis.insights || []).forEach(i => {
+      insightsData.push([{ v: i.title, s: { font: { bold: true } } }, { v: i.type }]);
+      insightsData.push([{ v: i.description }]);
+      insightsData.push([{ v: `Impact: ${i.impact}`, s: { font: { italic: true, color: { rgb: "6B7280" } } } }]);
+      insightsData.push([]);
+    });
+    const ws3 = XLSXStyle.utils.aoa_to_sheet(insightsData);
+    ws3['!cols'] = [{ wch: 60 }, { wch: 15 }, { wch: 20 }];
+    XLSXStyle.utils.book_append_sheet(wb, ws3, 'Insights');
+
+    const buf = XLSXStyle.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename=tax_analysis_${analysis.fiscalYear}_${timestamp}.xlsx`);
+    res.send(buf);
+  } catch (error) {
+    console.error('Tax Excel export error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Tax Analysis Export - CSV
+app.get('/api/tax/export/csv/:id', (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const analysis = taxData.analyses.find(a => a.id === id);
+    if (!analysis) return res.status(404).json({ error: 'Analysis not found' });
+
+    const timestamp = new Date().toISOString().split('T')[0];
+    const summary = analysis.summary;
+    const transactions = analysis.transactions || [];
+
+    let csv = `Tax Analysis Report - FY ${analysis.fiscalYear}\n`;
+    csv += `File: ${analysis.fileName}\n\n`;
+    csv += `SUMMARY\n`;
+    csv += `STCG Profit,${summary.stcgProfit || 0}\n`;
+    csv += `STCG Loss,${summary.stcgLoss || 0}\n`;
+    csv += `Net STCG,${summary.netSTCG || 0}\n`;
+    csv += `LTCG Profit,${summary.ltcgProfit || 0}\n`;
+    csv += `LTCG Loss,${summary.ltcgLoss || 0}\n`;
+    csv += `Net LTCG,${summary.netLTCG || 0}\n`;
+    csv += `Total Estimated Tax,${summary.totalEstimatedTax || 0}\n\n`;
+    csv += `TRANSACTIONS\n`;
+    csv += `Symbol,Name,Buy Date,Sell Date,Qty,Buy Price,Sell Price,Gain/Loss,Type,Days Held\n`;
+    transactions.forEach(t => {
+      csv += `"${t.symbol}","${t.name}",${t.buyDate || '-'},${t.sellDate || '-'},${t.quantity},${t.buyPrice || 0},${t.sellPrice || 0},${t.gain || 0},${t.classification?.type || '-'},${t.classification?.holdingDays || '-'}\n`;
+    });
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename=tax_analysis_${analysis.fiscalYear}_${timestamp}.csv`);
+    res.send(csv);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Tax Analysis Export - Markdown
+app.get('/api/tax/export/md/:id', (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const analysis = taxData.analyses.find(a => a.id === id);
+    if (!analysis) return res.status(404).json({ error: 'Analysis not found' });
+
+    const timestamp = new Date().toISOString().split('T')[0];
+    const summary = analysis.summary;
+
+    let md = `# Tax Analysis Report - FY ${analysis.fiscalYear}\n\n`;
+    md += `**File:** ${analysis.fileName}\n`;
+    md += `**Generated:** ${new Date().toLocaleString()}\n\n`;
+    md += `## Capital Gains Summary\n\n`;
+    md += `| Category | Profit | Loss | Net |\n|----------|--------|------|-----|\n`;
+    md += `| Short Term (STCG) | ₹${(summary.stcgProfit || 0).toLocaleString()} | ₹${(summary.stcgLoss || 0).toLocaleString()} | ₹${(summary.netSTCG || 0).toLocaleString()} |\n`;
+    md += `| Long Term (LTCG) | ₹${(summary.ltcgProfit || 0).toLocaleString()} | ₹${(summary.ltcgLoss || 0).toLocaleString()} | ₹${(summary.netLTCG || 0).toLocaleString()} |\n\n`;
+    md += `## Tax Liability\n\n`;
+    md += `- **Taxable STCG:** ₹${(summary.taxableSTCG || 0).toLocaleString()} @ 15%\n`;
+    md += `- **Taxable LTCG:** ₹${(summary.taxableLTCG || 0).toLocaleString()} @ 10% (after ₹1.25L exemption)\n`;
+    md += `- **Est. STCG Tax:** ₹${(summary.estimatedSTCGTax || 0).toLocaleString()}\n`;
+    md += `- **Est. LTCG Tax:** ₹${(summary.estimatedLTCGTax || 0).toLocaleString()}\n`;
+    md += `- **TOTAL ESTIMATED TAX:** ₹${(summary.totalEstimatedTax || 0).toLocaleString()}\n\n`;
+    md += `## Statistics\n\n`;
+    md += `- Total Transactions: ${summary.totalTransactions}\n`;
+    md += `- STCG Transactions: ${summary.stcgCount}\n`;
+    md += `- LTCG Transactions: ${summary.ltcgCount}\n`;
+    md += `- Total Buy Value: ₹${(summary.totalBuyValue || 0).toLocaleString()}\n`;
+    md += `- Total Sell Value: ₹${(summary.totalSellValue || 0).toLocaleString()}\n\n`;
+    if (analysis.insights?.length) {
+      md += `## Tax Insights\n\n`;
+      analysis.insights.forEach(i => {
+        md += `### ${i.title}\n${i.description}\n\n*Impact: ${i.impact}*\n\n`;
+      });
+    }
+    md += `---\n*Report generated by Stock Analyzer*\n`;
+
+    res.setHeader('Content-Type', 'text/markdown');
+    res.setHeader('Content-Disposition', `attachment; filename=tax_analysis_${analysis.fiscalYear}_${timestamp}.md`);
+    res.send(md);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // AI Chat endpoint using Portkey middleware with Claude

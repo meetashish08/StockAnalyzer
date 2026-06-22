@@ -643,11 +643,11 @@ For issues and feature requests:
 
 | Feature | URL | Description |
 |---------|-----|-------------|
-| Dashboard | http://localhost:3001/ | Portfolio overview & summary |
+| Dashboard | http://localhost:3001/ | Portfolio overview, market indices (live), & summary |
 | Portfolio | http://localhost:3001/portfolio | Holdings with India/US tabs, auto-refresh, sortable columns |
-| Recommendations | http://localhost:3001/recommendations | Portfolio insights, sector analysis & alerts |
-| Analytics | http://localhost:3001/analytics | Charts & health scores |
-| Tax Analysis | http://localhost:3001/tax-analysis | Capital gains & ITR helper (Excel + AIS import) |
+| Recommendations | http://localhost:3001/recommendations | Portfolio insights, sector analysis & alerts (with export) |
+| Analytics | http://localhost:3001/analytics | Charts & health scores (with Excel/CSV/MD export) |
+| Tax Analysis | http://localhost:3001/tax-analysis | Capital gains & ITR helper (with Excel/CSV/MD export) |
 | Import | http://localhost:3001/import | Import from brokers |
 | AI Assistant | http://localhost:3001/ai-chat | AI chat with bookmarks |
 
@@ -692,6 +692,37 @@ The Recommendations page provides three analysis tabs:
 
 **Sortable Columns**
 Click any column header to sort: Symbol, Qty, Avg Price, Current Price, Value, P&L, 1D Change
+
+### Dashboard Features
+
+**Market Overview**
+- Live market indices: NIFTY 50, SENSEX, S&P 500, NASDAQ
+- Real-time data fetched via Yahoo Finance API
+- Auto-refreshes every 60 seconds
+- Shows price, change, and percentage change
+
+**Asset Allocation**
+- Pie chart with 16 distinct colors (no duplicates)
+- Groups holdings beyond top 8 as "Others"
+- Click to view detailed breakdown
+
+### Export Capabilities
+
+All major pages now support export functionality:
+
+**Analytics Page**
+- Excel (.xlsx) - Multi-sheet styled report (Summary, Holdings, Allocation, Recommendations)
+- CSV (.csv) - Holdings data with P&L
+- Markdown (.md) - Formatted report for documentation
+
+**Tax Analysis Page**
+- Excel (.xlsx) - Styled report (Summary, Transactions, Insights)
+- CSV (.csv) - Transaction listing
+- Markdown (.md) - Tax summary report
+
+**Recommendations Page**
+- Excel (.xlsx) - Professional multi-sheet report with conditional formatting
+- CSV - Separate files for Portfolio, Sectors, Alerts
 
 ---
 

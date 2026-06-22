@@ -103,6 +103,49 @@ export default function Analytics() {
   const [portfolioHealth, setPortfolioHealth] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'allocation' | 'health' | 'performance'>('overview');
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async (format: 'excel' | 'csv' | 'md') => {
+    setExporting(true);
+    setShowExportMenu(false);
+    try {
+      const timestamp = new Date().toISOString().split('T')[0];
+      if (format === 'excel') {
+        const response = await fetch('/api/analytics/export/excel');
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `portfolio_analytics_${timestamp}.xlsx`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } else if (format === 'csv') {
+        const response = await fetch('/api/analytics/export/csv');
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `portfolio_analytics_${timestamp}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } else if (format === 'md') {
+        const response = await fetch('/api/analytics/export/md');
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `portfolio_analytics_${timestamp}.md`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch (error) {
+      console.error('Export error:', error);
+      alert('Export failed. Please try again.');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   useEffect(() => {
     async function loadData() {
@@ -136,9 +179,37 @@ export default function Analytics() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-white">Portfolio Analytics</h1>
-        <p className="text-slate-400">Deep insights into your investments</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Portfolio Analytics</h1>
+          <p className="text-slate-400">Deep insights into your investments</p>
+        </div>
+        <div className="relative">
+          <button
+            onClick={() => setShowExportMenu(!showExportMenu)}
+            disabled={exporting}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-white text-sm font-medium transition-colors"
+          >
+            {exporting ? (
+              <><span className="animate-spin">⏳</span> Exporting...</>
+            ) : (
+              <>📥 Export</>
+            )}
+          </button>
+          {showExportMenu && (
+            <div className="absolute right-0 mt-2 w-48 bg-slate-800 border border-slate-600 rounded-lg shadow-xl z-50">
+              <button onClick={() => handleExport('excel')} className="w-full text-left px-4 py-3 hover:bg-slate-700 text-white flex items-center gap-2 rounded-t-lg">
+                📊 Excel (.xlsx)
+              </button>
+              <button onClick={() => handleExport('csv')} className="w-full text-left px-4 py-3 hover:bg-slate-700 text-white flex items-center gap-2">
+                📄 CSV (.csv)
+              </button>
+              <button onClick={() => handleExport('md')} className="w-full text-left px-4 py-3 hover:bg-slate-700 text-white flex items-center gap-2 rounded-b-lg">
+                📝 Markdown (.md)
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Tabs */}

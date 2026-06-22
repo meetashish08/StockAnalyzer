@@ -81,8 +81,53 @@ export default function Recommendations() {
   const [showChanges, setShowChanges] = useState(true);
   const [refreshStatus, setRefreshStatus] = useState('');
   const [viewingBookmark, setViewingBookmark] = useState<Bookmark | null>(null);
+  const [sortField, setSortField] = useState<string>('overallScore');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const exportMenuRef = useRef<HTMLDivElement>(null);
   const tableContainerRef = useRef<HTMLDivElement>(null);
+
+  // Sort recommendations
+  const sortedRecommendations = [...recommendations].sort((a, b) => {
+    let comparison = 0;
+    switch (sortField) {
+      case 'symbol':
+        comparison = a.symbol.localeCompare(b.symbol);
+        break;
+      case 'signal':
+        const signalOrder: Record<string, number> = { 'STRONG_BUY': 5, 'BUY': 4, 'HOLD': 3, 'SELL': 2, 'STRONG_SELL': 1 };
+        comparison = (signalOrder[a.signal] || 0) - (signalOrder[b.signal] || 0);
+        break;
+      case 'overallScore':
+        comparison = a.overallScore - b.overallScore;
+        break;
+      case 'pnlPercent':
+        comparison = a.pnlPercent - b.pnlPercent;
+        break;
+      case 'taxStatus':
+        comparison = a.taxStatus.localeCompare(b.taxStatus);
+        break;
+      case 'daysHeld':
+        comparison = a.daysHeld - b.daysHeld;
+        break;
+      default:
+        comparison = 0;
+    }
+    return sortDirection === 'asc' ? comparison : -comparison;
+  });
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('desc');
+    }
+  };
+
+  const SortIndicator = ({ field }: { field: string }) => {
+    if (sortField !== field) return <span className="text-slate-500 ml-1 text-xs">↕</span>;
+    return <span className="text-green-400 ml-1 text-xs">{sortDirection === 'asc' ? '↑' : '↓'}</span>;
+  };
 
   // Load persisted data on mount
   useEffect(() => {
@@ -625,16 +670,41 @@ export default function Recommendations() {
                   <table className="w-full">
                     <thead className="sticky top-0 z-10 bg-slate-800">
                       <tr className="bg-slate-700/50 text-left">
-                        <th className="p-3 text-slate-300 font-medium">Stock</th>
-                        <th className="p-3 text-slate-300 font-medium text-center">Signal</th>
-                        <th className="p-3 text-slate-300 font-medium text-right">Score</th>
-                        <th className="p-3 text-slate-300 font-medium text-right">P&L</th>
-                        <th className="p-3 text-slate-300 font-medium text-right">Tax</th>
+                        <th
+                          className="p-3 text-slate-300 font-medium cursor-pointer hover:text-white select-none"
+                          onClick={() => handleSort('symbol')}
+                        >
+                          Stock <SortIndicator field="symbol" />
+                        </th>
+                        <th
+                          className="p-3 text-slate-300 font-medium text-center cursor-pointer hover:text-white select-none"
+                          onClick={() => handleSort('signal')}
+                        >
+                          Signal <SortIndicator field="signal" />
+                        </th>
+                        <th
+                          className="p-3 text-slate-300 font-medium text-right cursor-pointer hover:text-white select-none"
+                          onClick={() => handleSort('overallScore')}
+                        >
+                          Score <SortIndicator field="overallScore" />
+                        </th>
+                        <th
+                          className="p-3 text-slate-300 font-medium text-right cursor-pointer hover:text-white select-none"
+                          onClick={() => handleSort('pnlPercent')}
+                        >
+                          P&L <SortIndicator field="pnlPercent" />
+                        </th>
+                        <th
+                          className="p-3 text-slate-300 font-medium text-right cursor-pointer hover:text-white select-none"
+                          onClick={() => handleSort('taxStatus')}
+                        >
+                          Tax <SortIndicator field="taxStatus" />
+                        </th>
                         <th className="p-3 text-slate-300 font-medium text-center">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {recommendations.map((stock) => {
+                      {sortedRecommendations.map((stock) => {
                         const signalChange = getSignalChange(stock.symbol);
                         const scoreDelta = getScoreDelta(stock.symbol, 'overallScore');
 
