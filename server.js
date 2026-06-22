@@ -12,14 +12,30 @@ const yahooFinance = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Helper function to format numbers with exactly 2 decimal places (for display strings)
+// Helper function to format numbers - no decimals if >= 100, else 2 decimals (for display strings)
 const fmt2 = (num) => {
   const n = Number(num) || 0;
-  return n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const decimals = Math.abs(n) >= 100 ? 0 : 2;
+  return n.toLocaleString('en-IN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 };
 
-// Helper function to round numbers to 2 decimal places (for Excel cell values)
-const r2 = (num) => Math.round((Number(num) || 0) * 100) / 100;
+// Helper function to round numbers - no decimals if >= 100, else 2 decimals (for Excel cell values)
+const r2 = (num) => {
+  const n = Number(num) || 0;
+  return Math.abs(n) >= 100 ? Math.round(n) : Math.round(n * 100) / 100;
+};
+
+// Helper to get Excel number format based on value size
+const getNumFmt = (num, prefix = '') => {
+  const n = Math.abs(Number(num) || 0);
+  return n >= 100 ? `${prefix}#,##0` : `${prefix}#,##0.00`;
+};
+
+// Helper for CSV - format number with conditional decimals
+const csvNum = (num) => {
+  const n = Number(num) || 0;
+  return Math.abs(n) >= 100 ? Math.round(n).toString() : n.toFixed(2);
+};
 
 // File upload setup
 const upload = multer({ dest: 'uploads/' });
@@ -940,11 +956,11 @@ app.get('/api/analytics/export/csv', async (req, res) => {
 
     let csv = 'Symbol,Name,Weight %,Current Value,P&L,P&L %\n';
     (health.holdings || []).forEach(h => {
-      csv += `"${h.symbol}","${h.name}",${(h.weight || 0).toFixed(2)}%,${(h.currentValue || 0).toFixed(2)},${(h.pnl || 0).toFixed(2)},${(h.pnlPercent || 0).toFixed(2)}%\n`;
+      csv += `"${h.symbol}","${h.name}",${(h.weight || 0).toFixed(2)}%,${csvNum(h.currentValue)},${csvNum(h.pnl)},${(h.pnlPercent || 0).toFixed(2)}%\n`;
     });
-    csv += `\nTotal Value,${(health.metrics?.totalValue || 0).toFixed(2)}\n`;
-    csv += `Total Invested,${(health.metrics?.totalInvested || 0).toFixed(2)}\n`;
-    csv += `Total P&L,${(health.metrics?.totalPnL || 0).toFixed(2)}\n`;
+    csv += `\nTotal Value,${csvNum(health.metrics?.totalValue)}\n`;
+    csv += `Total Invested,${csvNum(health.metrics?.totalInvested)}\n`;
+    csv += `Total P&L,${csvNum(health.metrics?.totalPnL)}\n`;
     csv += `Overall Score,${health.overallScore}\n`;
 
     res.setHeader('Content-Type', 'text/csv');
@@ -1393,7 +1409,7 @@ app.get('/api/recommendations/export/csv/:type', async (req, res) => {
         const daysHeld = Math.floor((new Date() - purchaseDate) / (1000 * 60 * 60 * 24));
         const taxStatus = daysHeld >= 365 ? 'LTCG' : 'STCG';
 
-        csvContent += `"${h.symbol}","${h.name}","${h.market}",${h.quantity},${h.avgPrice.toFixed(2)},${(h.currentPrice || h.avgPrice).toFixed(2)},${pnl.toFixed(2)},${pnlPercent.toFixed(2)}%,HOLD,50,${taxStatus},${daysHeld}\n`;
+        csvContent += `"${h.symbol}","${h.name}","${h.market}",${h.quantity},${csvNum(h.avgPrice)},${csvNum(h.currentPrice || h.avgPrice)},${csvNum(pnl)},${pnlPercent.toFixed(2)}%,HOLD,50,${taxStatus},${daysHeld}\n`;
       }
     } else if (type === 'alerts') {
       csvContent = 'Type,Priority,Symbol,Message,Value\n';
@@ -1425,7 +1441,7 @@ app.get('/api/recommendations/export/csv/:type', async (req, res) => {
         const pct = totalValue > 0 ? (value / totalValue) * 100 : 0;
         const bench = benchmark[sector] || 5;
         const status = pct > bench * 1.5 ? 'Overweight' : pct < bench * 0.5 ? 'Underweight' : 'Normal';
-        csvContent += `"${sector}",${value.toFixed(2)},${pct.toFixed(2)}%,${bench}%,${status}\n`;
+        csvContent += `"${sector}",${csvNum(value)},${pct.toFixed(2)}%,${bench}%,${status}\n`;
       }
     }
 
@@ -3663,17 +3679,17 @@ app.get('/api/tax/export/csv/:id', (req, res) => {
     let csv = `Tax Analysis Report - FY ${analysis.fiscalYear}\n`;
     csv += `File: ${analysis.fileName}\n\n`;
     csv += `SUMMARY\n`;
-    csv += `STCG Profit,${(summary.stcgProfit || 0).toFixed(2)}\n`;
-    csv += `STCG Loss,${(summary.stcgLoss || 0).toFixed(2)}\n`;
-    csv += `Net STCG,${(summary.netSTCG || 0).toFixed(2)}\n`;
-    csv += `LTCG Profit,${(summary.ltcgProfit || 0).toFixed(2)}\n`;
-    csv += `LTCG Loss,${(summary.ltcgLoss || 0).toFixed(2)}\n`;
-    csv += `Net LTCG,${(summary.netLTCG || 0).toFixed(2)}\n`;
-    csv += `Total Estimated Tax,${(summary.totalEstimatedTax || 0).toFixed(2)}\n\n`;
+    csv += `STCG Profit,${csvNum(summary.stcgProfit)}\n`;
+    csv += `STCG Loss,${csvNum(summary.stcgLoss)}\n`;
+    csv += `Net STCG,${csvNum(summary.netSTCG)}\n`;
+    csv += `LTCG Profit,${csvNum(summary.ltcgProfit)}\n`;
+    csv += `LTCG Loss,${csvNum(summary.ltcgLoss)}\n`;
+    csv += `Net LTCG,${csvNum(summary.netLTCG)}\n`;
+    csv += `Total Estimated Tax,${csvNum(summary.totalEstimatedTax)}\n\n`;
     csv += `TRANSACTIONS\n`;
     csv += `Symbol,Name,Buy Date,Sell Date,Qty,Buy Price,Sell Price,Gain/Loss,Type,Days Held\n`;
     transactions.forEach(t => {
-      csv += `"${t.symbol}","${t.name}",${t.buyDate || '-'},${t.sellDate || '-'},${t.quantity},${(t.buyPrice || 0).toFixed(2)},${(t.sellPrice || 0).toFixed(2)},${(t.gain || 0).toFixed(2)},${t.classification?.type || '-'},${t.classification?.holdingDays || '-'}\n`;
+      csv += `"${t.symbol}","${t.name}",${t.buyDate || '-'},${t.sellDate || '-'},${t.quantity},${csvNum(t.buyPrice)},${csvNum(t.sellPrice)},${csvNum(t.gain)},${t.classification?.type || '-'},${t.classification?.holdingDays || '-'}\n`;
     });
 
     res.setHeader('Content-Type', 'text/csv');
