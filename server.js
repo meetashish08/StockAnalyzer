@@ -52,6 +52,7 @@ const settingsPath = path.join(__dirname, 'settings.json');
 
 // Default settings configuration
 const DEFAULT_SETTINGS = {
+  aiProvider: 'anthropic',
   portkeyApiKey: process.env.PORTKEY_API_KEY || 'MfSPscvdmxTj8jGpP34lq41axRRK',
   claudeModel: 'claude-sonnet',
   maxTokens: 3000,
@@ -291,6 +292,7 @@ app.get('/api/settings', (req, res) => {
   try {
     const settings = loadSettings();
     res.json({
+      aiProvider: settings.aiProvider || 'anthropic',
       portkeyApiKey: maskApiKey(settings.portkeyApiKey),
       portkeyApiKeySet: !!settings.portkeyApiKey,
       claudeModel: settings.claudeModel || 'claude-sonnet',
@@ -307,10 +309,17 @@ app.get('/api/settings', (req, res) => {
 // Update settings
 app.post('/api/settings', (req, res) => {
   try {
-    const { portkeyApiKey, claudeModel, maxTokens, temperature, extendedThinking } = req.body;
+    const { aiProvider, portkeyApiKey, claudeModel, maxTokens, temperature, extendedThinking } = req.body;
     const settings = loadSettings();
 
     // Update only provided fields
+    if (aiProvider !== undefined) {
+      // Validate provider
+      if (!['anthropic', 'openai', 'google'].includes(aiProvider)) {
+        return res.status(400).json({ error: 'Invalid AI provider' });
+      }
+      settings.aiProvider = aiProvider;
+    }
     if (portkeyApiKey !== undefined) {
       // Validate API key format (basic check) - accept any non-empty string
       // Actual validation happens via test connection
@@ -333,6 +342,7 @@ app.post('/api/settings', (req, res) => {
       success: true,
       message: 'Settings saved successfully',
       settings: {
+        aiProvider: settings.aiProvider,
         portkeyApiKey: maskApiKey(settings.portkeyApiKey),
         portkeyApiKeySet: !!settings.portkeyApiKey,
         claudeModel: settings.claudeModel,
@@ -359,6 +369,18 @@ app.post('/api/settings/test', async (req, res) => {
     console.log('Testing Portkey API connection...');
     console.log('API Key (masked):', maskApiKey(portkeyApiKey));
 
+    // Build headers - only add anthropic-version for Claude
+    const settings = loadSettings();
+    const provider = settings?.aiProvider || 'anthropic';
+    const headers = {
+      'Content-Type': 'application/json',
+      'x-portkey-api-key': portkeyApiKey,
+    };
+
+    if (provider === 'anthropic') {
+      headers['anthropic-version'] = '2023-06-01';
+    }
+
     // Test API call to Portkey - use exact same format as AI chat
     const testResponse = await axios.post(
       'https://api.portkey.ai/v1/messages',
@@ -368,11 +390,7 @@ app.post('/api/settings/test', async (req, res) => {
         messages: [{ role: 'user', content: 'Say "API key is working" in 5 words or less.' }],
       },
       {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-portkey-api-key': portkeyApiKey,
-          'anthropic-version': '2023-06-01',
-        },
+        headers: headers,
         timeout: 15000,
       }
     );
@@ -3635,6 +3653,21 @@ OUTPUT FORMAT (valid JSON only, no markdown):
 }`;
 
   try {
+    // Load settings for API key and provider
+    const settings = loadSettings();
+    const PORTKEY_API_KEY = settings.portkeyApiKey;
+    const provider = settings?.aiProvider || 'anthropic';
+
+    // Build headers - only add anthropic-version for Claude
+    const headers = {
+      'Content-Type': 'application/json',
+      'x-portkey-api-key': PORTKEY_API_KEY,
+    };
+
+    if (provider === 'anthropic') {
+      headers['anthropic-version'] = '2023-06-01';
+    }
+
     const response = await axios.post(
       `${PORTKEY_BASE_URL}/v1/messages`,
       {
@@ -3644,11 +3677,7 @@ OUTPUT FORMAT (valid JSON only, no markdown):
         messages: [{ role: 'user', content: prompt }],
       },
       {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-portkey-api-key': PORTKEY_API_KEY,
-          'anthropic-version': '2023-06-01',
-        },
+        headers: headers,
         timeout: 60000,
       }
     );
@@ -5253,7 +5282,25 @@ app.get('/api/stock-universe', (req, res) => {
 // AI Chat endpoint using Portkey middleware with Claude
 const PORTKEY_BASE_URL = 'https://api.portkey.ai';
 
-// Available AI models via Portkey
+// Multi-provider model mappings for Portkey
+const PROVIDER_MODELS = {
+  anthropic: {
+    'sonnet': '@vertexai-global/anthropic.claude-sonnet-4-5@20250929',
+    'opus': '@vertexai-global/anthropic.claude-opus-4-5@20251101',
+    'haiku': '@vertexai-global/anthropic.claude-haiku-4-5@20251001',
+  },
+  openai: {
+    'gpt-4o': 'gpt-4o',
+    'gpt-4-turbo': 'gpt-4-turbo-preview',
+    'gpt-3.5-turbo': 'gpt-3.5-turbo',
+  },
+  google: {
+    'gemini-pro': 'gemini-1.5-pro',
+    'gemini-flash': 'gemini-1.5-flash',
+  }
+};
+
+// Available AI models via Portkey (backwards compatibility)
 const AI_MODELS = {
   'claude-sonnet': '@vertexai-global/anthropic.claude-sonnet-4-5@20250929',
   'claude-haiku': '@vertexai-global/anthropic.claude-haiku-4-5@20251001',
@@ -5316,8 +5363,30 @@ app.post('/api/ai/chat', async (req, res) => {
       });
     }
 
-    // Get the model to use
-    const selectedModel = AI_MODELS[model] || AI_MODELS[DEFAULT_MODEL];
+    // Get provider and model from settings
+    const provider = settings.aiProvider || 'anthropic';
+    const modelKey = model || settings.claudeModel || 'sonnet';
+
+    // Look up the actual model ID for the provider
+    let selectedModel;
+
+    // Check new multi-provider format first
+    if (PROVIDER_MODELS[provider]?.[modelKey]) {
+      selectedModel = PROVIDER_MODELS[provider][modelKey];
+    } else {
+      // Fallback to legacy AI_MODELS for backwards compatibility
+      selectedModel = AI_MODELS[model] || AI_MODELS[DEFAULT_MODEL];
+    }
+
+    if (!selectedModel) {
+      console.error(`Invalid model ${modelKey} for provider ${provider}`);
+      return res.status(400).json({
+        error: `Model ${modelKey} not available for provider ${provider}`
+      });
+    }
+
+    console.log(`AI Provider: ${provider}`);
+    console.log(`Model: ${selectedModel}`);
 
     // Fetch market context for AI
     let marketContext = '';
@@ -5634,6 +5703,18 @@ ${portfolioContext}${marketContext}`;
       }
     ];
 
+    // Build headers - only add anthropic-version for Claude
+    const headers = {
+      'Content-Type': 'application/json',
+      'x-portkey-api-key': PORTKEY_API_KEY,
+    };
+
+    if (provider === 'anthropic') {
+      headers['anthropic-version'] = '2023-06-01';
+    }
+
+    console.log(`Request headers:`, Object.keys(headers));
+
     // Call Claude via Portkey middleware with tools
     const response = await axios.post(
       `${PORTKEY_BASE_URL}/v1/messages`,
@@ -5651,11 +5732,7 @@ ${portfolioContext}${marketContext}`;
         ],
       },
       {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-portkey-api-key': PORTKEY_API_KEY,
-          'anthropic-version': '2023-06-01',
-        },
+        headers: headers,
         timeout: 120000,
       }
     );
@@ -5985,11 +6062,7 @@ ${portfolioContext}${marketContext}`;
           ],
         },
         {
-          headers: {
-            'Content-Type': 'application/json',
-            'x-portkey-api-key': PORTKEY_API_KEY,
-            'anthropic-version': '2023-06-01',
-          },
+          headers: headers,
           timeout: 120000,
         }
       );

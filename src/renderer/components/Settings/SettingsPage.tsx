@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
 interface Settings {
+  aiProvider: 'anthropic' | 'openai' | 'google';
   portkeyApiKey: string | null;
   portkeyApiKeySet: boolean;
   claudeModel: string;
@@ -23,12 +24,48 @@ const AI_MODELS = [
   { id: 'claude-opus', name: 'Claude Opus 4.5', description: 'Most capable' },
 ];
 
+const MODELS_BY_PROVIDER = {
+  anthropic: [
+    { id: 'sonnet', name: 'Claude Sonnet 4.5', description: 'Balanced - Fast & capable' },
+    { id: 'opus', name: 'Claude Opus 4.5', description: 'Most capable, slower' },
+    { id: 'haiku', name: 'Claude Haiku 4.5', description: 'Fastest, cheaper' },
+  ],
+  openai: [
+    { id: 'gpt-4o', name: 'GPT-4o', description: 'Fastest GPT-4 model' },
+    { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', description: 'Most capable' },
+    { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', description: 'Budget option' },
+  ],
+  google: [
+    { id: 'gemini-pro', name: 'Gemini 1.5 Pro', description: 'Most capable' },
+    { id: 'gemini-flash', name: 'Gemini 1.5 Flash', description: 'Fastest' },
+  ]
+};
+
+const PROVIDER_INFO = {
+  anthropic: {
+    name: 'Anthropic Claude',
+    description: 'Best for financial analysis and complex reasoning',
+    badge: '🏆 Current'
+  },
+  openai: {
+    name: 'OpenAI GPT',
+    description: 'Fast and versatile, good alternative to Claude',
+    badge: '⚡ Fast'
+  },
+  google: {
+    name: 'Google Gemini',
+    description: 'Cost-effective option with good performance',
+    badge: '💰 Budget'
+  }
+};
+
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<'api' | 'model' | 'general'>('api');
   const [settings, setSettings] = useState<Settings>({
+    aiProvider: 'anthropic',
     portkeyApiKey: null,
     portkeyApiKeySet: false,
-    claudeModel: 'claude-sonnet',
+    claudeModel: 'sonnet',
     maxTokens: 3000,
     temperature: 0.7,
     extendedThinking: false,
@@ -68,7 +105,10 @@ export default function SettingsPage() {
     try {
       const response = await fetch('http://localhost:3001/api/settings');
       const data = await response.json();
-      setSettings(data);
+      setSettings({
+        ...data,
+        aiProvider: data.aiProvider || 'anthropic'
+      });
     } catch (error) {
       console.error('Failed to load settings:', error);
       showNotification('error', 'Failed to load settings');
@@ -90,6 +130,7 @@ export default function SettingsPage() {
     setIsLoading(true);
     try {
       const payload: any = {
+        aiProvider: settings.aiProvider,
         claudeModel: settings.claudeModel,
         maxTokens: settings.maxTokens,
         temperature: settings.temperature,
@@ -160,7 +201,8 @@ export default function SettingsPage() {
     if (confirm('Are you sure you want to reset all settings to defaults? This will not affect your API key.')) {
       setSettings(prev => ({
         ...prev,
-        claudeModel: 'claude-sonnet',
+        aiProvider: 'anthropic',
+        claudeModel: 'sonnet',
         maxTokens: 3000,
         temperature: 0.7,
         extendedThinking: false,
@@ -364,6 +406,9 @@ export default function SettingsPage() {
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">
               Portkey API Key
+              <span className="text-slate-500 ml-2">
+                (Works with Claude, GPT, Gemini)
+              </span>
             </label>
             <div className="relative">
               <input
@@ -573,34 +618,94 @@ export default function SettingsPage() {
             </p>
           </div>
 
-          {/* Model Selection */}
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-3">
-              Claude Model
+          {/* Provider Info Banner */}
+          <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">ℹ️</span>
+              <div className="flex-1">
+                <h4 className="font-semibold text-white mb-1">Multi-Provider AI Support</h4>
+                <p className="text-sm text-slate-300">
+                  Switch between Anthropic Claude, OpenAI GPT, and Google Gemini. All providers
+                  support the 11 Yahoo Finance tools for stock analysis. Your Portkey API key
+                  works across all providers.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* AI Provider Selection */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-slate-300">
+              AI Provider
             </label>
-            <div className="space-y-2">
-              {AI_MODELS.map((model) => (
-                <div
-                  key={model.id}
-                  onClick={() => handleSettingChange('claudeModel', model.id)}
-                  className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                    settings.claudeModel === model.id
-                      ? 'border-green-500 bg-green-500/10'
+
+            <div className="grid grid-cols-1 gap-3">
+              {(['anthropic', 'openai', 'google'] as const).map((provider) => (
+                <button
+                  key={provider}
+                  onClick={() => {
+                    handleSettingChange('aiProvider', provider);
+                    // Reset model to first available for new provider
+                    const firstModel = MODELS_BY_PROVIDER[provider][0].id;
+                    handleSettingChange('claudeModel', firstModel);
+                  }}
+                  className={`p-4 rounded-lg border-2 transition-all text-left ${
+                    settings.aiProvider === provider
+                      ? 'border-blue-500 bg-blue-500/10'
                       : 'border-slate-600 bg-slate-700/50 hover:border-slate-500'
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium text-white">{model.name}</p>
-                      <p className="text-sm text-slate-400 mt-1">{model.description}</p>
+                      <div className="font-semibold text-white flex items-center gap-2">
+                        {PROVIDER_INFO[provider].name}
+                        {settings.aiProvider === provider && (
+                          <span className="text-xs px-2 py-0.5 bg-blue-500 rounded-full">
+                            Active
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-sm text-slate-400 mt-1">
+                        {PROVIDER_INFO[provider].description}
+                      </div>
                     </div>
-                    {settings.claudeModel === model.id && (
-                      <span className="text-green-400 text-xl">✓</span>
-                    )}
+                    <div className="text-2xl">
+                      {provider === 'anthropic' && '🤖'}
+                      {provider === 'openai' && '⚡'}
+                      {provider === 'google' && '🔷'}
+                    </div>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
+
+            <p className="text-xs text-slate-400 mt-2">
+              💡 All providers use the same Portkey API key. Tool calling works across all providers.
+            </p>
+          </div>
+
+          {/* Model Selection - Dynamic based on provider */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-slate-300">
+              Model
+            </label>
+
+            <select
+              value={settings.claudeModel}
+              onChange={(e) => handleSettingChange('claudeModel', e.target.value)}
+              className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+            >
+              {MODELS_BY_PROVIDER[settings.aiProvider || 'anthropic'].map((model) => (
+                <option key={model.id} value={model.id}>
+                  {model.name} - {model.description}
+                </option>
+              ))}
+            </select>
+
+            <p className="text-xs text-slate-400">
+              Selected: {MODELS_BY_PROVIDER[settings.aiProvider || 'anthropic']
+                .find(m => m.id === settings.claudeModel)?.name || 'Unknown'}
+            </p>
           </div>
 
           {/* Max Tokens */}
