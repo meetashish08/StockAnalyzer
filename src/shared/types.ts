@@ -204,6 +204,18 @@ export interface FundOverlap {
   commonStocks: string[];
 }
 
+// Watchlist types
+export interface WatchlistItem {
+  id: number;
+  symbol: string;
+  name: string;
+  market: string;
+  targetPrice?: number;
+  stopLoss?: number;
+  notes?: string;
+  createdAt: string;
+}
+
 // IPC Channel names
 export const IPC_CHANNELS = {
   // Database operations
@@ -233,4 +245,10 @@ export const IPC_CHANNELS = {
   // Portfolio
   PORTFOLIO_GET_SUMMARY: 'portfolio:get-summary',
   PORTFOLIO_GET_ALLOCATION: 'portfolio:get-allocation',
+
+  // Watchlist
+  WATCHLIST_GET_ALL: 'watchlist:get-all',
+  WATCHLIST_ADD: 'watchlist:add',
+  WATCHLIST_REMOVE: 'watchlist:remove',
+  WATCHLIST_UPDATE: 'watchlist:update',
 } as const;

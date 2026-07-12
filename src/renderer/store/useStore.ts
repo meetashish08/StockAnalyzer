@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Holding, Transaction, PortfolioSummary, StockScore, HoldingWithPrice } from '../../shared/types';
+import type { Holding, Transaction, PortfolioSummary, StockScore, HoldingWithPrice, WatchlistItem } from '../../shared/types';
 
 interface StoreState {
   // Holdings
@@ -33,6 +33,15 @@ interface StoreState {
   // Stock Detail Modal State
   selectedStockForDetail: { symbol: string; market: string; name?: string } | null;
   setSelectedStockForDetail: (stock: { symbol: string; market: string; name?: string } | null) => void;
+
+  // Watchlist
+  watchlist: WatchlistItem[];
+  isLoadingWatchlist: boolean;
+  fetchWatchlist: () => Promise<void>;
+  addToWatchlist: (item: { symbol: string; market: string; name?: string; notes?: string; targetPrice?: number; stopLoss?: number }) => Promise<void>;
+  removeFromWatchlist: (id: number) => Promise<void>;
+  updateWatchlistItem: (id: number, updates: { targetPrice?: number; stopLoss?: number; notes?: string }) => Promise<void>;
+  isInWatchlist: (symbol: string, market: string) => boolean;
 
   // Error handling
   error: string | null;
@@ -194,6 +203,58 @@ export const useStore = create<StoreState>((set, get) => ({
   // Stock Detail Modal State
   selectedStockForDetail: null,
   setSelectedStockForDetail: (stock) => set({ selectedStockForDetail: stock }),
+
+  // Watchlist state
+  watchlist: [],
+  isLoadingWatchlist: false,
+
+  fetchWatchlist: async () => {
+    set({ isLoadingWatchlist: true, error: null });
+    try {
+      const watchlist = await window.electronAPI.getWatchlist();
+      set({ watchlist, isLoadingWatchlist: false });
+    } catch (error) {
+      set({ error: 'Failed to fetch watchlist', isLoadingWatchlist: false });
+      console.error(error);
+    }
+  },
+
+  addToWatchlist: async (item) => {
+    try {
+      await window.electronAPI.addToWatchlist(item);
+      await get().fetchWatchlist();
+    } catch (error: any) {
+      set({ error: error.message || 'Failed to add to watchlist' });
+      console.error(error);
+      throw error;
+    }
+  },
+
+  removeFromWatchlist: async (id) => {
+    try {
+      await window.electronAPI.removeFromWatchlist(id);
+      await get().fetchWatchlist();
+    } catch (error) {
+      set({ error: 'Failed to remove from watchlist' });
+      console.error(error);
+    }
+  },
+
+  updateWatchlistItem: async (id, updates) => {
+    try {
+      await window.electronAPI.updateWatchlistItem(id, updates);
+      await get().fetchWatchlist();
+    } catch (error) {
+      set({ error: 'Failed to update watchlist item' });
+      console.error(error);
+    }
+  },
+
+  isInWatchlist: (symbol, market) => {
+    return get().watchlist.some(
+      (item) => item.symbol === symbol && item.market === market
+    );
+  },
 
   // Error handling
   error: null,

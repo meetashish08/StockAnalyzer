@@ -32,6 +32,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getPortfolioSummary: () => ipcRenderer.invoke(IPC_CHANNELS.PORTFOLIO_GET_SUMMARY),
   getPortfolioAllocation: () => ipcRenderer.invoke(IPC_CHANNELS.PORTFOLIO_GET_ALLOCATION),
 
+  // Watchlist
+  getWatchlist: () => ipcRenderer.invoke(IPC_CHANNELS.WATCHLIST_GET_ALL),
+  addToWatchlist: (item: any) => ipcRenderer.invoke(IPC_CHANNELS.WATCHLIST_ADD, item),
+  removeFromWatchlist: (id: number) => ipcRenderer.invoke(IPC_CHANNELS.WATCHLIST_REMOVE, id),
+  updateWatchlistItem: (id: number, updates: any) => ipcRenderer.invoke(IPC_CHANNELS.WATCHLIST_UPDATE, id, updates),
+
   // Dialog
   openFileDialog: (options: any) => ipcRenderer.invoke('dialog:open-file', options),
 });
@@ -56,6 +62,10 @@ export interface ElectronAPI {
   parseEmailText: (emailText: string, broker: string) => Promise<any[]>;
   getPortfolioSummary: () => Promise<any>;
   getPortfolioAllocation: () => Promise<any>;
+  getWatchlist: () => Promise<any[]>;
+  addToWatchlist: (item: any) => Promise<any>;
+  removeFromWatchlist: (id: number) => Promise<void>;
+  updateWatchlistItem: (id: number, updates: any) => Promise<any>;
   openFileDialog: (options: any) => Promise<string | null>;
 }
 

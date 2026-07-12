@@ -1,6 +1,7 @@
 import { ipcMain, dialog } from 'electron';
 import { IPC_CHANNELS } from '../../shared/types';
 import * as holdingsRepo from '../database/holdingsRepository';
+import * as watchlistRepo from '../database/watchlistRepository';
 
 export function registerDatabaseHandlers(): void {
   // Get all holdings
@@ -62,6 +63,43 @@ export function registerDatabaseHandlers(): void {
       return holdingsRepo.addTransaction(transaction);
     } catch (error) {
       console.error('Error adding transaction:', error);
+      throw error;
+    }
+  });
+
+  // Watchlist operations
+  ipcMain.handle(IPC_CHANNELS.WATCHLIST_GET_ALL, async () => {
+    try {
+      return watchlistRepo.getAllWatchlistItems();
+    } catch (error) {
+      console.error('Error getting watchlist:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.WATCHLIST_ADD, async (_, item) => {
+    try {
+      return watchlistRepo.addToWatchlist(item);
+    } catch (error) {
+      console.error('Error adding to watchlist:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.WATCHLIST_REMOVE, async (_, id: number) => {
+    try {
+      return watchlistRepo.removeFromWatchlist(id);
+    } catch (error) {
+      console.error('Error removing from watchlist:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle(IPC_CHANNELS.WATCHLIST_UPDATE, async (_, id: number, updates) => {
+    try {
+      return watchlistRepo.updateWatchlistItem(id, updates);
+    } catch (error) {
+      console.error('Error updating watchlist item:', error);
       throw error;
     }
   });

@@ -3,7 +3,7 @@ import { formatCurrency } from '../../utils/format';
 import { useStore } from '../../store/useStore';
 import ClickableStock from '../common/ClickableStock';
 
-type TabType = 'recommended' | 'gaps' | 'mutualFunds' | 'screener';
+type TabType = 'recommended' | 'gaps' | 'mutualFunds' | 'screener' | 'watchlist';
 type RiskProfile = 'conservative' | 'moderate' | 'aggressive';
 type InvestmentGoal = 'growth' | 'income' | 'balanced';
 type TimeHorizon = '1year' | '3years' | '5years' | '10years+';
@@ -90,6 +90,9 @@ export default function StockPickerPage() {
   });
 
   const holdings = useStore((state) => state.holdings);
+  const watchlist = useStore((state) => state.watchlist);
+  const isLoadingWatchlist = useStore((state) => state.isLoadingWatchlist);
+  const { setSelectedStockForDetail, fetchWatchlist, addToWatchlist, removeFromWatchlist, isInWatchlist } = useStore();
 
   useEffect(() => {
     if (activeTab === 'recommended') {
@@ -98,6 +101,8 @@ export default function StockPickerPage() {
       fetchPortfolioGaps();
     } else if (activeTab === 'mutualFunds') {
       fetchMutualFunds();
+    } else if (activeTab === 'watchlist') {
+      fetchWatchlist();
     }
   }, [activeTab, riskProfile, investmentGoal, timeHorizon, selectedMarket]);
 
@@ -176,6 +181,18 @@ export default function StockPickerPage() {
       console.error('Failed to run screener:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleAddToWatchlist = async (stock: { symbol: string; name: string; market: string }) => {
+    try {
+      await addToWatchlist({
+        symbol: stock.symbol,
+        name: stock.name,
+        market: stock.market,
+      });
+    } catch (error) {
+      console.error('Failed to add to watchlist:', error);
     }
   };
 
@@ -328,6 +345,17 @@ export default function StockPickerPage() {
           <span>🔍</span>
           <span>Market Screener</span>
         </button>
+        <button
+          onClick={() => setActiveTab('watchlist')}
+          className={`px-4 py-2 rounded-t-lg font-medium transition-colors flex items-center gap-2 ${
+            activeTab === 'watchlist'
+              ? 'bg-slate-700 text-white'
+              : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+          }`}
+        >
+          <span>📋</span>
+          <span>Watchlist ({watchlist.length})</span>
+        </button>
       </div>
 
       {/* Tab Content */}
@@ -428,7 +456,17 @@ export default function StockPickerPage() {
 
                   {/* Action Buttons */}
                   <div className="grid grid-cols-2 gap-2 mt-3">
-                    <button className="btn-secondary text-sm">Add to Watchlist</button>
+                    <button
+                      onClick={() => handleAddToWatchlist({ symbol: stock.symbol, name: stock.name, market: stock.market })}
+                      disabled={isInWatchlist(stock.symbol, stock.market)}
+                      className={`text-sm ${
+                        isInWatchlist(stock.symbol, stock.market)
+                          ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
+                          : 'btn-secondary'
+                      }`}
+                    >
+                      {isInWatchlist(stock.symbol, stock.market) ? '✓ In Watchlist' : '+ Add to Watchlist'}
+                    </button>
                     <button className="btn-primary text-sm">Buy Now →</button>
                   </div>
                 </div>
@@ -774,7 +812,135 @@ export default function StockPickerPage() {
                           {stock.performance52w >= 0 ? '+' : ''}{stock.performance52w?.toFixed(1) || '-'}%
                         </td>
                         <td className="p-3 text-center">
-                          <button className="text-blue-400 hover:text-blue-300 text-sm">View</button>
+                          <button
+                            onClick={() => setSelectedStockForDetail({
+                              symbol: stock.symbol,
+                              market: selectedMarket,
+                              name: stock.name
+                            })}
+                            className="text-blue-400 hover:text-blue-300 text-sm hover:underline cursor-pointer"
+                          >
+                            View
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Watchlist Tab */}
+      {activeTab === 'watchlist' && (
+        <div className="space-y-4">
+          {isLoadingWatchlist ? (
+            <div className="card text-center py-12">
+              <div className="animate-spin text-4xl mb-4">⏳</div>
+              <p className="text-slate-400">Loading your watchlist...</p>
+            </div>
+          ) : watchlist.length === 0 ? (
+            <div className="card text-center py-12">
+              <div className="text-6xl mb-4">📋</div>
+              <h3 className="text-xl font-semibold text-white mb-2">Your Watchlist is Empty</h3>
+              <p className="text-slate-400 mb-4">
+                Add stocks from the Recommended Stocks or Market Screener tabs to track them here.
+              </p>
+              <button
+                onClick={() => setActiveTab('recommended')}
+                className="btn-primary"
+              >
+                Browse Recommendations
+              </button>
+            </div>
+          ) : (
+            <div className="card p-0">
+              <div className="p-4 border-b border-slate-700 flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-white">My Watchlist</h3>
+                  <p className="text-sm text-slate-400">{watchlist.length} stocks being tracked</p>
+                </div>
+                <button
+                  onClick={fetchWatchlist}
+                  className="btn-secondary text-sm"
+                >
+                  🔄 Refresh
+                </button>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-slate-700/50">
+                    <tr className="text-left">
+                      <th className="p-3 text-slate-300 font-medium">Stock</th>
+                      <th className="p-3 text-slate-300 font-medium">Market</th>
+                      <th className="p-3 text-slate-300 font-medium">Added On</th>
+                      <th className="p-3 text-slate-300 font-medium">Target Price</th>
+                      <th className="p-3 text-slate-300 font-medium">Stop Loss</th>
+                      <th className="p-3 text-slate-300 font-medium">Notes</th>
+                      <th className="p-3 text-slate-300 font-medium text-center">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {watchlist.map((item) => (
+                      <tr key={item.id} className="border-t border-slate-700 hover:bg-slate-700/30">
+                        <td className="p-3">
+                          <ClickableStock
+                            symbol={item.symbol}
+                            market={item.market}
+                            name={item.name}
+                            className="font-medium text-white hover:text-blue-400"
+                          />
+                          {item.name && (
+                            <p className="text-xs text-slate-400 mt-1">{item.name}</p>
+                          )}
+                        </td>
+                        <td className="p-3">
+                          <span className="text-xs px-2 py-1 bg-slate-700 text-slate-300 rounded">
+                            {item.market}
+                          </span>
+                        </td>
+                        <td className="p-3 text-slate-300 text-sm">
+                          {new Date(item.createdAt).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                          })}
+                        </td>
+                        <td className="p-3 text-slate-300 text-sm">
+                          {item.targetPrice
+                            ? formatCurrency(item.targetPrice, item.market === 'NSE' ? 'INR' : 'USD')
+                            : '-'}
+                        </td>
+                        <td className="p-3 text-slate-300 text-sm">
+                          {item.stopLoss
+                            ? formatCurrency(item.stopLoss, item.market === 'NSE' ? 'INR' : 'USD')
+                            : '-'}
+                        </td>
+                        <td className="p-3 text-slate-400 text-sm max-w-xs truncate">
+                          {item.notes || '-'}
+                        </td>
+                        <td className="p-3 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => setSelectedStockForDetail({
+                                symbol: item.symbol,
+                                market: item.market,
+                                name: item.name,
+                              })}
+                              className="text-blue-400 hover:text-blue-300 text-sm hover:underline"
+                            >
+                              View
+                            </button>
+                            <span className="text-slate-600">|</span>
+                            <button
+                              onClick={() => removeFromWatchlist(item.id)}
+                              className="text-red-400 hover:text-red-300 text-sm hover:underline"
+                            >
+                              Remove
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
