@@ -5077,8 +5077,27 @@ app.post('/api/search-stock', async (req, res) => {
 
     const yahooSymbol = getYahooSymbol(symbol, market);
 
-    // Get detailed quote
-    const quote = await yahooFinance.quote(yahooSymbol);
+    // Get detailed quote with error handling
+    let quote = null;
+    try {
+      quote = await yahooFinance.quote(yahooSymbol);
+    } catch (quoteErr) {
+      console.error(`Quote error for ${yahooSymbol}:`, quoteErr.message);
+      return res.status(404).json({
+        error: `Stock data not available for ${symbol}. Please check the symbol and try again.`,
+        symbol,
+        market
+      });
+    }
+
+    // Validate quote has minimum required data
+    if (!quote || (!quote.regularMarketPrice && !quote.price)) {
+      return res.status(404).json({
+        error: `No price data available for ${symbol}`,
+        symbol,
+        market
+      });
+    }
 
     // Try to get fundamental data
     let roe = null;
@@ -5097,27 +5116,27 @@ app.post('/api/search-stock', async (req, res) => {
 
     res.json({
       symbol: symbol.toUpperCase(),
-      name: quote.longName || quote.shortName || symbol,
+      name: quote?.longName || quote?.shortName || quote?.displayName || symbol.toUpperCase(),
       market,
-      price: quote.regularMarketPrice || 0,
-      change: quote.regularMarketChange || 0,
-      changePercent: quote.regularMarketChangePercent || 0,
-      open: quote.regularMarketOpen || 0,
-      high: quote.regularMarketDayHigh || 0,
-      low: quote.regularMarketDayLow || 0,
-      previousClose: quote.regularMarketPreviousClose || 0,
-      volume: quote.regularMarketVolume || 0,
-      marketCap: quote.marketCap,
-      pe: quote.trailingPE || quote.forwardPE,
-      pb: quote.priceToBook,
+      price: quote?.regularMarketPrice || quote?.price || 0,
+      change: quote?.regularMarketChange || quote?.change || 0,
+      changePercent: quote?.regularMarketChangePercent || quote?.changePercent || 0,
+      open: quote?.regularMarketOpen || quote?.open || 0,
+      high: quote?.regularMarketDayHigh || quote?.dayHigh || 0,
+      low: quote?.regularMarketDayLow || quote?.dayLow || 0,
+      previousClose: quote?.regularMarketPreviousClose || quote?.previousClose || 0,
+      volume: quote?.regularMarketVolume || quote?.volume || 0,
+      marketCap: quote?.marketCap || null,
+      pe: quote?.trailingPE || quote?.forwardPE || null,
+      pb: quote?.priceToBook || null,
       roe,
       profitMargin,
       debtToEquity,
-      dividendYield: quote.dividendYield ? quote.dividendYield * 100 : 0,
-      eps: quote.epsTrailingTwelveMonths,
-      high52Week: quote.fiftyTwoWeekHigh || 0,
-      low52Week: quote.fiftyTwoWeekLow || 0,
-      ma50: quote.fiftyDayAverage || 0,
+      dividendYield: quote?.dividendYield ? quote.dividendYield * 100 : 0,
+      eps: quote?.epsTrailingTwelveMonths || null,
+      high52Week: quote?.fiftyTwoWeekHigh || 0,
+      low52Week: quote?.fiftyTwoWeekLow || 0,
+      ma50: quote?.fiftyDayAverage || 0,
       ma200: quote.twoHundredDayAverage || 0,
     });
   } catch (error) {
@@ -5672,20 +5691,29 @@ ${portfolioContext}${marketContext}`;
 
             case 'getCompanyInfo':
               const yahooSym = getYahooSymbol(toolUse.input.symbol, toolUse.input.market);
-              const companyInfo = await yahooFinance.quoteSummary(yahooSym, {
-                modules: ['assetProfile', 'summaryProfile']
-              });
-              toolResult = JSON.stringify({
-                symbol: toolUse.input.symbol,
-                companyName: companyInfo.assetProfile?.longName || companyInfo.summaryProfile?.longName,
-                industry: companyInfo.assetProfile?.industry,
-                sector: companyInfo.assetProfile?.sector,
-                country: companyInfo.assetProfile?.country,
-                website: companyInfo.assetProfile?.website,
-                employees: companyInfo.assetProfile?.fullTimeEmployees,
-                description: companyInfo.assetProfile?.longBusinessSummary,
-                headquarters: `${companyInfo.assetProfile?.city}, ${companyInfo.assetProfile?.state}, ${companyInfo.assetProfile?.country}`
-              });
+              try {
+                const companyInfo = await yahooFinance.quoteSummary(yahooSym, {
+                  modules: ['assetProfile', 'summaryProfile']
+                });
+                toolResult = JSON.stringify({
+                  symbol: toolUse.input.symbol,
+                  companyName: companyInfo.assetProfile?.longName || companyInfo.summaryProfile?.longName || toolUse.input.symbol,
+                  industry: companyInfo.assetProfile?.industry || 'N/A',
+                  sector: companyInfo.assetProfile?.sector || 'N/A',
+                  country: companyInfo.assetProfile?.country || 'N/A',
+                  website: companyInfo.assetProfile?.website || 'N/A',
+                  employees: companyInfo.assetProfile?.fullTimeEmployees || 'N/A',
+                  description: companyInfo.assetProfile?.longBusinessSummary || 'Company profile data not available',
+                  headquarters: companyInfo.assetProfile?.city ?
+                    `${companyInfo.assetProfile.city}${companyInfo.assetProfile.state ? ', ' + companyInfo.assetProfile.state : ''}${companyInfo.assetProfile.country ? ', ' + companyInfo.assetProfile.country : ''}` : 'N/A'
+                });
+              } catch (compErr) {
+                toolResult = JSON.stringify({
+                  symbol: toolUse.input.symbol,
+                  error: `Company information not available for ${toolUse.input.symbol}`,
+                  message: compErr.message
+                });
+              }
               break;
 
             case 'getFinancialStatements':
@@ -5693,24 +5721,32 @@ ${portfolioContext}${marketContext}`;
               const finModule = toolUse.input.type === 'balance' ? 'balanceSheetHistory' :
                               toolUse.input.type === 'cashflow' ? 'cashflowStatementHistory' :
                               'incomeStatementHistory';
-              const financials = await yahooFinance.quoteSummary(finYahooSym, {
-                modules: [finModule, 'financialData', 'defaultKeyStatistics']
-              });
-              toolResult = JSON.stringify({
-                symbol: toolUse.input.symbol,
-                type: toolUse.input.type,
-                data: financials[finModule],
-                currentData: {
-                  revenue: financials.financialData?.totalRevenue?.fmt,
-                  profitMargin: financials.financialData?.profitMargins?.fmt,
-                  operatingMargin: financials.financialData?.operatingMargins?.fmt,
-                  roe: financials.financialData?.returnOnEquity?.fmt,
-                  roa: financials.financialData?.returnOnAssets?.fmt,
-                  debtToEquity: financials.financialData?.debtToEquity?.fmt,
-                  currentRatio: financials.financialData?.currentRatio?.fmt,
-                  freeCashFlow: financials.financialData?.freeCashflow?.fmt
-                }
-              });
+              try {
+                const financials = await yahooFinance.quoteSummary(finYahooSym, {
+                  modules: [finModule, 'financialData', 'defaultKeyStatistics']
+                });
+                toolResult = JSON.stringify({
+                  symbol: toolUse.input.symbol,
+                  type: toolUse.input.type,
+                  data: financials[finModule] || {},
+                  currentData: {
+                    revenue: financials.financialData?.totalRevenue?.fmt || 'N/A',
+                    profitMargin: financials.financialData?.profitMargins?.fmt || 'N/A',
+                    operatingMargin: financials.financialData?.operatingMargins?.fmt || 'N/A',
+                    roe: financials.financialData?.returnOnEquity?.fmt || 'N/A',
+                    roa: financials.financialData?.returnOnAssets?.fmt || 'N/A',
+                    debtToEquity: financials.financialData?.debtToEquity?.fmt || 'N/A',
+                    currentRatio: financials.financialData?.currentRatio?.fmt || 'N/A',
+                    freeCashFlow: financials.financialData?.freeCashflow?.fmt || 'N/A'
+                  }
+                });
+              } catch (finErr) {
+                toolResult = JSON.stringify({
+                  symbol: toolUse.input.symbol,
+                  error: `Financial statements not available for ${toolUse.input.symbol}`,
+                  message: finErr.message
+                });
+              }
               break;
 
             case 'compareStocks':
@@ -5719,26 +5755,47 @@ ${portfolioContext}${marketContext}`;
                 try {
                   const cmpYahooSym = getYahooSymbol(stock.symbol, stock.market);
                   const quote = await yahooFinance.quote(cmpYahooSym);
-                  const summary = await yahooFinance.quoteSummary(cmpYahooSym, {
-                    modules: ['defaultKeyStatistics', 'financialData', 'summaryDetail']
-                  });
+
+                  // Check if quote has minimum data
+                  if (!quote || (!quote.regularMarketPrice && !quote.price)) {
+                    comparisons.push({
+                      symbol: stock.symbol,
+                      market: stock.market,
+                      error: 'Price data not available'
+                    });
+                    continue;
+                  }
+
+                  let summary = null;
+                  try {
+                    summary = await yahooFinance.quoteSummary(cmpYahooSym, {
+                      modules: ['defaultKeyStatistics', 'financialData', 'summaryDetail']
+                    });
+                  } catch (summErr) {
+                    console.log(`Summary data not available for ${cmpYahooSym}`);
+                  }
+
                   comparisons.push({
                     symbol: stock.symbol,
                     market: stock.market,
-                    price: quote.regularMarketPrice,
-                    change: quote.regularMarketChangePercent,
-                    marketCap: summary.summaryDetail?.marketCap?.fmt || quote.marketCap?.fmt,
-                    pe: quote.trailingPE,
-                    pb: quote.priceToBook,
-                    roe: summary.defaultKeyStatistics?.returnOnEquity?.fmt,
-                    dividendYield: summary.summaryDetail?.dividendYield?.fmt,
-                    eps: quote.epsTrailingTwelveMonths,
-                    beta: quote.beta,
-                    fiftyTwoWeekHigh: quote.fiftyTwoWeekHigh,
-                    fiftyTwoWeekLow: quote.fiftyTwoWeekLow
+                    price: quote?.regularMarketPrice || quote?.price || 'N/A',
+                    change: quote?.regularMarketChangePercent || quote?.changePercent || 0,
+                    marketCap: summary?.summaryDetail?.marketCap?.fmt || quote?.marketCap?.fmt || 'N/A',
+                    pe: quote?.trailingPE || quote?.forwardPE || 'N/A',
+                    pb: quote?.priceToBook || 'N/A',
+                    roe: summary?.defaultKeyStatistics?.returnOnEquity?.fmt || 'N/A',
+                    dividendYield: summary?.summaryDetail?.dividendYield?.fmt || (quote?.dividendYield ? (quote.dividendYield * 100).toFixed(2) + '%' : 'N/A'),
+                    eps: quote?.epsTrailingTwelveMonths || 'N/A',
+                    beta: quote?.beta || 'N/A',
+                    fiftyTwoWeekHigh: quote?.fiftyTwoWeekHigh || 'N/A',
+                    fiftyTwoWeekLow: quote?.fiftyTwoWeekLow || 'N/A'
                   });
                 } catch (err) {
-                  comparisons.push({ symbol: stock.symbol, error: err.message });
+                  comparisons.push({
+                    symbol: stock.symbol,
+                    market: stock.market,
+                    error: `Data not available: ${err.message}`
+                  });
                 }
               }
               toolResult = JSON.stringify({ stocks: comparisons });
@@ -5747,52 +5804,76 @@ ${portfolioContext}${marketContext}`;
             case 'getTechnicalIndicators':
               const techYahooSym = getYahooSymbol(toolUse.input.symbol, toolUse.input.market);
 
-              // Get historical data for calculations
-              const techHist = await yahooFinance.chart(techYahooSym, {
-                period1: Math.floor((Date.now() - (365 * 24 * 60 * 60 * 1000)) / 1000),
-                period2: Math.floor(Date.now() / 1000),
-                interval: '1d'
-              });
+              try {
+                // Get historical data for calculations
+                const techHist = await yahooFinance.chart(techYahooSym, {
+                  period1: Math.floor((Date.now() - (365 * 24 * 60 * 60 * 1000)) / 1000),
+                  period2: Math.floor(Date.now() / 1000),
+                  interval: '1d'
+                });
 
-              const prices = techHist.quotes.map(q => q.close).filter(p => p);
-
-              // Calculate indicators
-              const sma50 = prices.length >= 50 ? prices.slice(-50).reduce((a, b) => a + b) / 50 : null;
-              const sma200 = prices.length >= 200 ? prices.slice(-200).reduce((a, b) => a + b) / 200 : null;
-
-              // RSI calculation (14-day)
-              let rsi = null;
-              if (prices.length >= 15) {
-                const changes = [];
-                for (let i = 1; i < prices.length; i++) {
-                  changes.push(prices[i] - prices[i - 1]);
+                if (!techHist || !techHist.quotes || techHist.quotes.length === 0) {
+                  toolResult = JSON.stringify({
+                    symbol: toolUse.input.symbol,
+                    error: 'Insufficient historical data for technical analysis'
+                  });
+                  break;
                 }
-                const recentChanges = changes.slice(-14);
-                const gains = recentChanges.filter(c => c > 0).reduce((a, b) => a + b, 0) / 14;
-                const losses = Math.abs(recentChanges.filter(c => c < 0).reduce((a, b) => a + b, 0)) / 14;
-                const rs = gains / (losses || 1);
-                rsi = 100 - (100 / (1 + rs));
+
+                const prices = techHist.quotes.map(q => q.close).filter(p => p && !isNaN(p));
+
+                if (prices.length < 15) {
+                  toolResult = JSON.stringify({
+                    symbol: toolUse.input.symbol,
+                    error: `Only ${prices.length} data points available. Need at least 15 for technical analysis.`
+                  });
+                  break;
+                }
+
+                // Calculate indicators
+                const sma50 = prices.length >= 50 ? prices.slice(-50).reduce((a, b) => a + b) / 50 : null;
+                const sma200 = prices.length >= 200 ? prices.slice(-200).reduce((a, b) => a + b) / 200 : null;
+
+                // RSI calculation (14-day)
+                let rsi = null;
+                if (prices.length >= 15) {
+                  const changes = [];
+                  for (let i = 1; i < prices.length; i++) {
+                    changes.push(prices[i] - prices[i - 1]);
+                  }
+                  const recentChanges = changes.slice(-14);
+                  const gains = recentChanges.filter(c => c > 0).reduce((a, b) => a + b, 0) / 14;
+                  const losses = Math.abs(recentChanges.filter(c => c < 0).reduce((a, b) => a + b, 0)) / 14;
+                  const rs = gains / (losses || 1);
+                  rsi = 100 - (100 / (1 + rs));
+                }
+
+                const currentPrice = prices[prices.length - 1];
+                const yearPrices = prices.slice(-252);
+
+                toolResult = JSON.stringify({
+                  symbol: toolUse.input.symbol,
+                  currentPrice: currentPrice?.toFixed(2),
+                  sma50: sma50 ? sma50.toFixed(2) : 'N/A (need 50 days data)',
+                  sma200: sma200 ? sma200.toFixed(2) : 'N/A (need 200 days data)',
+                  goldenCross: sma50 && sma200 ? sma50 > sma200 : null,
+                  deathCross: sma50 && sma200 ? sma50 < sma200 : null,
+                  rsi: rsi ? rsi.toFixed(2) : 'N/A',
+                  rsiSignal: rsi ? (rsi > 70 ? 'Overbought' : rsi < 30 ? 'Oversold' : 'Neutral') : 'N/A',
+                  priceAboveSMA50: sma50 ? currentPrice > sma50 : null,
+                  priceAboveSMA200: sma200 ? currentPrice > sma200 : null,
+                  fiftyTwoWeekRange: yearPrices.length > 0 ? {
+                    high: Math.max(...yearPrices).toFixed(2),
+                    low: Math.min(...yearPrices).toFixed(2),
+                    currentPosition: ((currentPrice - Math.min(...yearPrices)) / (Math.max(...yearPrices) - Math.min(...yearPrices)) * 100).toFixed(1) + '%'
+                  } : 'N/A'
+                });
+              } catch (techErr) {
+                toolResult = JSON.stringify({
+                  symbol: toolUse.input.symbol,
+                  error: `Technical analysis failed: ${techErr.message}`
+                });
               }
-
-              const currentPrice = prices[prices.length - 1];
-
-              toolResult = JSON.stringify({
-                symbol: toolUse.input.symbol,
-                currentPrice,
-                sma50: sma50?.toFixed(2),
-                sma200: sma200?.toFixed(2),
-                goldenCross: sma50 && sma200 && sma50 > sma200,
-                deathCross: sma50 && sma200 && sma50 < sma200,
-                rsi: rsi?.toFixed(2),
-                rsiSignal: rsi > 70 ? 'Overbought' : rsi < 30 ? 'Oversold' : 'Neutral',
-                priceAboveSMA50: sma50 && currentPrice > sma50,
-                priceAboveSMA200: sma200 && currentPrice > sma200,
-                fiftyTwoWeekRange: {
-                  high: Math.max(...prices.slice(-252)),
-                  low: Math.min(...prices.slice(-252)),
-                  currentPosition: ((currentPrice - Math.min(...prices.slice(-252))) / (Math.max(...prices.slice(-252)) - Math.min(...prices.slice(-252))) * 100).toFixed(1) + '%'
-                }
-              });
               break;
 
             case 'screenStocks':
