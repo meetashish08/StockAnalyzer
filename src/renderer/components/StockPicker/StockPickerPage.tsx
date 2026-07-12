@@ -185,14 +185,19 @@ export default function StockPickerPage() {
   };
 
   const handleAddToWatchlist = async (stock: { symbol: string; name: string; market: string }) => {
+    console.log('Add to Watchlist clicked:', stock);
     try {
       await addToWatchlist({
         symbol: stock.symbol,
         name: stock.name,
         market: stock.market,
       });
-    } catch (error) {
+      console.log('Successfully added to watchlist');
+      // Show success message
+      alert(`${stock.symbol} added to watchlist!`);
+    } catch (error: any) {
       console.error('Failed to add to watchlist:', error);
+      alert(`Failed to add to watchlist: ${error.message || 'Unknown error'}`);
     }
   };
 
