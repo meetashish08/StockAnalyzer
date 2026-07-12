@@ -5367,26 +5367,29 @@ app.post('/api/ai/chat', async (req, res) => {
     const provider = settings.aiProvider || 'anthropic';
     const modelKey = model || settings.claudeModel || 'sonnet';
 
+    console.log(`[AI Config] Provider: ${provider}, Model Key: ${modelKey}`);
+
     // Look up the actual model ID for the provider
     let selectedModel;
 
     // Check new multi-provider format first
     if (PROVIDER_MODELS[provider]?.[modelKey]) {
       selectedModel = PROVIDER_MODELS[provider][modelKey];
+      console.log(`[AI Config] Using multi-provider model: ${selectedModel}`);
     } else {
       // Fallback to legacy AI_MODELS for backwards compatibility
       selectedModel = AI_MODELS[model] || AI_MODELS[DEFAULT_MODEL];
+      console.log(`[AI Config] Using legacy model: ${selectedModel}`);
     }
 
     if (!selectedModel) {
-      console.error(`Invalid model ${modelKey} for provider ${provider}`);
+      console.error(`[ERROR] Invalid model ${modelKey} for provider ${provider}`);
       return res.status(400).json({
         error: `Model ${modelKey} not available for provider ${provider}`
       });
     }
 
-    console.log(`AI Provider: ${provider}`);
-    console.log(`Model: ${selectedModel}`);
+    console.log(`[AI Config] Final model: ${selectedModel}`);
 
     // Fetch market context for AI
     let marketContext = '';
@@ -5713,7 +5716,8 @@ ${portfolioContext}${marketContext}`;
       headers['anthropic-version'] = '2023-06-01';
     }
 
-    console.log(`Request headers:`, Object.keys(headers));
+    console.log(`[AI Config] Request headers:`, Object.keys(headers));
+    console.log(`[AI Config] API Key present: ${!!PORTKEY_API_KEY}, Length: ${PORTKEY_API_KEY?.length || 0}`);
 
     // Call Claude via Portkey middleware with tools
     const response = await axios.post(
