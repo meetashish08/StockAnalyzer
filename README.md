@@ -30,6 +30,15 @@ A comprehensive web application for stock market analysis and investment trackin
 - Key metrics: P/E ratio, P/B ratio, Market Cap, Dividend Yield
 - Volume analysis and technical indicators
 
+### Settings & Configuration
+- **Configurable Portkey API Key**: Use your own API key for AI features
+- **AI Model Selection**: Choose between Sonnet, Haiku, or Opus models
+- **Adjustable Parameters**: Max tokens (1,000-8,000), temperature (0.0-1.0), extended thinking
+- **Test Connection**: Validate API key before saving
+- **Secure Storage**: API keys masked in UI, excluded from Git
+- **Settings Page**: Easy-to-use interface with tab-based navigation
+- **Default Fallback**: Works out-of-box with default configuration
+
 ### Educational Features
 - **Learn Page**: 6 comprehensive modules covering stock market fundamentals
   1. Stock Market Fundamentals - Stocks, exchanges, market cap, dividends
@@ -78,10 +87,13 @@ A comprehensive web application for stock market analysis and investment trackin
 
 ### AI Financial Assistant
 - Powered by Claude AI via Portkey middleware
-- Multiple model support (Sonnet, Haiku, Opus)
-- Portfolio context-aware responses
+- **Market-Wide Search**: Search any stock beyond just your portfolio
+- **AI Tools**: Real-time market data, sector analysis, top movers, stock search
+- Multiple model support (Sonnet, Haiku, Opus) - configurable in Settings
+- Portfolio context-aware responses with tool calling capabilities
 - Bookmark favorite Q&A for quick reference
 - Chat history with conversation persistence
+- Quick action buttons for common queries
 
 ### Price Refresh
 - One-click refresh all stock prices
@@ -143,6 +155,7 @@ stock-analyzer/
 ├── ai_bookmarks.json            # AI chat bookmarks
 ├── tax_analysis.json            # Tax analysis results
 ├── recommendations_bookmarks.json  # Saved recommendations
+├── settings.json                # User settings (API keys, AI config) - gitignored
 ├── package.json                 # Dependencies & scripts
 ├── docs/                        # Documentation
 │   ├── TECHNICAL_DOCUMENTATION.md
@@ -161,6 +174,7 @@ stock-analyzer/
 │   │   │   ├── Learn/           # Educational modules
 │   │   │   ├── AIChat/          # AI assistant with Claude
 │   │   │   ├── TaxAnalysis/     # Capital gains & ITR helper
+│   │   │   ├── Settings/        # Configurable settings page
 │   │   │   ├── common/          # Shared UI components (Tooltip, InfoIcon)
 │   │   │   └── Layout/          # App layout & navigation
 │   │   ├── store/               # Zustand state management
@@ -176,10 +190,14 @@ stock-analyzer/
 
 ## Documentation
 
+- **[Settings Configuration Guide](docs/SETTINGS_CONFIGURATION_GUIDE.md)**: Complete guide to configuring API keys and AI settings
+- **[Settings Quick Start](SETTINGS_QUICK_START.md)**: 5-minute setup guide for new users
 - **[Technical Documentation](docs/TECHNICAL_DOCUMENTATION.md)**: Detailed module documentation, API reference, data flow, and troubleshooting guide
 - **[Deployment Guide](docs/DEPLOYMENT_GUIDE.md)**: Step-by-step installation on fresh systems, production deployment, Docker setup
 - **[Feature Guide](docs/FEATURE_GUIDE.md)**: Comprehensive guide to all features with use cases and tips
 - **[Educational Modules](docs/EDUCATIONAL_MODULES.md)**: Complete breakdown of Learn page content and learning outcomes
+- **[AI Assistant User Guide](docs/AI_ASSISTANT_USER_GUIDE.md)**: AI capabilities, usage examples, and best practices
+- **[AI Architecture](docs/AI_ARCHITECTURE.md)**: Technical implementation details of AI integration
 
 ## API Endpoints
 
@@ -193,6 +211,12 @@ stock-analyzer/
 | `/api/portfolio/health` | GET | Health analysis |
 | `/api/import-history` | GET/POST/DELETE | Import records |
 | `/api/clear-all` | DELETE | Reset all data |
+| `/api/settings` | GET/POST | Get/update settings |
+| `/api/settings/test` | POST | Test API connection |
+| `/api/ai/chat` | POST | AI assistant chat |
+| `/api/top-movers` | GET | Market top gainers/losers |
+| `/api/search-stock` | POST | Search for stocks |
+| `/api/sector-analysis` | POST | Sector breakdown |
 
 ## Common Tasks
 
@@ -241,12 +265,32 @@ stock-analyzer/
 5. View tax liability and ITR Schedule CG format
 6. Download Excel/CSV/Markdown report
 
+### Configure Settings
+1. Go to **Settings** page (⚙️ icon in sidebar)
+2. **API Configuration** tab:
+   - Enter your Portkey API key (get from [portkey.ai](https://portkey.ai))
+   - Click "Test Connection" to validate
+   - Click "Save Settings"
+3. **AI Model Settings** tab (optional):
+   - Choose model: Sonnet (recommended), Haiku (fastest), or Opus (most capable)
+   - Adjust Max Tokens (1,000-8,000)
+   - Adjust Temperature (0.0-1.0)
+   - Toggle Extended Thinking
+   - Click "Save Settings"
+
+See [Settings Quick Start](SETTINGS_QUICK_START.md) for detailed setup guide.
+
 ### Use AI Assistant
 1. Go to **AI Chat** page
-2. Select AI model (Sonnet recommended)
-3. Ask questions about investing or your portfolio
-4. AI provides context-aware answers
+2. Ask questions about investing, market trends, or your portfolio
+3. AI uses real-time market data and portfolio context
+4. Use quick action buttons for common queries:
+   - Market Overview
+   - Portfolio Analysis
+   - Find Opportunities
+   - Sector Comparison
 5. Bookmark useful responses for quick access later
+6. Change AI model in Settings if needed
 
 ### Refresh Prices
 1. Go to **Portfolio** page

@@ -9,6 +9,7 @@ import ImportData from './components/Import/ImportData';
 import AIChat from './components/AIChat/AIChat';
 import TaxAnalysis from './components/TaxAnalysis/TaxAnalysis';
 import LearnPage from './components/Learn/LearnPage';
+import SettingsPage from './components/Settings/SettingsPage';
 import StockDetailModal from './components/StockDetail/StockDetailModal';
 import { useStore } from './store/useStore';
 import type { Holding } from '../shared/types';
@@ -23,6 +24,7 @@ const navItems = [
   { path: '/tax-analysis', label: 'Tax Analysis', icon: '🧾' },
   { path: '/import', label: 'Import', icon: '📥' },
   { path: '/ai-chat', label: 'AI Assistant', icon: '🤖' },
+  { path: '/settings', label: 'Settings', icon: '⚙️' },
 ];
 
 function App() {
@@ -113,6 +115,7 @@ function App() {
             <Route path="/tax-analysis" element={<TaxAnalysis />} />
             <Route path="/import" element={<ImportData />} />
             <Route path="/ai-chat" element={<AIChat />} />
+            <Route path="/settings" element={<SettingsPage />} />
           </Routes>
         </div>
       </main>

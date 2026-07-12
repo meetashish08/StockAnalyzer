@@ -48,6 +48,27 @@ app.use(express.static(path.join(__dirname, 'dist/renderer')));
 // Simple JSON file storage
 const dataPath = path.join(__dirname, 'data.json');
 const bookmarksPath = path.join(__dirname, 'ai_bookmarks.json');
+const settingsPath = path.join(__dirname, 'settings.json');
+
+// Default settings configuration
+const DEFAULT_SETTINGS = {
+  portkeyApiKey: process.env.PORTKEY_API_KEY || 'MfSPscvdmxTj8jGpP34lq41axRRK',
+  claudeModel: 'claude-sonnet',
+  maxTokens: 3000,
+  temperature: 0.7,
+  extendedThinking: false,
+  // API key profiles for easy switching
+  apiKeyProfiles: [
+    {
+      id: 'default',
+      name: 'Default Key',
+      key: 'MfSPscvdmxTj8jGpP34lq41axRRK',
+      isActive: true,
+      createdAt: new Date().toISOString(),
+    }
+  ],
+  activeProfileId: 'default',
+};
 
 function loadData() {
   try {
@@ -82,6 +103,36 @@ function loadBookmarks() {
 
 function saveBookmarks(bookmarkData) {
   fs.writeFileSync(bookmarksPath, JSON.stringify(bookmarkData, null, 2));
+}
+
+// Settings management functions
+function loadSettings() {
+  try {
+    if (fs.existsSync(settingsPath)) {
+      const loaded = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+      // Merge with defaults to ensure all fields exist
+      return { ...DEFAULT_SETTINGS, ...loaded };
+    }
+  } catch (err) {
+    console.error('Error loading settings:', err.message);
+  }
+  return { ...DEFAULT_SETTINGS };
+}
+
+function saveSettings(settings) {
+  try {
+    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+    return true;
+  } catch (err) {
+    console.error('Error saving settings:', err.message);
+    return false;
+  }
+}
+
+function maskApiKey(key) {
+  if (!key) return null;
+  if (key.length <= 10) return '***';
+  return key.substring(0, 7) + '...' + key.substring(key.length - 4);
 }
 
 // Analytics cache
@@ -233,6 +284,300 @@ function getYahooSymbol(symbol, market) {
 
 // API Routes
 
+// ===== SETTINGS ENDPOINTS =====
+
+// Get current settings (with masked API key)
+app.get('/api/settings', (req, res) => {
+  try {
+    const settings = loadSettings();
+    res.json({
+      portkeyApiKey: maskApiKey(settings.portkeyApiKey),
+      portkeyApiKeySet: !!settings.portkeyApiKey,
+      claudeModel: settings.claudeModel || 'claude-sonnet',
+      maxTokens: settings.maxTokens || 3000,
+      temperature: settings.temperature || 0.7,
+      extendedThinking: settings.extendedThinking || false,
+    });
+  } catch (error) {
+    console.error('Get settings error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update settings
+app.post('/api/settings', (req, res) => {
+  try {
+    const { portkeyApiKey, claudeModel, maxTokens, temperature, extendedThinking } = req.body;
+    const settings = loadSettings();
+
+    // Update only provided fields
+    if (portkeyApiKey !== undefined) {
+      // Validate API key format (basic check) - accept any non-empty string
+      // Actual validation happens via test connection
+      if (portkeyApiKey && portkeyApiKey.trim().length < 10) {
+        return res.status(400).json({ error: 'API key seems too short. Please check and try again.' });
+      }
+      settings.portkeyApiKey = portkeyApiKey;
+    }
+    if (claudeModel !== undefined) settings.claudeModel = claudeModel;
+    if (maxTokens !== undefined) settings.maxTokens = maxTokens;
+    if (temperature !== undefined) settings.temperature = temperature;
+    if (extendedThinking !== undefined) settings.extendedThinking = extendedThinking;
+
+    const saved = saveSettings(settings);
+    if (!saved) {
+      return res.status(500).json({ error: 'Failed to save settings' });
+    }
+
+    res.json({
+      success: true,
+      message: 'Settings saved successfully',
+      settings: {
+        portkeyApiKey: maskApiKey(settings.portkeyApiKey),
+        portkeyApiKeySet: !!settings.portkeyApiKey,
+        claudeModel: settings.claudeModel,
+        maxTokens: settings.maxTokens,
+        temperature: settings.temperature,
+        extendedThinking: settings.extendedThinking,
+      }
+    });
+  } catch (error) {
+    console.error('Save settings error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Test Portkey API connection
+app.post('/api/settings/test', async (req, res) => {
+  try {
+    const { portkeyApiKey } = req.body;
+
+    if (!portkeyApiKey) {
+      return res.status(400).json({ success: false, message: 'API key is required' });
+    }
+
+    console.log('Testing Portkey API connection...');
+    console.log('API Key (masked):', maskApiKey(portkeyApiKey));
+
+    // Test API call to Portkey - use exact same format as AI chat
+    const testResponse = await axios.post(
+      'https://api.portkey.ai/v1/messages',
+      {
+        model: '@vertexai-global/anthropic.claude-sonnet-4-5@20250929',
+        max_tokens: 50,
+        messages: [{ role: 'user', content: 'Say "API key is working" in 5 words or less.' }],
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-portkey-api-key': portkeyApiKey,
+          'anthropic-version': '2023-06-01',
+        },
+        timeout: 15000,
+      }
+    );
+
+    console.log('Test response status:', testResponse.status);
+
+    if (testResponse.status === 200 && testResponse.data) {
+      console.log('✓ Connection successful');
+      res.json({
+        success: true,
+        message: 'Connection successful! API key is valid and working.'
+      });
+    } else {
+      console.log('✗ Unexpected response:', testResponse.status);
+      res.status(400).json({
+        success: false,
+        message: 'Unexpected response from Portkey API. Please check your key.'
+      });
+    }
+  } catch (error) {
+    console.error('Test connection error:', error.message);
+    console.error('Error details:', {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      code: error.code,
+    });
+
+    let errorMessage = 'Connection failed. ';
+
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      errorMessage += 'Invalid API key or insufficient permissions.';
+    } else if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
+      errorMessage += 'Connection timeout. Please check your internet connection.';
+    } else if (error.code === 'ENOTFOUND') {
+      errorMessage += 'Could not reach Portkey servers. Check your internet connection.';
+    } else if (error.response?.data?.error) {
+      // Extract error message from Portkey/Anthropic API response
+      const apiError = error.response.data.error;
+      errorMessage += apiError.message || apiError.type || 'Unknown API error';
+    } else {
+      errorMessage += error.message;
+    }
+
+    res.status(400).json({ success: false, message: errorMessage });
+  }
+});
+
+// API Key Profiles Management
+app.get('/api/settings/profiles', (req, res) => {
+  try {
+    const settings = loadSettings();
+    const profiles = settings.apiKeyProfiles || [];
+
+    // Return profiles with masked keys
+    const maskedProfiles = profiles.map(p => ({
+      id: p.id,
+      name: p.name,
+      key: maskApiKey(p.key),
+      isActive: p.id === settings.activeProfileId,
+      createdAt: p.createdAt,
+    }));
+
+    res.json({
+      profiles: maskedProfiles,
+      activeProfileId: settings.activeProfileId || 'default',
+    });
+  } catch (error) {
+    console.error('Get profiles error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/settings/profiles', (req, res) => {
+  try {
+    const { name, key } = req.body;
+
+    if (!name || !key) {
+      return res.status(400).json({ error: 'Name and API key are required' });
+    }
+
+    if (key.trim().length < 10) {
+      return res.status(400).json({ error: 'API key seems too short. Please check and try again.' });
+    }
+
+    const settings = loadSettings();
+    const profiles = settings.apiKeyProfiles || [];
+
+    // Generate unique ID
+    const id = `profile_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    // Check for duplicate names
+    if (profiles.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+      return res.status(400).json({ error: 'A profile with this name already exists' });
+    }
+
+    // Add new profile
+    const newProfile = {
+      id,
+      name,
+      key,
+      isActive: false,
+      createdAt: new Date().toISOString(),
+    };
+
+    profiles.push(newProfile);
+    settings.apiKeyProfiles = profiles;
+
+    const saved = saveSettings(settings);
+    if (!saved) {
+      return res.status(500).json({ error: 'Failed to save profile' });
+    }
+
+    res.json({
+      success: true,
+      message: 'Profile created successfully',
+      profile: {
+        id: newProfile.id,
+        name: newProfile.name,
+        key: maskApiKey(newProfile.key),
+        isActive: false,
+        createdAt: newProfile.createdAt,
+      }
+    });
+  } catch (error) {
+    console.error('Create profile error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/settings/profiles/:id/activate', (req, res) => {
+  try {
+    const { id } = req.params;
+    const settings = loadSettings();
+    const profiles = settings.apiKeyProfiles || [];
+
+    const profile = profiles.find(p => p.id === id);
+    if (!profile) {
+      return res.status(404).json({ error: 'Profile not found' });
+    }
+
+    // Set as active profile
+    settings.activeProfileId = id;
+    settings.portkeyApiKey = profile.key; // Update main API key
+
+    const saved = saveSettings(settings);
+    if (!saved) {
+      return res.status(500).json({ error: 'Failed to activate profile' });
+    }
+
+    res.json({
+      success: true,
+      message: `Profile "${profile.name}" is now active`,
+      activeProfileId: id,
+    });
+  } catch (error) {
+    console.error('Activate profile error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete('/api/settings/profiles/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const settings = loadSettings();
+    const profiles = settings.apiKeyProfiles || [];
+
+    // Don't allow deleting default profile
+    if (id === 'default') {
+      return res.status(400).json({ error: 'Cannot delete the default profile' });
+    }
+
+    const index = profiles.findIndex(p => p.id === id);
+    if (index === -1) {
+      return res.status(404).json({ error: 'Profile not found' });
+    }
+
+    const deletedProfile = profiles[index];
+    profiles.splice(index, 1);
+    settings.apiKeyProfiles = profiles;
+
+    // If deleted profile was active, switch to default
+    if (settings.activeProfileId === id) {
+      settings.activeProfileId = 'default';
+      const defaultProfile = profiles.find(p => p.id === 'default');
+      if (defaultProfile) {
+        settings.portkeyApiKey = defaultProfile.key;
+      }
+    }
+
+    const saved = saveSettings(settings);
+    if (!saved) {
+      return res.status(500).json({ error: 'Failed to delete profile' });
+    }
+
+    res.json({
+      success: true,
+      message: `Profile "${deletedProfile.name}" deleted successfully`,
+    });
+  } catch (error) {
+    console.error('Delete profile error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get all holdings
 app.get('/api/holdings', (req, res) => {
   res.json(data.holdings);
@@ -373,15 +718,21 @@ app.get('/api/quote/:symbol/:market', async (req, res) => {
     const { symbol, market } = req.params;
     const yahooSymbol = getYahooSymbol(symbol, market);
 
-    const response = await axios.get(YAHOO_QUOTE_URL, {
-      params: { symbols: yahooSymbol },
-      headers: { 'User-Agent': 'Mozilla/5.0' },
-      timeout: 10000,
-    });
+    // Get basic quote data
+    const quote = await yahooFinance.quote(yahooSymbol);
 
-    const quote = response.data?.quoteResponse?.result?.[0];
-    if (!quote) {
-      return res.status(404).json({ error: 'Quote not found' });
+    // Get additional fundamental data
+    let roe = null;
+    let profitMargin = null;
+    try {
+      const summary = await yahooFinance.quoteSummary(yahooSymbol, {
+        modules: ['defaultKeyStatistics', 'financialData']
+      });
+      roe = summary.defaultKeyStatistics?.returnOnEquity?.raw;
+      profitMargin = summary.financialData?.profitMargins?.raw;
+    } catch (err) {
+      // Some stocks don't have this data, that's okay
+      console.log(`Fundamental data not available for ${yahooSymbol}`);
     }
 
     res.json({
@@ -399,6 +750,8 @@ app.get('/api/quote/:symbol/:market', async (req, res) => {
       marketCap: quote.marketCap,
       pe: quote.trailingPE,
       pb: quote.priceToBook,
+      roe: roe,  // Added ROE
+      profitMargin: profitMargin,  // Added profit margin as bonus
       dividendYield: quote.dividendYield,
       high52Week: quote.fiftyTwoWeekHigh || 0,
       low52Week: quote.fiftyTwoWeekLow || 0,
@@ -4673,8 +5026,212 @@ app.get('/api/tax/export/md/:id', (req, res) => {
   }
 });
 
+// === AI ASSISTANT MARKET DATA ENDPOINTS ===
+
+// Get top movers (gainers/losers) - for AI context
+app.get('/api/top-movers', async (req, res) => {
+  try {
+    const { type = 'gainers', limit = 5, market = 'NSE' } = req.query;
+
+    // Get all holdings with current prices
+    const holdingsWithPrices = [];
+    for (const holding of data.holdings) {
+      if (market === 'NSE' && !['NSE', 'BSE'].includes(holding.market)) continue;
+      if (market === 'NYSE' && !['NYSE', 'NASDAQ'].includes(holding.market)) continue;
+
+      const currentPrice = holding.currentPrice || holding.avgPrice;
+      const dayChangePercent = holding.dayChangePercent || 0;
+
+      holdingsWithPrices.push({
+        symbol: holding.symbol,
+        name: holding.name,
+        market: holding.market,
+        currentPrice,
+        dayChangePercent,
+        dayChange: holding.dayChange || 0,
+      });
+    }
+
+    // Sort by day change
+    holdingsWithPrices.sort((a, b) =>
+      type === 'gainers'
+        ? b.dayChangePercent - a.dayChangePercent
+        : a.dayChangePercent - b.dayChangePercent
+    );
+
+    res.json(holdingsWithPrices.slice(0, parseInt(limit)));
+  } catch (error) {
+    console.error('Top movers error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Search for any stock and get quote - for AI to analyze stocks user doesn't own
+app.post('/api/search-stock', async (req, res) => {
+  try {
+    const { symbol, market } = req.body;
+
+    if (!symbol || !market) {
+      return res.status(400).json({ error: 'Symbol and market are required' });
+    }
+
+    const yahooSymbol = getYahooSymbol(symbol, market);
+
+    // Get detailed quote
+    const quote = await yahooFinance.quote(yahooSymbol);
+
+    // Try to get fundamental data
+    let roe = null;
+    let profitMargin = null;
+    let debtToEquity = null;
+    try {
+      const summary = await yahooFinance.quoteSummary(yahooSymbol, {
+        modules: ['defaultKeyStatistics', 'financialData']
+      });
+      roe = summary.defaultKeyStatistics?.returnOnEquity?.raw;
+      profitMargin = summary.financialData?.profitMargins?.raw;
+      debtToEquity = summary.financialData?.debtToEquity?.raw;
+    } catch (err) {
+      console.log(`Fundamental data not available for ${yahooSymbol}`);
+    }
+
+    res.json({
+      symbol: symbol.toUpperCase(),
+      name: quote.longName || quote.shortName || symbol,
+      market,
+      price: quote.regularMarketPrice || 0,
+      change: quote.regularMarketChange || 0,
+      changePercent: quote.regularMarketChangePercent || 0,
+      open: quote.regularMarketOpen || 0,
+      high: quote.regularMarketDayHigh || 0,
+      low: quote.regularMarketDayLow || 0,
+      previousClose: quote.regularMarketPreviousClose || 0,
+      volume: quote.regularMarketVolume || 0,
+      marketCap: quote.marketCap,
+      pe: quote.trailingPE || quote.forwardPE,
+      pb: quote.priceToBook,
+      roe,
+      profitMargin,
+      debtToEquity,
+      dividendYield: quote.dividendYield ? quote.dividendYield * 100 : 0,
+      eps: quote.epsTrailingTwelveMonths,
+      high52Week: quote.fiftyTwoWeekHigh || 0,
+      low52Week: quote.fiftyTwoWeekLow || 0,
+      ma50: quote.fiftyDayAverage || 0,
+      ma200: quote.twoHundredDayAverage || 0,
+    });
+  } catch (error) {
+    console.error('Search stock error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Sector analysis - analyze specific sector performance
+app.post('/api/sector-analysis', async (req, res) => {
+  try {
+    const { sector, market = 'NSE' } = req.body;
+
+    if (!sector) {
+      return res.status(400).json({ error: 'Sector is required' });
+    }
+
+    // Filter holdings by sector and market
+    const sectorHoldings = data.holdings.filter(h => {
+      const matchesSector = h.sector === sector;
+      const matchesMarket = market === 'NSE'
+        ? ['NSE', 'BSE'].includes(h.market)
+        : ['NYSE', 'NASDAQ'].includes(h.market);
+      return matchesSector && matchesMarket;
+    });
+
+    if (sectorHoldings.length === 0) {
+      return res.json({
+        sector,
+        market,
+        holdings: [],
+        avgPerformance: 0,
+        totalValue: 0,
+        message: `No ${sector} holdings found in ${market} market`
+      });
+    }
+
+    let totalValue = 0;
+    let totalPnL = 0;
+    let totalInvested = 0;
+
+    const holdings = sectorHoldings.map(h => {
+      const currentPrice = h.currentPrice || h.avgPrice;
+      const currentValue = currentPrice * h.quantity;
+      const invested = h.avgPrice * h.quantity;
+      const pnl = currentValue - invested;
+      const pnlPercent = invested > 0 ? (pnl / invested) * 100 : 0;
+
+      totalValue += currentValue;
+      totalPnL += pnl;
+      totalInvested += invested;
+
+      return {
+        symbol: h.symbol,
+        name: h.name,
+        currentPrice,
+        quantity: h.quantity,
+        currentValue,
+        pnl,
+        pnlPercent,
+        dayChangePercent: h.dayChangePercent || 0,
+      };
+    });
+
+    res.json({
+      sector,
+      market,
+      holdings: holdings.sort((a, b) => b.currentValue - a.currentValue),
+      avgPerformance: totalInvested > 0 ? (totalPnL / totalInvested) * 100 : 0,
+      totalValue,
+      totalPnL,
+      totalInvested,
+      count: sectorHoldings.length,
+    });
+  } catch (error) {
+    console.error('Sector analysis error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get available stock universe from screener
+app.get('/api/stock-universe', (req, res) => {
+  try {
+    const { market = 'NSE' } = req.query;
+
+    const nseStocks = [
+      'HDFCBANK', 'ICICIBANK', 'KOTAKBANK', 'SBIN', 'AXISBANK', 'INDUSINDBK',
+      'TCS', 'INFY', 'WIPRO', 'HCLTECH', 'TECHM',
+      'HINDUNILVR', 'ITC', 'NESTLEIND', 'BRITANNIA', 'DABUR',
+      'RELIANCE', 'ONGC', 'BPCL', 'NTPC', 'POWERGRID',
+      'SUNPHARMA', 'DRREDDY', 'CIPLA', 'DIVISLAB', 'BIOCON',
+      'MARUTI', 'TATAMOTORS', 'M&M', 'BAJAJ-AUTO', 'HEROMOTOCO',
+      'TATASTEEL', 'HINDALCO', 'JSWSTEEL', 'VEDL', 'SAIL',
+    ];
+
+    const nyseStocks = [
+      'AAPL', 'MSFT', 'GOOGL', 'META', 'NVDA', 'TSLA', 'AMZN',
+      'JPM', 'BAC', 'WFC', 'GS', 'MS',
+      'JNJ', 'UNH', 'PFE', 'ABBV', 'LLY',
+      'KO', 'PG', 'WMT', 'MCD', 'NKE',
+    ];
+
+    res.json({
+      market,
+      stocks: market === 'NSE' ? nseStocks : nyseStocks,
+      count: market === 'NSE' ? nseStocks.length : nyseStocks.length,
+    });
+  } catch (error) {
+    console.error('Stock universe error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // AI Chat endpoint using Portkey middleware with Claude
-const PORTKEY_API_KEY = 'MfSPscvdmxTj8jGpP34lq41axRRK';
 const PORTKEY_BASE_URL = 'https://api.portkey.ai';
 
 // Available AI models via Portkey
@@ -4729,30 +5286,185 @@ app.post('/api/ai/chat', async (req, res) => {
   try {
     const { message, portfolioContext, history, model } = req.body;
 
+    // Load API key from settings
+    const settings = loadSettings();
+    const PORTKEY_API_KEY = settings.portkeyApiKey;
+
+    if (!PORTKEY_API_KEY) {
+      return res.status(400).json({
+        error: 'Portkey API key not configured. Please update your settings.',
+        requiresSetup: true
+      });
+    }
+
     // Get the model to use
     const selectedModel = AI_MODELS[model] || AI_MODELS[DEFAULT_MODEL];
 
-    const systemPrompt = `You are an expert financial advisor and portfolio analyst. You help users understand and optimize their investment portfolios.
+    // Fetch market context for AI
+    let marketContext = '';
+    try {
+      // Get market indices
+      const indicesRes = await axios.get(`http://localhost:${PORT}/api/market-indices`);
+      const indices = indicesRes.data;
 
-You have access to the user's current portfolio data. When analyzing their portfolio:
-- Provide specific, actionable insights based on their actual holdings
-- Calculate and mention specific numbers (values, percentages)
-- Identify risks like over-concentration, sector exposure, underperformers
+      marketContext += '\n\nMARKET INDICES (Current):\n';
+      indices.forEach(idx => {
+        marketContext += `- ${idx.name}: ${idx.price.toFixed(2)} (${idx.changePercent >= 0 ? '+' : ''}${idx.changePercent.toFixed(2)}%)\n`;
+      });
+
+      // Get top gainers (from user's portfolio)
+      const gainersRes = await axios.get(`http://localhost:${PORT}/api/top-movers?type=gainers&limit=3`);
+      if (gainersRes.data.length > 0) {
+        marketContext += '\n\nTOP GAINERS TODAY (from your portfolio):\n';
+        gainersRes.data.forEach(stock => {
+          marketContext += `- ${stock.symbol}: ${stock.dayChangePercent >= 0 ? '+' : ''}${stock.dayChangePercent.toFixed(2)}%\n`;
+        });
+      }
+
+      // Get top losers (from user's portfolio)
+      const losersRes = await axios.get(`http://localhost:${PORT}/api/top-movers?type=losers&limit=3`);
+      if (losersRes.data.length > 0) {
+        marketContext += '\n\nTOP LOSERS TODAY (from your portfolio):\n';
+        losersRes.data.forEach(stock => {
+          marketContext += `- ${stock.symbol}: ${stock.dayChangePercent.toFixed(2)}%\n`;
+        });
+      }
+
+      // Get available stock universe
+      const nseUniverseRes = await axios.get(`http://localhost:${PORT}/api/stock-universe?market=NSE`);
+      const nyseUniverseRes = await axios.get(`http://localhost:${PORT}/api/stock-universe?market=NYSE`);
+
+      marketContext += `\n\nAVAILABLE STOCK UNIVERSE:\n`;
+      marketContext += `- NSE Stocks (${nseUniverseRes.data.count}): ${nseUniverseRes.data.stocks.slice(0, 10).join(', ')}...\n`;
+      marketContext += `- NYSE Stocks (${nyseUniverseRes.data.count}): ${nyseUniverseRes.data.stocks.slice(0, 10).join(', ')}...\n`;
+    } catch (err) {
+      console.log('Could not fetch market context:', err.message);
+    }
+
+    const systemPrompt = `You are a Stock Market Expert AI Assistant with comprehensive market knowledge and analysis capabilities.
+
+You have access to:
+1. USER'S PORTFOLIO: Complete holdings with current prices, P&L, and performance data
+2. MARKET DATA: Live indices (Nifty 50, Sensex, S&P 500, NASDAQ), top gainers/losers
+3. STOCK UNIVERSE: All available stocks across NSE (36 stocks) and NYSE (25 stocks)
+4. ANALYSIS TOOLS: Can search for and analyze ANY stock in the market, not just portfolio holdings
+
+YOUR CAPABILITIES:
+- ✅ Analyze user's current portfolio (holdings, P&L, diversification, risk)
+- ✅ Search for and analyze ANY stock by symbol (even if user doesn't own it)
+- ✅ Compare stocks across sectors and markets
+- ✅ Provide market insights and trends (indices, top movers)
+- ✅ Screen stocks by criteria (dividend yield, P/E ratio, sector, market cap)
+- ✅ Recommend stocks based on investment goals
+- ✅ Perform technical analysis (moving averages, 52-week highs/lows)
+- ✅ Answer general market questions and provide educational content
+- ✅ Compare user's portfolio allocation vs market benchmarks
+
+WHEN ANALYZING:
+- Provide specific, actionable insights with numbers (prices, percentages)
+- Identify risks: over-concentration, sector exposure, underperformers
 - Suggest rebalancing actions with clear reasoning
-- Be concise but thorough
-- Use bullet points for readability
+- Be concise but thorough - use bullet points for readability
 - Always be helpful and educational
-- If user asks general questions not related to portfolio, still be helpful
+- For stock comparisons, analyze fundamentals: P/E, ROE, dividend yield, debt ratios
 
-${portfolioContext}`;
+AVAILABLE STOCKS FOR ANALYSIS:
+- NSE: Banking (HDFCBANK, ICICIBANK, SBIN, etc.), IT (TCS, INFY, WIPRO), FMCG (ITC, HINDUNILVR), Energy (RELIANCE, ONGC), Pharma, Auto, Metals
+- NYSE: Tech (AAPL, MSFT, GOOGL, NVDA), Finance (JPM, BAC), Healthcare (JNJ, UNH), Consumer (KO, PG, WMT)
 
-    // Call Claude via Portkey middleware
+IMPORTANT:
+- If asked about a stock user doesn't own, clearly state you can analyze it
+- When comparing stocks, show key metrics side-by-side
+- For "should I buy X" questions, analyze fundamentals, technicals, and portfolio fit
+- Suggest diversification opportunities based on portfolio gaps
+
+${portfolioContext}${marketContext}`;
+
+    // Define tools for Claude to call
+    const tools = [
+      {
+        name: "searchStock",
+        description: "Get detailed real-time quote, fundamentals, and technical analysis for any stock symbol. Use this when user asks about a specific stock (even if they don't own it).",
+        input_schema: {
+          type: "object",
+          properties: {
+            symbol: {
+              type: "string",
+              description: "Stock symbol (e.g., TCS, AAPL, RELIANCE)"
+            },
+            market: {
+              type: "string",
+              enum: ["NSE", "NYSE", "NASDAQ", "BSE"],
+              description: "Market exchange where stock is listed"
+            }
+          },
+          required: ["symbol", "market"]
+        }
+      },
+      {
+        name: "getMarketIndices",
+        description: "Get current values and performance of major market indices (Nifty 50, Sensex, S&P 500, NASDAQ). Use when user asks about overall market performance.",
+        input_schema: {
+          type: "object",
+          properties: {}
+        }
+      },
+      {
+        name: "getSectorAnalysis",
+        description: "Analyze performance of a specific sector in user's portfolio or the market. Returns all holdings in that sector with their performance.",
+        input_schema: {
+          type: "object",
+          properties: {
+            sector: {
+              type: "string",
+              description: "Sector name (e.g., Banking, IT, Pharma, Energy, Auto)"
+            },
+            market: {
+              type: "string",
+              enum: ["NSE", "NYSE"],
+              description: "Market to analyze",
+              default: "NSE"
+            }
+          },
+          required: ["sector"]
+        }
+      },
+      {
+        name: "getTopMovers",
+        description: "Get top gaining or losing stocks from user's portfolio today. Use when user asks 'what's moving today' or 'biggest movers'.",
+        input_schema: {
+          type: "object",
+          properties: {
+            type: {
+              type: "string",
+              enum: ["gainers", "losers"],
+              description: "Type of movers to fetch"
+            },
+            limit: {
+              type: "number",
+              description: "Number of stocks to return",
+              default: 5
+            },
+            market: {
+              type: "string",
+              enum: ["NSE", "NYSE"],
+              description: "Market filter",
+              default: "NSE"
+            }
+          },
+          required: ["type"]
+        }
+      }
+    ];
+
+    // Call Claude via Portkey middleware with tools
     const response = await axios.post(
       `${PORTKEY_BASE_URL}/v1/messages`,
       {
         model: selectedModel,
-        max_tokens: 2048,
+        max_tokens: 3000,
         system: systemPrompt,
+        tools,
         messages: [
           ...history.map(m => ({
             role: m.role === 'assistant' ? 'assistant' : 'user',
@@ -4771,8 +5483,95 @@ ${portfolioContext}`;
       }
     );
 
-    const aiResponse = response.data.content[0].text;
-    res.json({ response: aiResponse, model: model || DEFAULT_MODEL });
+    // Handle tool calls if Claude requests them
+    let finalResponse = response.data.content[0].text;
+
+    // Check if Claude used tools
+    if (response.data.stop_reason === 'tool_use') {
+      const toolUses = response.data.content.filter(c => c.type === 'tool_use');
+
+      // Execute tool calls
+      const toolResults = [];
+      for (const toolUse of toolUses) {
+        let toolResult = null;
+
+        try {
+          switch (toolUse.name) {
+            case 'searchStock':
+              const stockRes = await axios.post(`http://localhost:${PORT}/api/search-stock`, {
+                symbol: toolUse.input.symbol,
+                market: toolUse.input.market
+              });
+              toolResult = JSON.stringify(stockRes.data);
+              break;
+
+            case 'getMarketIndices':
+              const indicesRes = await axios.get(`http://localhost:${PORT}/api/market-indices`);
+              toolResult = JSON.stringify(indicesRes.data);
+              break;
+
+            case 'getSectorAnalysis':
+              const sectorRes = await axios.post(`http://localhost:${PORT}/api/sector-analysis`, {
+                sector: toolUse.input.sector,
+                market: toolUse.input.market || 'NSE'
+              });
+              toolResult = JSON.stringify(sectorRes.data);
+              break;
+
+            case 'getTopMovers':
+              const moversRes = await axios.get(`http://localhost:${PORT}/api/top-movers`, {
+                params: {
+                  type: toolUse.input.type,
+                  limit: toolUse.input.limit || 5,
+                  market: toolUse.input.market || 'NSE'
+                }
+              });
+              toolResult = JSON.stringify(moversRes.data);
+              break;
+          }
+        } catch (err) {
+          toolResult = JSON.stringify({ error: err.message });
+        }
+
+        toolResults.push({
+          type: 'tool_result',
+          tool_use_id: toolUse.id,
+          content: toolResult
+        });
+      }
+
+      // Send tool results back to Claude for final response
+      const followUpRes = await axios.post(
+        `${PORTKEY_BASE_URL}/v1/messages`,
+        {
+          model: selectedModel,
+          max_tokens: 3000,
+          system: systemPrompt,
+          tools,
+          messages: [
+            ...history.map(m => ({
+              role: m.role === 'assistant' ? 'assistant' : 'user',
+              content: m.content,
+            })),
+            { role: 'user', content: message },
+            { role: 'assistant', content: response.data.content },
+            { role: 'user', content: toolResults }
+          ],
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'x-portkey-api-key': PORTKEY_API_KEY,
+            'anthropic-version': '2023-06-01',
+          },
+          timeout: 120000,
+        }
+      );
+
+      finalResponse = followUpRes.data.content.find(c => c.type === 'text')?.text || finalResponse;
+    }
+
+    res.json({ response: finalResponse, model: model || DEFAULT_MODEL });
   } catch (error) {
     console.error('AI Chat error:', error.response?.data || error.message);
     const errorMessage = error.response?.data?.error?.message ||

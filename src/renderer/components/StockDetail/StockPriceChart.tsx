@@ -139,15 +139,15 @@ export default function StockPriceChart({
             isAnimationActive={false}
           />
 
-          {/* 30 DMA Line */}
+          {/* 50 DMA Line */}
           <Line
             type="monotone"
-            dataKey="dma30"
+            dataKey="dma50"
             stroke="#3b82f6"
             strokeWidth={2}
             strokeDasharray="5 5"
             dot={false}
-            name="30 DMA"
+            name="50 DMA"
             isAnimationActive={false}
             connectNulls
           />

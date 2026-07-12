@@ -41,6 +41,8 @@ interface QuoteData {
   marketCap?: number;
   pe?: number;
   pb?: number;
+  roe?: number;
+  profitMargin?: number;
   dividendYield?: number;
   high52Week: number;
   low52Week: number;
@@ -131,18 +133,18 @@ export default function StockDetailModal({ holding, onClose }: StockDetailModalP
       }));
 
       // Calculate moving averages
-      const dma30 = calculateSMA(pricePoints, 30);
+      const dma50 = calculateSMA(pricePoints, 50);
       const dma200 = calculateSMA(pricePoints, 200);
 
       // Detect crosses
-      const goldenCrossIndices = detectGoldenCross(dma30, dma200);
-      const deathCrossIndices = detectDeathCross(dma30, dma200);
+      const goldenCrossIndices = detectGoldenCross(dma50, dma200);
+      const deathCrossIndices = detectDeathCross(dma50, dma200);
 
       // Combine data for chart
       const combinedData: ChartDataPoint[] = pricePoints.map((point, index) => ({
         date: point.date,
         price: point.close,
-        dma30: dma30[index] ?? undefined,
+        dma50: dma50[index] ?? undefined,
         dma200: dma200[index] ?? undefined,
       }));
 
@@ -236,10 +238,10 @@ export default function StockDetailModal({ holding, onClose }: StockDetailModalP
                     <div className="bg-slate-700/50 p-2 md:p-3 rounded-lg">
                       <div className="flex items-center gap-1 mb-1">
                         <p className="text-slate-400 text-xs">Golden Cross</p>
-                        <Tooltip text="30 DMA crosses above 200 DMA">
+                        <Tooltip text="50 DMA crosses above 200 DMA">
                           <InfoIcon
                             title="What is a Golden Cross?"
-                            explanation="A golden cross occurs when a short-term moving average (30-day) crosses above a long-term moving average (200-day). This is considered a bullish signal indicating potential upward momentum and is often used by traders to identify buying opportunities."
+                            explanation="A golden cross occurs when a short-term moving average (50-day) crosses above a long-term moving average (200-day). This is considered a bullish signal indicating potential upward momentum and is often used by traders to identify buying opportunities."
                           />
                         </Tooltip>
                       </div>
@@ -248,10 +250,10 @@ export default function StockDetailModal({ holding, onClose }: StockDetailModalP
                     <div className="bg-slate-700/50 p-2 md:p-3 rounded-lg">
                       <div className="flex items-center gap-1 mb-1">
                         <p className="text-slate-400 text-xs">Death Cross</p>
-                        <Tooltip text="30 DMA crosses below 200 DMA">
+                        <Tooltip text="50 DMA crosses below 200 DMA">
                           <InfoIcon
                             title="What is a Death Cross?"
-                            explanation="A death cross occurs when a short-term moving average (30-day) crosses below a long-term moving average (200-day). This is considered a bearish signal indicating potential downward momentum and is often used by traders to identify selling opportunities or periods to avoid buying."
+                            explanation="A death cross occurs when a short-term moving average (50-day) crosses below a long-term moving average (200-day). This is considered a bearish signal indicating potential downward momentum and is often used by traders to identify selling opportunities or periods to avoid buying."
                           />
                         </Tooltip>
                       </div>
@@ -263,15 +265,15 @@ export default function StockDetailModal({ holding, onClose }: StockDetailModalP
                         <Tooltip text="Current market trend direction">
                           <InfoIcon
                             title="What is Trend?"
-                            explanation="The trend indicates whether the stock is currently in an upward or downward trajectory based on the relationship between the 30-day and 200-day moving averages. An upward arrow means the short-term average is above the long-term average (bullish), while a downward arrow means the opposite (bearish)."
+                            explanation="The trend indicates whether the stock is currently in an upward or downward trajectory based on the relationship between the 50-day and 200-day moving averages. An upward arrow means the short-term average is above the long-term average (bullish), while a downward arrow means the opposite (bearish)."
                           />
                         </Tooltip>
                       </div>
                       <p className="text-lg md:text-xl font-bold text-blue-400">
                         {chartData.length > 0 &&
-                        chartData[chartData.length - 1].dma30 &&
+                        chartData[chartData.length - 1].dma50 &&
                         chartData[chartData.length - 1].dma200 &&
-                        chartData[chartData.length - 1].dma30! > chartData[chartData.length - 1].dma200!
+                        chartData[chartData.length - 1].dma50! > chartData[chartData.length - 1].dma200!
                           ? '↑'
                           : '↓'}
                       </p>
@@ -308,6 +310,18 @@ export default function StockDetailModal({ holding, onClose }: StockDetailModalP
                         </Tooltip>
                       </div>
                       <span className="text-white font-medium text-sm">{quoteData?.pb ? quoteData.pb.toFixed(2) : 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between py-2 border-b border-slate-700">
+                      <div className="flex items-center gap-1">
+                        <span className="text-slate-400 text-sm">ROE</span>
+                        <Tooltip text="Return on Equity (%)">
+                          <InfoIcon
+                            title="What is ROE?"
+                            explanation="Return on Equity measures how efficiently a company uses shareholders' equity to generate profits. ROE above 15% is considered good, above 20% is excellent. It's calculated as Net Income / Shareholders' Equity × 100. Compare ROE within the same industry for best results."
+                          />
+                        </Tooltip>
+                      </div>
+                      <span className="text-white font-medium text-sm">{quoteData?.roe ? `${(quoteData.roe * 100).toFixed(2)}%` : 'N/A'}</span>
                     </div>
                     <div className="flex justify-between py-2 border-b border-slate-700">
                       <div className="flex items-center gap-1">

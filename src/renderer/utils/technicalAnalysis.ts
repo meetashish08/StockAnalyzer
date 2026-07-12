@@ -6,7 +6,7 @@ export interface PricePoint {
 export interface ChartDataPoint {
   date: string;
   price: number;
-  dma30?: number;
+  dma50?: number;
   dma200?: number;
 }
 
@@ -72,30 +72,30 @@ export function calculateEMA(data: PricePoint[], period: number): (number | null
 }
 
 /**
- * Detect golden cross (30 DMA crosses above 200 DMA)
- * @param dma30 Array of 30-day moving averages
+ * Detect golden cross (50 DMA crosses above 200 DMA)
+ * @param dma50 Array of 50-day moving averages
  * @param dma200 Array of 200-day moving averages
  * @returns Array of indices where golden cross occurred
  */
 export function detectGoldenCross(
-  dma30: (number | null)[],
+  dma50: (number | null)[],
   dma200: (number | null)[]
 ): number[] {
   const crosses: number[] = [];
 
-  for (let i = 1; i < dma30.length; i++) {
-    const prev30 = dma30[i - 1];
-    const curr30 = dma30[i];
+  for (let i = 1; i < dma50.length; i++) {
+    const prev50 = dma50[i - 1];
+    const curr50 = dma50[i];
     const prev200 = dma200[i - 1];
     const curr200 = dma200[i];
 
     if (
-      prev30 !== null &&
-      curr30 !== null &&
+      prev50 !== null &&
+      curr50 !== null &&
       prev200 !== null &&
       curr200 !== null &&
-      prev30 < prev200 &&
-      curr30 > curr200
+      prev50 < prev200 &&
+      curr50 > curr200
     ) {
       crosses.push(i);
     }
@@ -105,30 +105,30 @@ export function detectGoldenCross(
 }
 
 /**
- * Detect death cross (30 DMA crosses below 200 DMA)
- * @param dma30 Array of 30-day moving averages
+ * Detect death cross (50 DMA crosses below 200 DMA)
+ * @param dma50 Array of 50-day moving averages
  * @param dma200 Array of 200-day moving averages
  * @returns Array of indices where death cross occurred
  */
 export function detectDeathCross(
-  dma30: (number | null)[],
+  dma50: (number | null)[],
   dma200: (number | null)[]
 ): number[] {
   const crosses: number[] = [];
 
-  for (let i = 1; i < dma30.length; i++) {
-    const prev30 = dma30[i - 1];
-    const curr30 = dma30[i];
+  for (let i = 1; i < dma50.length; i++) {
+    const prev50 = dma50[i - 1];
+    const curr50 = dma50[i];
     const prev200 = dma200[i - 1];
     const curr200 = dma200[i];
 
     if (
-      prev30 !== null &&
-      curr30 !== null &&
+      prev50 !== null &&
+      curr50 !== null &&
       prev200 !== null &&
       curr200 !== null &&
-      prev30 > prev200 &&
-      curr30 < curr200
+      prev50 > prev200 &&
+      curr50 < curr200
     ) {
       crosses.push(i);
     }

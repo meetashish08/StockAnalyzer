@@ -32,6 +32,7 @@ interface SuggestedPrompt {
 }
 
 const SUGGESTED_PROMPTS: SuggestedPrompt[] = [
+  // Portfolio Analysis
   {
     icon: '📊',
     text: 'Analyze my portfolio',
@@ -47,20 +48,36 @@ const SUGGESTED_PROMPTS: SuggestedPrompt[] = [
     text: 'Risk assessment',
     prompt: 'Assess the risk in my portfolio. Are there any stocks I should be concerned about?',
   },
+  // Market-Wide Analysis (NEW)
   {
-    icon: '💡',
-    text: 'Rebalancing suggestions',
-    prompt: 'Based on my portfolio, what rebalancing actions would you suggest to improve diversification?',
+    icon: '🌍',
+    text: 'Market overview',
+    prompt: 'What\'s happening in the market today? Show me the major indices and top movers.',
   },
   {
-    icon: '📉',
-    text: 'Underperformers',
-    prompt: 'Which stocks in my portfolio are underperforming and should I consider selling?',
+    icon: '🔍',
+    text: 'Compare stocks',
+    prompt: 'Compare TCS vs Infosys. Which is a better investment right now?',
+  },
+  {
+    icon: '💰',
+    text: 'Find dividend stocks',
+    prompt: 'Find me 5 good dividend-paying stocks with yield above 3%.',
   },
   {
     icon: '🎯',
     text: 'Sector analysis',
-    prompt: 'Analyze my portfolio by sector. Am I overexposed to any particular sector?',
+    prompt: 'How is the IT sector performing? Should I invest more in tech stocks?',
+  },
+  {
+    icon: '🚀',
+    text: 'Stock opportunities',
+    prompt: 'What are some undervalued stocks I should consider adding to my portfolio?',
+  },
+  {
+    icon: '⚡',
+    text: 'Analyze any stock',
+    prompt: 'Should I buy Reliance Industries? Give me a detailed analysis.',
   },
 ];
 
@@ -274,9 +291,9 @@ Note: All Indian stocks (NSE/BSE) values are in INR. US stocks (NYSE/NASDAQ) val
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <span>🤖</span> AI Portfolio Assistant
+            <span>🤖</span> AI Stock Market Assistant
           </h1>
-          <p className="text-slate-400">Powered by Claude AI - Ask questions about your investments</p>
+          <p className="text-slate-400">Powered by Claude AI - Analyze your portfolio, research any stock, discover market opportunities</p>
         </div>
         <div className="flex items-center gap-3">
           {/* Model Selector */}
@@ -326,16 +343,45 @@ Note: All Indian stocks (NSE/BSE) values are in INR. US stocks (NYSE/NASDAQ) val
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {messages.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center">
-                <div className="text-6xl mb-4">💬</div>
+                <div className="text-6xl mb-4">🌟</div>
                 <h3 className="text-xl font-semibold text-white mb-2">
-                  How can I help with your portfolio?
+                  Your AI-Powered Stock Market Expert
                 </h3>
-                <p className="text-slate-400 mb-6 max-w-md">
-                  I can analyze your investments, identify risks, suggest rebalancing actions, and answer any questions about your portfolio.
+                <p className="text-slate-400 mb-6 max-w-2xl">
+                  I can analyze your portfolio, research any stock in NSE or NYSE, compare investments,
+                  find opportunities, track market trends, and provide personalized recommendations.
                 </p>
 
+                {/* Quick Action Buttons */}
+                <div className="flex flex-wrap gap-2 mb-6 justify-center">
+                  <button
+                    onClick={() => sendMessage('What\'s happening in the market today?')}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors"
+                  >
+                    📈 Market Overview
+                  </button>
+                  <button
+                    onClick={() => sendMessage('Analyze my portfolio performance and suggest improvements')}
+                    className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-lg transition-colors"
+                  >
+                    📊 Portfolio Analysis
+                  </button>
+                  <button
+                    onClick={() => sendMessage('Find me 5 undervalued stocks with good fundamentals')}
+                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition-colors"
+                  >
+                    💎 Find Opportunities
+                  </button>
+                  <button
+                    onClick={() => sendMessage('How is the IT sector performing compared to Banking?')}
+                    className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-sm rounded-lg transition-colors"
+                  >
+                    🎯 Sector Comparison
+                  </button>
+                </div>
+
                 {/* Suggested Prompts */}
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-w-2xl">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-w-3xl">
                   {SUGGESTED_PROMPTS.map((prompt, idx) => (
                     <button
                       key={idx}
@@ -422,7 +468,7 @@ Note: All Indian stocks (NSE/BSE) values are in INR. US stocks (NYSE/NASDAQ) val
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Ask about your portfolio..."
+                placeholder="Ask about your portfolio, any stock, market trends, or investment opportunities..."
                 disabled={isLoading}
                 rows={1}
                 className="input flex-1 resize-none"
@@ -436,9 +482,27 @@ Note: All Indian stocks (NSE/BSE) values are in INR. US stocks (NYSE/NASDAQ) val
                 {isLoading ? '...' : 'Send'}
               </button>
             </div>
-            <p className="text-xs text-slate-500 mt-2">
-              Press Enter to send, Shift+Enter for new line
-            </p>
+            <div className="mt-2 flex items-center justify-between">
+              <p className="text-xs text-slate-500">
+                Press Enter to send, Shift+Enter for new line
+              </p>
+              <div className="flex gap-2 text-xs text-slate-500">
+                <span className="hidden md:inline">Try:</span>
+                <button
+                  onClick={() => setInput('Compare HDFC Bank vs ICICI Bank')}
+                  className="text-blue-400 hover:text-blue-300"
+                >
+                  "Compare stocks"
+                </button>
+                <span className="hidden md:inline">|</span>
+                <button
+                  onClick={() => setInput('Should I buy Apple stock?')}
+                  className="text-blue-400 hover:text-blue-300"
+                >
+                  "Analyze AAPL"
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
