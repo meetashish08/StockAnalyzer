@@ -1,17 +1,24 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Routes, Route, NavLink } from 'react-router-dom';
 import Dashboard from './components/Dashboard/Dashboard';
 import Portfolio from './components/Portfolio/Portfolio';
 import Recommendations from './components/Recommendations/Recommendations';
+import StockPickerPage from './components/StockPicker/StockPickerPage';
 import Analytics from './components/Analytics/Analytics';
 import ImportData from './components/Import/ImportData';
 import AIChat from './components/AIChat/AIChat';
 import TaxAnalysis from './components/TaxAnalysis/TaxAnalysis';
+import LearnPage from './components/Learn/LearnPage';
+import StockDetailModal from './components/StockDetail/StockDetailModal';
+import { useStore } from './store/useStore';
+import type { Holding } from '../shared/types';
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: '📊' },
   { path: '/portfolio', label: 'Portfolio', icon: '💼' },
-  { path: '/recommendations', label: 'Recommendations', icon: '🎯' },
+  { path: '/stock-picker', label: 'Stock Picker', icon: '🎯' },
+  { path: '/learn', label: 'Learn', icon: '📚' },
+  { path: '/recommendations', label: 'Recommendations', icon: '💡' },
   { path: '/analytics', label: 'Analytics', icon: '📈' },
   { path: '/tax-analysis', label: 'Tax Analysis', icon: '🧾' },
   { path: '/import', label: 'Import', icon: '📥' },
@@ -19,6 +26,35 @@ const navItems = [
 ];
 
 function App() {
+  const { selectedStockForDetail, setSelectedStockForDetail, holdings } = useStore();
+
+  // Convert selectedStockForDetail to Holding format for StockDetailModal
+  const selectedHoldingForModal = useMemo((): Holding | null => {
+    if (!selectedStockForDetail) return null;
+
+    // Try to find existing holding
+    const existingHolding = holdings.find(
+      h => h.symbol === selectedStockForDetail.symbol && h.market === selectedStockForDetail.market
+    );
+
+    if (existingHolding) {
+      return existingHolding;
+    }
+
+    // Create a minimal holding for stocks not in portfolio
+    return {
+      id: -1, // Temporary ID for non-portfolio stocks
+      symbol: selectedStockForDetail.symbol,
+      market: selectedStockForDetail.market as any,
+      name: selectedStockForDetail.name || selectedStockForDetail.symbol,
+      quantity: 0,
+      avgPrice: 0,
+      purchaseDate: new Date().toISOString(),
+      type: 'STOCK',
+      createdAt: new Date().toISOString(),
+    };
+  }, [selectedStockForDetail, holdings]);
+
   return (
     <div className="flex min-h-screen bg-slate-900">
       {/* Sidebar */}
@@ -70,6 +106,8 @@ function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/portfolio" element={<Portfolio />} />
+            <Route path="/stock-picker" element={<StockPickerPage />} />
+            <Route path="/learn" element={<LearnPage />} />
             <Route path="/recommendations" element={<Recommendations />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/tax-analysis" element={<TaxAnalysis />} />
@@ -78,6 +116,14 @@ function App() {
           </Routes>
         </div>
       </main>
+
+      {/* Global Stock Detail Modal */}
+      {selectedHoldingForModal && (
+        <StockDetailModal
+          holding={selectedHoldingForModal}
+          onClose={() => setSelectedStockForDetail(null)}
+        />
+      )}
     </div>
   );
 }

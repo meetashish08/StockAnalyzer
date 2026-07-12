@@ -5,26 +5,51 @@ A comprehensive web application for stock market analysis and investment trackin
 ## Features
 
 ### Portfolio Tracking
-- Track stock, ETF, REIT, and mutual fund holdings
+- Track stock, ETF, REIT, and mutual fund holdings across India (NSE/BSE) and US (NYSE/NASDAQ) markets
 - Real-time price updates from Yahoo Finance
-- P&L calculation with percentage returns
+- P&L calculation with percentage returns and tax status (STCG/LTCG)
 - Support for 80+ Indian stock symbol mappings
 - Transaction history with buy/sell/SIP/dividend support
+- Auto-refresh capability with configurable intervals (1 min to 2 hours)
+- Clickable stock names throughout the app open detailed modals
 
 ### Data Import
 - **Groww**: Full Excel import with holdings data
-- **INDmoney**: Portfolio statement import
-- **Zerodha**: Basic Excel/CSV support
+- **INDmoney**: Portfolio statement import with automatic market detection (NSE/NYSE)
+- **Zerodha**: CSV import support with holdings parsing
 - Import history tracking with date/time stamps
 - Duplicate detection with replace option
-- Delete previous imports
+- Delete previous imports with rollback capability
+
+### Stock Detail Modal
+- Comprehensive stock information with live quotes
+- Interactive price charts with multiple timeframes (1W, 1M, 3M, 6M, 1Y, 5Y)
+- 50-Day and 200-Day Moving Averages (DMA) visualization
+- Golden Cross and Death Cross detection
+- 52-week high/low indicators
+- Key metrics: P/E ratio, P/B ratio, Market Cap, Dividend Yield
+- Volume analysis and technical indicators
+
+### Educational Features
+- **Learn Page**: 6 comprehensive modules covering stock market fundamentals
+  1. Stock Market Fundamentals - Stocks, exchanges, market cap, dividends
+  2. Financial Metrics & Calculations - P/E, ROE, EPS, CAGR with interactive calculators
+  3. Technical Analysis Basics - Moving averages, RSI, MACD, support/resistance
+  4. Criteria for Good Stocks - Quality checklist, value/growth/dividend stocks
+  5. Portfolio Management - Professional strategies, diversification, rebalancing
+  6. Success Criteria & Benchmarks - Performance metrics, benchmarks, goals
+- Progress tracking with module completion status
+- Interactive calculators for P/E, CAGR, and Dividend Yield
+- Real-world examples and case studies
+- Tooltips and info icons throughout the app for contextual help
 
 ### Analytics Dashboard
 - **Overview Tab**: Key metrics, score gauges, best/worst performers
-- **Allocation Tab**: Pie charts by holding, market, asset type
+- **Allocation Tab**: Pie charts by holding, market, asset type with 16 distinct colors
 - **Health Check Tab**: Diversification score, risk assessment, recommendations
 - **Performance Tab**: P&L distribution, winners/losers lists
 - Clickable metrics to view detailed stock lists
+- Export capabilities: Excel (multi-sheet), CSV, Markdown
 
 ### Portfolio Health Check
 - Overall health score (0-100)
@@ -33,11 +58,38 @@ A comprehensive web application for stock market analysis and investment trackin
 - Actionable recommendations (rebalance, review, profit booking)
 - Warnings for concentration, losses, and portfolio issues
 
+### Stock Recommendations
+- **Portfolio Insights**: Technical analysis with trend, momentum, and value scores
+- **Sector Analysis**: Compare allocation vs. benchmark (Nifty 50 weights)
+- **Alerts**: Real-time monitoring for large moves, concentration, tax events
+- Signal recommendations: STRONG_BUY, BUY, HOLD, SELL, STRONG_SELL
+- 50/200 DMA analysis with visual indicators
+- Bookmark functionality to save analysis snapshots
+- Export reports in Excel and CSV formats
+
+### Tax Analysis & ITR Helper
+- Capital gains calculation (STCG @ 20%, LTCG @ 12.5%)
+- Automatic holding period classification (12-month threshold)
+- LTCG exemption calculation (₹1.25 lakh)
+- ITR Schedule CG report generation
+- AIS (Annual Information Statement) CSV import
+- Tax-saving insights and recommendations
+- Export in Excel, CSV, and Markdown formats
+
+### AI Financial Assistant
+- Powered by Claude AI via Portkey middleware
+- Multiple model support (Sonnet, Haiku, Opus)
+- Portfolio context-aware responses
+- Bookmark favorite Q&A for quick reference
+- Chat history with conversation persistence
+
 ### Price Refresh
 - One-click refresh all stock prices
+- Auto-refresh with configurable intervals
+- Silent refresh updates without loading spinners
 - Uses Yahoo Finance API via yahoo-finance2 library
 - Automatic symbol mapping for Indian stocks
-- Shows success/failure counts
+- Shows success/failure counts and timestamps
 
 ## Tech Stack
 
@@ -49,8 +101,13 @@ A comprehensive web application for stock market analysis and investment trackin
 | Charts | Recharts |
 | State Management | Zustand |
 | Build Tool | Vite |
+| Routing | React Router DOM v6 |
 | Stock Data | Yahoo Finance (yahoo-finance2) |
-| Data Storage | JSON file |
+| Data Storage | JSON files (data.json, ai_bookmarks.json, tax_analysis.json) |
+| File Parsing | XLSX & xlsx-js-style |
+| AI Integration | Claude AI via Portkey (Anthropic SDK) |
+| Date Utilities | date-fns |
+| Financial Calculations | @webcarrot/xirr |
 
 ## Quick Start
 
@@ -81,30 +138,48 @@ Open browser: **http://localhost:3001**
 
 ```
 stock-analyzer/
-├── server.js              # Express backend
-├── data.json              # Data storage
-├── package.json           # Dependencies
-├── docs/                  # Documentation
+├── server.js                    # Express backend server
+├── data.json                    # Portfolio data storage
+├── ai_bookmarks.json            # AI chat bookmarks
+├── tax_analysis.json            # Tax analysis results
+├── recommendations_bookmarks.json  # Saved recommendations
+├── package.json                 # Dependencies & scripts
+├── docs/                        # Documentation
 │   ├── TECHNICAL_DOCUMENTATION.md
-│   └── DEPLOYMENT_GUIDE.md
+│   ├── DEPLOYMENT_GUIDE.md
+│   ├── FEATURE_GUIDE.md        # Comprehensive feature guide
+│   └── EDUCATIONAL_MODULES.md  # Learn page content details
 ├── src/
-│   ├── renderer/          # React frontend
+│   ├── renderer/                # React frontend
 │   │   ├── components/
-│   │   │   ├── Analytics/ # Charts & insights
-│   │   │   ├── Dashboard/ # Main dashboard
-│   │   │   ├── Import/    # File import
-│   │   │   ├── Portfolio/ # Holdings management
-│   │   │   └── Layout/    # Navigation
-│   │   ├── store/         # Zustand state
-│   │   └── utils/         # Formatters
-│   └── shared/            # TypeScript types
-└── dist/renderer/         # Built frontend
+│   │   │   ├── Analytics/       # Charts & insights
+│   │   │   ├── Dashboard/       # Main dashboard with market indices
+│   │   │   ├── Import/          # File import (Groww, INDmoney, Zerodha)
+│   │   │   ├── Portfolio/       # Holdings management (India/US tabs)
+│   │   │   ├── StockPicker/     # Stock recommendations & screener
+│   │   │   ├── StockDetail/     # Stock modal with charts & DMAs
+│   │   │   ├── Learn/           # Educational modules
+│   │   │   ├── AIChat/          # AI assistant with Claude
+│   │   │   ├── TaxAnalysis/     # Capital gains & ITR helper
+│   │   │   ├── common/          # Shared UI components (Tooltip, InfoIcon)
+│   │   │   └── Layout/          # App layout & navigation
+│   │   ├── store/               # Zustand state management
+│   │   ├── utils/               # Formatters & helpers
+│   │   │   ├── format.ts
+│   │   │   └── technicalAnalysis.ts
+│   │   ├── App.tsx              # Main React app with routes
+│   │   └── main.tsx             # React entry point
+│   └── shared/                  # Shared TypeScript types
+│       └── types.ts
+└── dist/renderer/               # Built frontend assets
 ```
 
 ## Documentation
 
 - **[Technical Documentation](docs/TECHNICAL_DOCUMENTATION.md)**: Detailed module documentation, API reference, data flow, and troubleshooting guide
 - **[Deployment Guide](docs/DEPLOYMENT_GUIDE.md)**: Step-by-step installation on fresh systems, production deployment, Docker setup
+- **[Feature Guide](docs/FEATURE_GUIDE.md)**: Comprehensive guide to all features with use cases and tips
+- **[Educational Modules](docs/EDUCATIONAL_MODULES.md)**: Complete breakdown of Learn page content and learning outcomes
 
 ## API Endpoints
 
@@ -123,19 +198,68 @@ stock-analyzer/
 
 ### Import Portfolio
 1. Go to **Import** page
-2. Drag & drop Excel file from Groww/INDmoney
-3. Preview data and confirm import
-4. Holdings appear in Portfolio
+2. Drag & drop Excel/CSV file from Groww, INDmoney, or Zerodha
+3. System auto-detects broker format and market (NSE/NYSE)
+4. Preview data and confirm import
+5. Holdings appear in Portfolio with proper market classification
+
+### View Stock Details
+1. Click on any stock symbol throughout the app (Portfolio, Analytics, Recommendations)
+2. Modal opens with:
+   - Real-time price and market data
+   - Interactive price chart with 50/200 DMAs
+   - Golden/Death Cross indicators
+   - Key financial metrics (P/E, P/B, Market Cap, Dividend Yield)
+   - 52-week high/low analysis
+3. Change timeframe: 1W, 1M, 3M, 6M, 1Y, 5Y
+4. Press ESC or click outside to close
+
+### Learn Stock Market Basics
+1. Go to **Learn** page
+2. Select any of 6 modules from sidebar
+3. Read content, use interactive calculators
+4. Mark modules as complete to track progress
+5. Use search to find specific topics
+6. Complete all modules to unlock certificate
+
+### Get Stock Recommendations
+1. Go to **Recommendations** page
+2. Select market (NSE or NYSE)
+3. View:
+   - **Portfolio Insights**: Technical scores and signals (BUY/SELL/HOLD)
+   - **Sector Analysis**: Your allocation vs. benchmark
+   - **Alerts**: Real-time risk and opportunity alerts
+4. Click on any stock for detailed modal
+5. Bookmark important analysis for later review
+6. Export recommendations to Excel or CSV
+
+### Analyze Taxes
+1. Go to **Tax Analysis** page
+2. Upload Excel with buy/sell transactions
+3. Or import AIS CSV from Income Tax portal
+4. System calculates STCG/LTCG automatically
+5. View tax liability and ITR Schedule CG format
+6. Download Excel/CSV/Markdown report
+
+### Use AI Assistant
+1. Go to **AI Chat** page
+2. Select AI model (Sonnet recommended)
+3. Ask questions about investing or your portfolio
+4. AI provides context-aware answers
+5. Bookmark useful responses for quick access later
 
 ### Refresh Prices
 1. Go to **Portfolio** page
-2. Click **Refresh Prices** button
-3. Wait for completion (shows X/Y updated)
+2. Click **Refresh Prices** button for one-time update
+3. Or use **Auto-Refresh** dropdown to set interval (1 min to 2 hours)
+4. Countdown timer shows time until next refresh
+5. Silent updates without loading spinners
 
 ### View Analytics
 1. Go to **Analytics** page
 2. Switch between tabs: Overview, Allocation, Health, Performance
 3. Click on metrics (Profitable, In Loss) to see stock details
+4. Export complete analytics to Excel, CSV, or Markdown
 
 ### Clear Portfolio
 1. Go to **Portfolio** page

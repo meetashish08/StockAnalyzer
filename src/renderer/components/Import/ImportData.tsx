@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../../store/useStore';
 import type { ImportedTransaction } from '../../../shared/types';
+import ClickableStock from '../common/ClickableStock';
 
 interface ImportRecord {
   id: number;
@@ -19,6 +20,7 @@ export default function ImportData() {
   const [importedData, setImportedData] = useState<ImportedTransaction[]>([]);
   const [emailText, setEmailText] = useState('');
   const [selectedBroker, setSelectedBroker] = useState('auto');
+  const [selectedMarket, setSelectedMarket] = useState<'auto' | 'IN' | 'US'>('auto');
   const [isImporting, setIsImporting] = useState(false);
   const [importStatus, setImportStatus] = useState<string>('');
   const [importHistory, setImportHistory] = useState<ImportRecord[]>([]);
@@ -45,7 +47,7 @@ export default function ImportData() {
   const detectSource = (filename: string): string => {
     const lower = filename.toLowerCase();
     if (lower.includes('groww')) return 'Groww';
-    if (lower.includes('zerodha') || lower.includes('kite')) return 'Zerodha';
+    if (lower.includes('zerodha') || lower.includes('kite') || lower.includes('holdings')) return 'Zerodha';
     if (lower.includes('indmoney')) return 'INDmoney';
     if (lower.includes('upstox')) return 'Upstox';
     if (lower.includes('angelone') || lower.includes('angel')) return 'AngelOne';
@@ -159,7 +161,7 @@ export default function ImportData() {
     }
   };
 
-  const handleImportSelected = async (selectedIds: Set<number>, replaceExisting: boolean = false) => {
+  const handleImportSelected = async (selectedIds: Set<number>, marketOverrides: Map<number, string>) => {
     setIsImporting(true);
     setImportStatus('Importing holdings...');
 
@@ -186,7 +188,32 @@ export default function ImportData() {
         body: JSON.stringify(importRecord),
       });
 
-      for (const tx of selectedTransactions as any[]) {
+      // Helper function to get final market for a transaction
+      const getFinalMarket = (tx: any, idx: number): string => {
+        // Check for manual override first
+        const overrideIdx = Array.from(selectedIds)[idx];
+        if (marketOverrides.has(overrideIdx)) {
+          return marketOverrides.get(overrideIdx) === 'US' ? 'NYSE' : 'NSE';
+        }
+        // If user selected manual market, use that
+        if (selectedMarket !== 'auto') {
+          return selectedMarket === 'US' ? 'NYSE' : 'NSE';
+        }
+        // Use detected market
+        if (tx.detectedMarket === 'US') return 'NYSE';
+        if (tx.detectedMarket === 'IN') return 'NSE';
+        // Fallback to source-based detection
+        if (source === 'INDmoney') return 'NYSE';
+        if (source === 'Groww') return 'NSE';
+        // Legacy logic
+        if (tx.isin && tx.isin.startsWith('US')) return 'NYSE';
+        if (tx.symbol && tx.symbol.length <= 4 && /^[A-Z]+$/.test(tx.symbol)) return 'NYSE';
+        return 'NSE'; // Default
+      };
+
+      for (let i = 0; i < selectedTransactions.length; i++) {
+        const tx = selectedTransactions[i] as any;
+
         // Check if holding already exists
         const holdingsRes = await fetch('/api/holdings');
         const holdings = await holdingsRes.json();
@@ -207,6 +234,9 @@ export default function ImportData() {
         }
 
         if (!holding) {
+          // Get final market using new logic
+          const market = getFinalMarket(tx, i);
+
           // Create new holding
           const createRes = await fetch('/api/holdings', {
             method: 'POST',
@@ -215,7 +245,7 @@ export default function ImportData() {
               symbol: tx.symbol,
               name: tx.name || tx.symbol,
               isin: tx.isin || '',
-              market: 'NSE',
+              market,
               type: assetType,
               quantity: tx.quantity,
               avgPrice: tx.price,
@@ -398,6 +428,23 @@ export default function ImportData() {
             Upload a CSV or Excel file with your holdings. Supports Groww, Zerodha, and other broker formats.
           </p>
 
+          {/* Market Selection Dropdown */}
+          <div className="mb-4">
+            <label className="label">Market Type</label>
+            <select
+              value={selectedMarket}
+              onChange={(e) => setSelectedMarket(e.target.value as 'auto' | 'IN' | 'US')}
+              className="select w-full"
+            >
+              <option value="auto">Auto-Detect (Recommended)</option>
+              <option value="IN">India (NSE/BSE)</option>
+              <option value="US">US (NYSE/NASDAQ)</option>
+            </select>
+            <p className="text-xs text-slate-500 mt-1">
+              Auto-detect analyzes currency symbols ($, ₹) and ISIN patterns to determine the market
+            </p>
+          </div>
+
           <input
             type="file"
             ref={fileInputRef}
@@ -543,6 +590,7 @@ export default function ImportData() {
           onImport={handleImportSelected}
           isImporting={isImporting}
           source={pendingSource}
+          selectedMarket={selectedMarket}
         />
       )}
     </div>
@@ -554,13 +602,16 @@ function ImportPreview({
   onImport,
   isImporting,
   source,
+  selectedMarket,
 }: {
   transactions: any[];
-  onImport: (selected: Set<number>) => void;
+  onImport: (selected: Set<number>, marketOverrides: Map<number, string>) => void;
   isImporting: boolean;
   source: string;
+  selectedMarket: 'auto' | 'IN' | 'US';
 }) {
   const [selected, setSelected] = useState<Set<number>>(new Set(transactions.map((_, i) => i)));
+  const [marketOverrides, setMarketOverrides] = useState<Map<number, string>>(new Map());
 
   const toggleAll = () => {
     if (selected.size === transactions.length) {
@@ -580,6 +631,37 @@ function ImportPreview({
     setSelected(newSelected);
   };
 
+  const toggleMarket = (idx: number, currentMarket: string) => {
+    const newOverrides = new Map(marketOverrides);
+    const newMarket = currentMarket === 'IN' ? 'US' : 'IN';
+    newOverrides.set(idx, newMarket);
+    setMarketOverrides(newOverrides);
+  };
+
+  const getMarketDisplay = (tx: any, idx: number) => {
+    // Check for manual override first
+    if (marketOverrides.has(idx)) {
+      return marketOverrides.get(idx);
+    }
+    // If user selected manual market, use that
+    if (selectedMarket !== 'auto') {
+      return selectedMarket;
+    }
+    // Use detected market
+    if (tx.detectedMarket === 'US') return 'US';
+    if (tx.detectedMarket === 'IN') return 'IN';
+    // Fallback to source-based detection
+    if (source === 'INDmoney') return 'US';
+    if (source === 'Groww') return 'IN';
+    return 'IN'; // Default
+  };
+
+  const getMarketIcon = (market: string) => {
+    if (market === 'US') return '🇺🇸';
+    if (market === 'IN') return '🇮🇳';
+    return '🌍';
+  };
+
   return (
     <div className="card p-0 overflow-hidden">
       <div className="p-4 bg-slate-700/50 flex items-center justify-between">
@@ -588,13 +670,23 @@ function ImportPreview({
             Preview ({selected.size} of {transactions.length} selected)
           </h3>
           {source && <p className="text-sm text-slate-400">Source: {source}</p>}
+          {selectedMarket === 'auto' && (
+            <p className="text-xs text-green-400 mt-1">
+              Auto-detected markets based on currency symbols and ISIN patterns
+            </p>
+          )}
+          {selectedMarket !== 'auto' && (
+            <p className="text-xs text-yellow-400 mt-1">
+              Manual override: All stocks set to {selectedMarket === 'US' ? 'US (NYSE/NASDAQ)' : 'India (NSE/BSE)'}
+            </p>
+          )}
         </div>
         <div className="flex gap-2">
           <button onClick={toggleAll} className="btn-secondary text-sm">
             {selected.size === transactions.length ? 'Deselect All' : 'Select All'}
           </button>
           <button
-            onClick={() => onImport(selected)}
+            onClick={() => onImport(selected, marketOverrides)}
             disabled={isImporting || selected.size === 0}
             className="btn-primary text-sm"
           >
@@ -616,6 +708,7 @@ function ImportPreview({
                 />
               </th>
               <th className="p-3 text-slate-300 font-medium">Symbol</th>
+              <th className="p-3 text-slate-300 font-medium text-center">Market</th>
               <th className="p-3 text-slate-300 font-medium text-right">Qty</th>
               <th className="p-3 text-slate-300 font-medium text-right">Avg Buy Price</th>
               <th className="p-3 text-slate-300 font-medium text-right">Invested</th>
@@ -625,44 +718,72 @@ function ImportPreview({
             </tr>
           </thead>
           <tbody>
-            {transactions.map((tx: any, idx) => (
-              <tr
-                key={idx}
-                className={`border-t border-slate-700 ${
-                  selected.has(idx) ? 'bg-green-900/20' : 'hover:bg-slate-700/30'
-                }`}
-              >
-                <td className="p-3">
-                  <input
-                    type="checkbox"
-                    checked={selected.has(idx)}
-                    onChange={() => toggle(idx)}
-                    className="rounded"
-                  />
-                </td>
-                <td className="p-3">
-                  <p className="font-medium text-white">{tx.symbol}</p>
-                  {tx.name && tx.name !== tx.symbol && (
-                    <p className="text-xs text-slate-400 truncate max-w-[200px]">{tx.name}</p>
-                  )}
-                </td>
-                <td className="p-3 text-right text-white">{tx.quantity}</td>
-                <td className="p-3 text-right text-white">₹{tx.price?.toLocaleString('en-IN', {maximumFractionDigits: 2}) || 0}</td>
-                <td className="p-3 text-right text-slate-300">₹{tx.buyValue?.toLocaleString('en-IN', {maximumFractionDigits: 2}) || 0}</td>
-                <td className="p-3 text-right text-white">₹{tx.closingPrice?.toLocaleString('en-IN', {maximumFractionDigits: 2}) || '-'}</td>
-                <td className="p-3 text-right text-white">₹{tx.closingValue?.toLocaleString('en-IN', {maximumFractionDigits: 2}) || '-'}</td>
-                <td className="p-3 text-right">
-                  <div className={tx.unrealisedPnL >= 0 ? 'text-green-400' : 'text-red-400'}>
-                    <p className="font-medium">
-                      {tx.unrealisedPnL >= 0 ? '+' : ''}₹{tx.unrealisedPnL?.toLocaleString('en-IN', {maximumFractionDigits: 2}) || 0}
-                    </p>
-                    <p className="text-xs">
-                      ({tx.pnlPercent >= 0 ? '+' : ''}{tx.pnlPercent?.toFixed(2) || 0}%)
-                    </p>
-                  </div>
-                </td>
-              </tr>
-            ))}
+            {transactions.map((tx: any, idx) => {
+              const market = getMarketDisplay(tx, idx);
+              const marketIcon = getMarketIcon(market);
+              return (
+                <tr
+                  key={idx}
+                  className={`border-t border-slate-700 ${
+                    selected.has(idx) ? 'bg-green-900/20' : 'hover:bg-slate-700/30'
+                  }`}
+                >
+                  <td className="p-3">
+                    <input
+                      type="checkbox"
+                      checked={selected.has(idx)}
+                      onChange={() => toggle(idx)}
+                      className="rounded"
+                    />
+                  </td>
+                  <td className="p-3">
+                    <ClickableStock
+                      symbol={tx.symbol}
+                      market={market === 'US' ? 'NYSE' : 'NSE'}
+                      name={tx.name}
+                      className="font-medium block"
+                    />
+                    {tx.name && tx.name !== tx.symbol && (
+                      <p className="text-xs text-slate-400 truncate max-w-[200px]">{tx.name}</p>
+                    )}
+                  </td>
+                  <td className="p-3 text-center">
+                    <button
+                      onClick={() => toggleMarket(idx, market)}
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-slate-700 hover:bg-slate-600 transition-colors"
+                      title="Click to toggle market"
+                    >
+                      <span className="text-lg">{marketIcon}</span>
+                      <span className="text-white">{market}</span>
+                    </button>
+                  </td>
+                  <td className="p-3 text-right text-white">{tx.quantity}</td>
+                  <td className="p-3 text-right text-white">
+                    {market === 'US' ? '$' : '₹'}{tx.price?.toLocaleString('en-IN', {maximumFractionDigits: 2}) || 0}
+                  </td>
+                  <td className="p-3 text-right text-slate-300">
+                    {market === 'US' ? '$' : '₹'}{tx.buyValue?.toLocaleString('en-IN', {maximumFractionDigits: 2}) || 0}
+                  </td>
+                  <td className="p-3 text-right text-white">
+                    {market === 'US' ? '$' : '₹'}{tx.closingPrice?.toLocaleString('en-IN', {maximumFractionDigits: 2}) || '-'}
+                  </td>
+                  <td className="p-3 text-right text-white">
+                    {market === 'US' ? '$' : '₹'}{tx.closingValue?.toLocaleString('en-IN', {maximumFractionDigits: 2}) || '-'}
+                  </td>
+                  <td className="p-3 text-right">
+                    <div className={tx.unrealisedPnL >= 0 ? 'text-green-400' : 'text-red-400'}>
+                      <p className="font-medium">
+                        {tx.unrealisedPnL >= 0 ? '+' : ''}
+                        {market === 'US' ? '$' : '₹'}{tx.unrealisedPnL?.toLocaleString('en-IN', {maximumFractionDigits: 2}) || 0}
+                      </p>
+                      <p className="text-xs">
+                        ({tx.pnlPercent >= 0 ? '+' : ''}{tx.pnlPercent?.toFixed(2) || 0}%)
+                      </p>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

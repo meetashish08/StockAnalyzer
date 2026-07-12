@@ -3,6 +3,7 @@ import { useStore } from '../../store/useStore';
 import { formatCurrency, formatPrice, formatPercent, formatDate } from '../../utils/format';
 import AddHoldingModal from './AddHoldingModal';
 import AddTransactionModal from './AddTransactionModal';
+import StockDetailModal from '../StockDetail/StockDetailModal';
 import type { Holding, HoldingWithPrice } from '../../../shared/types';
 
 type MarketTab = 'all' | 'india' | 'us';
@@ -34,6 +35,7 @@ export default function Portfolio() {
 
   const [showAddHolding, setShowAddHolding] = useState(false);
   const [showAddTransaction, setShowAddTransaction] = useState(false);
+  const [selectedStock, setSelectedStock] = useState<Holding | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState<SortField>('currentValue');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
@@ -574,7 +576,8 @@ export default function Portfolio() {
                 return (
                   <tr
                     key={holding.id}
-                    className="border-t border-slate-700 hover:bg-slate-700/30 transition-colors"
+                    onClick={() => setSelectedStock(holding)}
+                    className="border-t border-slate-700 hover:bg-slate-700/30 transition-colors cursor-pointer"
                   >
                     <td className="p-4">
                       <div>
@@ -611,14 +614,20 @@ export default function Portfolio() {
                     <td className="p-4 text-center">
                       <div className="flex items-center justify-center gap-2">
                         <button
-                          onClick={() => handleAddTransaction(holding)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAddTransaction(holding);
+                          }}
                           className="btn-secondary text-sm px-2 py-1"
                           title="Add Transaction"
                         >
                           +Txn
                         </button>
                         <button
-                          onClick={() => handleDelete(holding)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(holding);
+                          }}
                           className="btn-danger text-sm px-2 py-1"
                           title="Delete"
                         >
@@ -645,6 +654,12 @@ export default function Portfolio() {
             setShowAddTransaction(false);
             setSelectedHolding(null);
           }}
+        />
+      )}
+      {selectedStock && (
+        <StockDetailModal
+          holding={selectedStock}
+          onClose={() => setSelectedStock(null)}
         />
       )}
     </div>

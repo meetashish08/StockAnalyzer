@@ -3,6 +3,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, 
 import { useStore } from '../../store/useStore';
 import { formatCurrency, formatPercent, formatPrice } from '../../utils/format';
 import type { PortfolioHealth } from '../../../shared/types';
+import ClickableStock from '../common/ClickableStock';
 
 const COLORS = ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#f97316', '#84cc16', '#14b8a6'];
 
@@ -53,7 +54,12 @@ function StockListModal({
                 <tr key={idx} className="border-t border-slate-700 hover:bg-slate-700/30">
                   <td className="p-3 text-slate-400">{idx + 1}</td>
                   <td className="p-3">
-                    <p className="font-medium text-white">{stock.symbol}</p>
+                    <ClickableStock
+                      symbol={stock.symbol}
+                      market={stock.market || 'NSE'}
+                      name={stock.name}
+                      className="font-medium block"
+                    />
                     {stock.name && <p className="text-xs text-slate-400">{stock.name}</p>}
                   </td>
                   <td className="p-3 text-right text-white">{formatCurrency(stock.currentValue)}</td>

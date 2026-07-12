@@ -200,6 +200,12 @@ const SYMBOL_MAP = {
   'VEDANTAIRONANDSTEELL': 'VISL',
   'VEDANTAOILANDGAS': 'VOGL',
   'VEDANTAPOWER': 'VEDPOWER',
+  // Real Estate
+  'ANANTRAJ': 'ANANTRAJ',
+  // Hotels
+  'ITCHOTELS': 'ITCHOTELS',
+  // Cement
+  'JSWCEMENT': 'JSWCEMENT',
 };
 
 // REITs that need BSE exchange for accurate prices (NSE data is often stale)
@@ -1687,6 +1693,640 @@ app.get('/api/recommendations/export/excel', async (req, res) => {
   }
 });
 
+// === STOCK PICKER APIs ===
+
+// Stock Recommendations Engine
+app.post('/api/stock-recommendations', async (req, res) => {
+  try {
+    const { currentHoldings, riskProfile, investmentGoal, timeHorizon, market } = req.body;
+
+    // Define stock universe based on market
+    const stockUniverse = market === 'NSE' ? [
+      // Banking
+      { symbol: 'HDFCBANK', name: 'HDFC Bank', sector: 'Banking', pe: 18.5, rsi: 55, dividendYield: 1.2, roe: 17.5, marketCap: 'LARGE' },
+      { symbol: 'ICICIBANK', name: 'ICICI Bank', sector: 'Banking', pe: 16.2, rsi: 58, dividendYield: 1.5, roe: 16.8, marketCap: 'LARGE' },
+      { symbol: 'KOTAKBANK', name: 'Kotak Mahindra Bank', sector: 'Banking', pe: 17.8, rsi: 52, dividendYield: 0.8, roe: 14.2, marketCap: 'LARGE' },
+      // IT
+      { symbol: 'TCS', name: 'Tata Consultancy Services', sector: 'IT', pe: 28.5, rsi: 60, dividendYield: 2.8, roe: 45.2, marketCap: 'LARGE' },
+      { symbol: 'INFY', name: 'Infosys', sector: 'IT', pe: 25.3, rsi: 62, dividendYield: 2.5, roe: 31.5, marketCap: 'LARGE' },
+      { symbol: 'WIPRO', name: 'Wipro', sector: 'IT', pe: 22.1, rsi: 48, dividendYield: 1.8, roe: 18.3, marketCap: 'LARGE' },
+      // Pharma
+      { symbol: 'SUNPHARMA', name: 'Sun Pharmaceutical', sector: 'Pharma', pe: 32.5, rsi: 56, dividendYield: 0.9, roe: 14.8, marketCap: 'LARGE' },
+      { symbol: 'DRREDDY', name: 'Dr Reddys Laboratories', sector: 'Pharma', pe: 29.8, rsi: 54, dividendYield: 0.7, roe: 13.2, marketCap: 'LARGE' },
+      // Auto
+      { symbol: 'MARUTI', name: 'Maruti Suzuki', sector: 'Auto', pe: 24.5, rsi: 59, dividendYield: 1.3, roe: 16.5, marketCap: 'LARGE' },
+      { symbol: 'M&M', name: 'Mahindra & Mahindra', sector: 'Auto', pe: 22.3, rsi: 63, dividendYield: 1.1, roe: 18.7, marketCap: 'LARGE' },
+      // FMCG
+      { symbol: 'HINDUNILVR', name: 'Hindustan Unilever', sector: 'FMCG', pe: 62.5, rsi: 51, dividendYield: 1.6, roe: 82.3, marketCap: 'LARGE' },
+      { symbol: 'ITC', name: 'ITC Limited', sector: 'FMCG', pe: 28.9, rsi: 57, dividendYield: 3.2, roe: 24.5, marketCap: 'LARGE' },
+      // Energy
+      { symbol: 'RELIANCE', name: 'Reliance Industries', sector: 'Energy', pe: 26.8, rsi: 61, dividendYield: 0.5, roe: 9.8, marketCap: 'LARGE' },
+      { symbol: 'ONGC', name: 'Oil & Natural Gas Corp', sector: 'Energy', pe: 8.5, rsi: 45, dividendYield: 5.2, roe: 11.2, marketCap: 'LARGE' },
+    ] : [
+      // US Stocks - Tech
+      { symbol: 'AAPL', name: 'Apple Inc.', sector: 'Technology', pe: 28.5, rsi: 58, dividendYield: 0.5, roe: 147.5, marketCap: 'LARGE' },
+      { symbol: 'MSFT', name: 'Microsoft Corporation', sector: 'Technology', pe: 32.8, rsi: 62, dividendYield: 0.8, roe: 43.2, marketCap: 'LARGE' },
+      { symbol: 'GOOGL', name: 'Alphabet Inc.', sector: 'Technology', pe: 24.2, rsi: 55, dividendYield: 0, roe: 28.5, marketCap: 'LARGE' },
+      { symbol: 'AMZN', name: 'Amazon.com Inc.', sector: 'Technology', pe: 52.3, rsi: 60, dividendYield: 0, roe: 18.7, marketCap: 'LARGE' },
+      // Finance
+      { symbol: 'JPM', name: 'JPMorgan Chase & Co.', sector: 'Finance', pe: 12.5, rsi: 56, dividendYield: 2.5, roe: 15.8, marketCap: 'LARGE' },
+      { symbol: 'BAC', name: 'Bank of America Corp', sector: 'Finance', pe: 11.8, rsi: 54, dividendYield: 2.8, roe: 11.2, marketCap: 'LARGE' },
+      // Healthcare
+      { symbol: 'JNJ', name: 'Johnson & Johnson', sector: 'Healthcare', pe: 24.5, rsi: 52, dividendYield: 2.6, roe: 25.3, marketCap: 'LARGE' },
+      { symbol: 'PFE', name: 'Pfizer Inc.', sector: 'Healthcare', pe: 18.2, rsi: 48, dividendYield: 3.5, roe: 12.5, marketCap: 'LARGE' },
+      // Consumer
+      { symbol: 'KO', name: 'Coca-Cola Company', sector: 'Consumer', pe: 26.3, rsi: 55, dividendYield: 3.0, roe: 40.2, marketCap: 'LARGE' },
+      { symbol: 'PG', name: 'Procter & Gamble Co', sector: 'Consumer', pe: 27.5, rsi: 53, dividendYield: 2.4, roe: 32.8, marketCap: 'LARGE' },
+    ];
+
+    // Get user's current sector exposure
+    const userSectors = {};
+    currentHoldings.forEach(h => {
+      if (h.sector) {
+        userSectors[h.sector] = (userSectors[h.sector] || 0) + 1;
+      }
+    });
+
+    const recommendations = [];
+
+    for (const stock of stockUniverse) {
+      // Skip if user already owns this stock
+      if (currentHoldings.some(h => h.symbol === stock.symbol)) continue;
+
+      // Calculate scores based on investment profile
+      let score = 50;
+      const rationale = [];
+
+      // Risk Profile Scoring
+      if (riskProfile === 'conservative') {
+        if (stock.marketCap === 'LARGE') { score += 15; rationale.push('Large-cap stability suits conservative profile'); }
+        if (stock.pe < 20) { score += 10; rationale.push(`Reasonable P/E ratio of ${stock.pe.toFixed(1)}`); }
+        if (stock.dividendYield > 2) { score += 15; rationale.push(`Strong dividend yield of ${stock.dividendYield.toFixed(1)}%`); }
+        if (stock.roe > 15) { score += 10; }
+      } else if (riskProfile === 'moderate') {
+        if (stock.pe < 25) { score += 10; }
+        if (stock.rsi > 50 && stock.rsi < 70) { score += 15; rationale.push('Healthy momentum (RSI in optimal range)'); }
+        if (stock.roe > 18) { score += 10; rationale.push(`Strong ROE of ${stock.roe.toFixed(1)}%`); }
+      } else if (riskProfile === 'aggressive') {
+        if (stock.rsi > 60) { score += 15; rationale.push('Strong momentum for growth'); }
+        if (stock.roe > 25) { score += 15; rationale.push(`Excellent ROE of ${stock.roe.toFixed(1)}%`); }
+        if (stock.sector === 'Technology' || stock.sector === 'IT') { score += 10; rationale.push('High-growth technology sector'); }
+      }
+
+      // Investment Goal Scoring
+      if (investmentGoal === 'income') {
+        if (stock.dividendYield > 2) { score += 20; }
+        if (stock.dividendYield > 3) { score += 10; }
+      } else if (investmentGoal === 'growth') {
+        if (stock.rsi > 55) { score += 10; }
+        if (stock.roe > 20) { score += 15; }
+      }
+
+      // Diversification Bonus - prefer sectors user doesn't have
+      if (!userSectors[stock.sector]) {
+        score += 20;
+        rationale.push(`You have 0% exposure to ${stock.sector} sector`);
+      } else if (userSectors[stock.sector] === 1) {
+        score += 5;
+        rationale.push(`Low exposure to ${stock.sector} sector`);
+      }
+
+      // Technical signals
+      if (stock.rsi < 30) {
+        rationale.push('Oversold - potential buying opportunity');
+        score += 10;
+      } else if (stock.rsi > 50 && stock.rsi < 70) {
+        rationale.push('Positive momentum without being overbought');
+      }
+
+      if (stock.pe < 15) {
+        rationale.push('Trading at attractive valuation');
+      } else if (stock.pe > 30) {
+        rationale.push('Premium valuation - priced for growth');
+        if (riskProfile === 'conservative') score -= 10;
+      }
+
+      // Only recommend stocks with score > 60
+      if (score >= 60) {
+        // Fetch live price from Yahoo Finance
+        let currentPrice = 1000; // Default
+        let targetPrice = currentPrice * 1.15; // Default 15% upside
+
+        try {
+          const yahooSymbol = market === 'NSE' ? `${stock.symbol}.NS` : stock.symbol;
+          const quote = await yahooFinance.quote(yahooSymbol);
+          if (quote && quote.regularMarketPrice) {
+            currentPrice = quote.regularMarketPrice;
+
+            // Calculate target price based on time horizon and risk
+            const horizonMultiplier = timeHorizon === '1year' ? 1.08 :
+                                     timeHorizon === '3years' ? 1.15 :
+                                     timeHorizon === '5years' ? 1.25 : 1.35;
+            targetPrice = currentPrice * horizonMultiplier;
+          }
+        } catch (err) {
+          console.log(`Failed to fetch price for ${stock.symbol}:`, err.message);
+        }
+
+        const upside = ((targetPrice - currentPrice) / currentPrice) * 100;
+
+        recommendations.push({
+          symbol: stock.symbol,
+          name: stock.name,
+          market: market,
+          currentPrice: Math.round(currentPrice * 100) / 100,
+          targetPrice: Math.round(targetPrice * 100) / 100,
+          upside: Math.round(upside * 10) / 10,
+          rating: score >= 80 ? 'STRONG_BUY' : score >= 70 ? 'BUY' : 'HOLD',
+          rationale: rationale.slice(0, 4), // Top 4 reasons
+          technicals: {
+            pe: stock.pe,
+            trend: stock.rsi > 55 ? 'Bullish' : stock.rsi < 45 ? 'Bearish' : 'Neutral',
+            rsi: stock.rsi,
+            above200DMA: stock.rsi > 50,
+          },
+          risk: stock.marketCap === 'LARGE' && stock.pe < 25 ? 'LOW' :
+                stock.pe < 35 ? 'MEDIUM' : 'HIGH',
+          sector: stock.sector,
+          investmentRange: {
+            min: market === 'NSE' ? 10000 : 1000,
+            max: market === 'NSE' ? 50000 : 5000,
+          },
+          score,
+        });
+      }
+    }
+
+    // Sort by score descending and return top 8
+    recommendations.sort((a, b) => b.score - a.score);
+    res.json(recommendations.slice(0, 8));
+
+  } catch (error) {
+    console.error('Stock recommendations error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Portfolio Gaps Analysis
+app.post('/api/portfolio-gaps', async (req, res) => {
+  try {
+    const { currentHoldings, market } = req.body;
+
+    // Nifty 50 benchmark sector weights (approximate)
+    const nifty50Benchmark = {
+      'Banking': 28.5,
+      'IT': 17.2,
+      'Energy': 12.8,
+      'Auto': 8.5,
+      'FMCG': 7.3,
+      'Pharma': 6.2,
+      'Metals': 5.8,
+      'Telecom': 4.5,
+      'Finance': 9.2,
+    };
+
+    // S&P 500 benchmark (simplified)
+    const sp500Benchmark = {
+      'Technology': 28.0,
+      'Finance': 13.5,
+      'Healthcare': 12.8,
+      'Consumer': 10.5,
+      'Industrial': 8.7,
+      'Energy': 4.2,
+      'Real Estate': 2.5,
+      'Utilities': 2.8,
+    };
+
+    const benchmark = market === 'NSE' ? nifty50Benchmark : sp500Benchmark;
+
+    // Calculate user's sector allocation
+    const totalValue = currentHoldings.reduce((sum, h) => sum + h.value, 0);
+    const userSectors = {};
+    currentHoldings.forEach(h => {
+      if (h.sector) {
+        userSectors[h.sector] = (userSectors[h.sector] || 0) + h.value;
+      }
+    });
+
+    const gaps = [];
+
+    // Check each benchmark sector
+    for (const [sector, benchmarkPct] of Object.entries(benchmark)) {
+      const userValue = userSectors[sector] || 0;
+      const userPct = totalValue > 0 ? (userValue / totalValue) * 100 : 0;
+      const gap = userPct - benchmarkPct;
+
+      let status;
+      let recommendations = [];
+
+      if (userPct === 0) {
+        status = 'MISSING';
+        recommendations.push(`Add ${sector} exposure to diversify portfolio`);
+
+        // Suggest specific stocks
+        if (market === 'NSE') {
+          if (sector === 'Banking') recommendations.push('Consider: HDFC Bank, ICICI Bank');
+          else if (sector === 'IT') recommendations.push('Consider: TCS, Infosys');
+          else if (sector === 'Pharma') recommendations.push('Consider: Sun Pharma, Dr Reddy\'s');
+          else if (sector === 'Auto') recommendations.push('Consider: Maruti Suzuki, M&M');
+          else if (sector === 'Energy') recommendations.push('Consider: Reliance Industries');
+        } else {
+          if (sector === 'Technology') recommendations.push('Consider: AAPL, MSFT, GOOGL');
+          else if (sector === 'Healthcare') recommendations.push('Consider: JNJ, PFE');
+          else if (sector === 'Finance') recommendations.push('Consider: JPM, BAC');
+        }
+      } else if (userPct < benchmarkPct * 0.5) {
+        status = 'UNDERWEIGHT';
+        recommendations.push(`Increase ${sector} allocation to ${benchmarkPct.toFixed(1)}% (currently ${userPct.toFixed(1)}%)`);
+        recommendations.push(`Add ${formatCurrency((benchmarkPct - userPct) * totalValue / 100, market === 'NSE' ? 'INR' : 'USD')} to reach benchmark`);
+      } else if (userPct > benchmarkPct * 1.5) {
+        status = 'OVERWEIGHT';
+        recommendations.push(`Reduce ${sector} concentration risk`);
+        recommendations.push(`Consider rebalancing ${formatCurrency((userPct - benchmarkPct) * totalValue / 100, market === 'NSE' ? 'INR' : 'USD')} to other sectors`);
+      } else {
+        status = 'OPTIMAL';
+        recommendations.push(`${sector} allocation is well balanced`);
+      }
+
+      gaps.push({
+        sector,
+        current: Math.round(userPct * 10) / 10,
+        benchmark: Math.round(benchmarkPct * 10) / 10,
+        gap: Math.round(gap * 10) / 10,
+        status,
+        recommendations,
+      });
+    }
+
+    // Sort by status priority: MISSING > UNDERWEIGHT > OVERWEIGHT > OPTIMAL
+    const statusPriority = { 'MISSING': 0, 'UNDERWEIGHT': 1, 'OVERWEIGHT': 2, 'OPTIMAL': 3 };
+    gaps.sort((a, b) => statusPriority[a.status] - statusPriority[b.status]);
+
+    res.json(gaps);
+
+  } catch (error) {
+    console.error('Portfolio gaps error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Mutual Fund Recommendations
+app.get('/api/mutual-funds', async (req, res) => {
+  try {
+    const { category, riskProfile } = req.query;
+
+    // Curated list of top Indian mutual funds
+    const mutualFunds = [
+      // Large Cap
+      {
+        schemeCode: 'MF001',
+        schemeName: 'Mirae Asset Large Cap Fund',
+        category: 'LARGE_CAP',
+        fundHouse: 'Mirae Asset',
+        nav: 85.50,
+        returns: { oneYear: 18.5, threeYear: 21.3, fiveYear: 19.8 },
+        expenseRatio: 0.52,
+        aum: 25000000000,
+        rating: 5,
+        riskLevel: 'LOW',
+      },
+      {
+        schemeCode: 'MF002',
+        schemeName: 'Parag Parikh Flexi Cap Fund',
+        category: 'LARGE_CAP',
+        fundHouse: 'PPFAS',
+        nav: 52.30,
+        returns: { oneYear: 22.8, threeYear: 24.5, fiveYear: 22.1 },
+        expenseRatio: 0.68,
+        aum: 45000000000,
+        rating: 5,
+        riskLevel: 'LOW',
+      },
+      // Mid Cap
+      {
+        schemeCode: 'MF003',
+        schemeName: 'Motilal Oswal Midcap Fund',
+        category: 'MID_CAP',
+        fundHouse: 'Motilal Oswal',
+        nav: 68.75,
+        returns: { oneYear: 28.5, threeYear: 32.8, fiveYear: 26.3 },
+        expenseRatio: 0.75,
+        aum: 18000000000,
+        rating: 4,
+        riskLevel: 'MEDIUM',
+      },
+      {
+        schemeCode: 'MF004',
+        schemeName: 'Kotak Emerging Equity Fund',
+        category: 'MID_CAP',
+        fundHouse: 'Kotak',
+        nav: 78.20,
+        returns: { oneYear: 25.3, threeYear: 29.5, fiveYear: 24.8 },
+        expenseRatio: 0.72,
+        aum: 22000000000,
+        rating: 5,
+        riskLevel: 'MEDIUM',
+      },
+      // Small Cap
+      {
+        schemeCode: 'MF005',
+        schemeName: 'Nippon India Small Cap Fund',
+        category: 'SMALL_CAP',
+        fundHouse: 'Nippon India',
+        nav: 95.80,
+        returns: { oneYear: 32.5, threeYear: 38.2, fiveYear: 28.5 },
+        expenseRatio: 0.85,
+        aum: 32000000000,
+        rating: 5,
+        riskLevel: 'HIGH',
+      },
+      {
+        schemeCode: 'MF006',
+        schemeName: 'Axis Small Cap Fund',
+        category: 'SMALL_CAP',
+        fundHouse: 'Axis',
+        nav: 88.60,
+        returns: { oneYear: 30.8, threeYear: 35.5, fiveYear: 26.8 },
+        expenseRatio: 0.78,
+        aum: 28000000000,
+        rating: 4,
+        riskLevel: 'HIGH',
+      },
+      // Debt
+      {
+        schemeCode: 'MF007',
+        schemeName: 'ICICI Prudential Short Duration Fund',
+        category: 'DEBT',
+        fundHouse: 'ICICI Prudential',
+        nav: 48.25,
+        returns: { oneYear: 7.2, threeYear: 7.8, fiveYear: 7.5 },
+        expenseRatio: 0.45,
+        aum: 15000000000,
+        rating: 4,
+        riskLevel: 'LOW',
+      },
+      {
+        schemeCode: 'MF008',
+        schemeName: 'HDFC Corporate Bond Fund',
+        category: 'DEBT',
+        fundHouse: 'HDFC',
+        nav: 28.90,
+        returns: { oneYear: 7.8, threeYear: 8.2, fiveYear: 7.9 },
+        expenseRatio: 0.42,
+        aum: 20000000000,
+        rating: 5,
+        riskLevel: 'LOW',
+      },
+      // Hybrid
+      {
+        schemeCode: 'MF009',
+        schemeName: 'HDFC Balanced Advantage Fund',
+        category: 'HYBRID',
+        fundHouse: 'HDFC',
+        nav: 325.50,
+        returns: { oneYear: 15.2, threeYear: 17.8, fiveYear: 16.5 },
+        expenseRatio: 0.58,
+        aum: 55000000000,
+        rating: 5,
+        riskLevel: 'MEDIUM',
+      },
+      {
+        schemeCode: 'MF010',
+        schemeName: 'ICICI Prudential Equity & Debt Fund',
+        category: 'HYBRID',
+        fundHouse: 'ICICI Prudential',
+        nav: 245.80,
+        returns: { oneYear: 14.5, threeYear: 16.8, fiveYear: 15.2 },
+        expenseRatio: 0.62,
+        aum: 42000000000,
+        rating: 4,
+        riskLevel: 'MEDIUM',
+      },
+      // Index
+      {
+        schemeCode: 'MF011',
+        schemeName: 'UTI Nifty 50 Index Fund',
+        category: 'INDEX',
+        fundHouse: 'UTI',
+        nav: 168.25,
+        returns: { oneYear: 17.8, threeYear: 20.5, fiveYear: 18.2 },
+        expenseRatio: 0.15,
+        aum: 35000000000,
+        rating: 4,
+        riskLevel: 'LOW',
+      },
+      {
+        schemeCode: 'MF012',
+        schemeName: 'ICICI Prudential Nifty Next 50 Index Fund',
+        category: 'INDEX',
+        fundHouse: 'ICICI Prudential',
+        nav: 42.50,
+        returns: { oneYear: 22.5, threeYear: 25.8, fiveYear: 21.5 },
+        expenseRatio: 0.18,
+        aum: 18000000000,
+        rating: 4,
+        riskLevel: 'MEDIUM',
+      },
+      // Sectoral
+      {
+        schemeCode: 'MF013',
+        schemeName: 'SBI Technology Opportunities Fund',
+        category: 'SECTORAL',
+        fundHouse: 'SBI',
+        nav: 185.60,
+        returns: { oneYear: 25.8, threeYear: 28.5, fiveYear: 24.2 },
+        expenseRatio: 0.85,
+        aum: 12000000000,
+        rating: 4,
+        riskLevel: 'HIGH',
+      },
+      {
+        schemeCode: 'MF014',
+        schemeName: 'ICICI Prudential Pharma Healthcare Fund',
+        category: 'SECTORAL',
+        fundHouse: 'ICICI Prudential',
+        nav: 425.30,
+        returns: { oneYear: 18.5, threeYear: 22.3, fiveYear: 19.8 },
+        expenseRatio: 0.78,
+        aum: 8000000000,
+        rating: 3,
+        riskLevel: 'HIGH',
+      },
+    ];
+
+    // Filter by category
+    let filtered = category && category !== 'ALL'
+      ? mutualFunds.filter(f => f.category === category)
+      : mutualFunds;
+
+    // Filter by risk profile
+    if (riskProfile === 'conservative') {
+      filtered = filtered.filter(f => f.riskLevel === 'LOW' || f.category === 'DEBT');
+    } else if (riskProfile === 'moderate') {
+      filtered = filtered.filter(f => f.riskLevel !== 'HIGH');
+    }
+
+    // Sort by 3-year returns descending
+    filtered.sort((a, b) => b.returns.threeYear - a.returns.threeYear);
+
+    res.json(filtered);
+
+  } catch (error) {
+    console.error('Mutual funds error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Stock Screener
+app.post('/api/stock-screener', async (req, res) => {
+  try {
+    const { filters, market } = req.body;
+
+    // Expanded stock database with comprehensive data
+    const stockDatabase = market === 'NSE' ? [
+      // Banking Sector
+      { symbol: 'HDFCBANK', name: 'HDFC Bank', sector: 'Banking', price: 1650, pe: 18.5, dividendYield: 1.2, roe: 17.5, performance52w: 12.8, marketCap: 'LARGE', ma50: 1620, ma200: 1580 },
+      { symbol: 'ICICIBANK', name: 'ICICI Bank', sector: 'Banking', price: 1050, pe: 16.2, dividendYield: 1.5, roe: 16.8, performance52w: 28.5, marketCap: 'LARGE', ma50: 1020, ma200: 980 },
+      { symbol: 'KOTAKBANK', name: 'Kotak Mahindra Bank', sector: 'Banking', price: 1850, pe: 17.8, dividendYield: 0.8, roe: 14.2, performance52w: 10.2, marketCap: 'LARGE', ma50: 1820, ma200: 1750 },
+      { symbol: 'SBIN', name: 'State Bank of India', sector: 'Banking', price: 625, pe: 12.5, dividendYield: 2.8, roe: 18.5, performance52w: 35.5, marketCap: 'LARGE', ma50: 610, ma200: 580 },
+      { symbol: 'AXISBANK', name: 'Axis Bank', sector: 'Banking', price: 1125, pe: 14.8, dividendYield: 0.9, roe: 15.2, performance52w: 22.3, marketCap: 'LARGE', ma50: 1100, ma200: 1050 },
+      { symbol: 'INDUSINDBK', name: 'IndusInd Bank', sector: 'Banking', price: 1420, pe: 13.2, dividendYield: 1.1, roe: 16.5, performance52w: 18.7, marketCap: 'MID', ma50: 1380, ma200: 1320 },
+
+      // IT Sector
+      { symbol: 'TCS', name: 'Tata Consultancy Services', sector: 'IT', price: 3650, pe: 28.5, dividendYield: 2.8, roe: 45.2, performance52w: 22.5, marketCap: 'LARGE', ma50: 3600, ma200: 3450 },
+      { symbol: 'INFY', name: 'Infosys', sector: 'IT', price: 1580, pe: 25.3, dividendYield: 2.5, roe: 31.5, performance52w: 18.5, marketCap: 'LARGE', ma50: 1550, ma200: 1480 },
+      { symbol: 'WIPRO', name: 'Wipro Limited', sector: 'IT', price: 465, pe: 22.8, dividendYield: 1.8, roe: 17.8, performance52w: 12.5, marketCap: 'LARGE', ma50: 455, ma200: 440 },
+      { symbol: 'HCLTECH', name: 'HCL Technologies', sector: 'IT', price: 1420, pe: 24.5, dividendYield: 3.2, roe: 22.5, performance52w: 25.8, marketCap: 'LARGE', ma50: 1390, ma200: 1320 },
+      { symbol: 'TECHM', name: 'Tech Mahindra', sector: 'IT', price: 1285, pe: 26.8, dividendYield: 2.1, roe: 19.5, performance52w: 15.2, marketCap: 'MID', ma50: 1260, ma200: 1210 },
+
+      // FMCG Sector
+      { symbol: 'HINDUNILVR', name: 'Hindustan Unilever', sector: 'FMCG', price: 2680, pe: 62.5, dividendYield: 1.6, roe: 82.3, performance52w: 8.5, marketCap: 'LARGE', ma50: 2650, ma200: 2580 },
+      { symbol: 'ITC', name: 'ITC Limited', sector: 'FMCG', price: 425, pe: 28.9, dividendYield: 3.2, roe: 24.5, performance52w: 5.2, marketCap: 'LARGE', ma50: 420, ma200: 410 },
+      { symbol: 'NESTLEIND', name: 'Nestle India', sector: 'FMCG', price: 24500, pe: 72.5, dividendYield: 1.2, roe: 95.5, performance52w: 12.8, marketCap: 'LARGE', ma50: 24200, ma200: 23500 },
+      { symbol: 'BRITANNIA', name: 'Britannia Industries', sector: 'FMCG', price: 5250, pe: 58.5, dividendYield: 0.9, roe: 38.5, performance52w: 18.5, marketCap: 'LARGE', ma50: 5180, ma200: 4950 },
+      { symbol: 'DABUR', name: 'Dabur India', sector: 'FMCG', price: 525, pe: 48.5, dividendYield: 1.5, roe: 22.8, performance52w: 6.5, marketCap: 'MID', ma50: 520, ma200: 505 },
+
+      // Energy Sector
+      { symbol: 'RELIANCE', name: 'Reliance Industries', sector: 'Energy', price: 2450, pe: 26.8, dividendYield: 0.5, roe: 9.8, performance52w: 15.2, marketCap: 'LARGE', ma50: 2420, ma200: 2350 },
+      { symbol: 'ONGC', name: 'Oil & Natural Gas Corp', sector: 'Energy', price: 245, pe: 8.5, dividendYield: 4.5, roe: 12.5, performance52w: 28.5, marketCap: 'LARGE', ma50: 240, ma200: 228 },
+      { symbol: 'BPCL', name: 'Bharat Petroleum', sector: 'Energy', price: 385, pe: 9.8, dividendYield: 3.8, roe: 15.8, performance52w: 32.5, marketCap: 'LARGE', ma50: 375, ma200: 355 },
+      { symbol: 'NTPC', name: 'NTPC Limited', sector: 'Energy', price: 285, pe: 12.5, dividendYield: 3.5, roe: 14.2, performance52w: 42.5, marketCap: 'LARGE', ma50: 275, ma200: 255 },
+      { symbol: 'POWERGRID', name: 'Power Grid Corp', sector: 'Energy', price: 245, pe: 14.2, dividendYield: 4.2, roe: 16.5, performance52w: 25.8, marketCap: 'LARGE', ma50: 240, ma200: 228 },
+
+      // Pharma Sector
+      { symbol: 'SUNPHARMA', name: 'Sun Pharmaceutical', sector: 'Pharma', price: 1480, pe: 38.5, dividendYield: 0.6, roe: 14.8, performance52w: 22.5, marketCap: 'LARGE', ma50: 1450, ma200: 1380 },
+      { symbol: 'DRREDDY', name: 'Dr Reddys Laboratories', sector: 'Pharma', price: 5850, pe: 42.5, dividendYield: 0.5, roe: 12.5, performance52w: 18.5, marketCap: 'LARGE', ma50: 5750, ma200: 5450 },
+      { symbol: 'CIPLA', name: 'Cipla Limited', sector: 'Pharma', price: 1285, pe: 28.5, dividendYield: 1.2, roe: 15.8, performance52w: 25.5, marketCap: 'MID', ma50: 1250, ma200: 1180 },
+      { symbol: 'DIVISLAB', name: 'Divis Laboratories', sector: 'Pharma', price: 3580, pe: 52.5, dividendYield: 0.8, roe: 18.5, performance52w: 15.2, marketCap: 'MID', ma50: 3520, ma200: 3350 },
+      { symbol: 'BIOCON', name: 'Biocon Limited', sector: 'Pharma', price: 325, pe: 32.5, dividendYield: 0.7, roe: 11.5, performance52w: 8.5, marketCap: 'MID', ma50: 318, ma200: 305 },
+
+      // Auto Sector
+      { symbol: 'MARUTI', name: 'Maruti Suzuki', sector: 'Auto', price: 11500, pe: 24.5, dividendYield: 1.3, roe: 16.5, performance52w: 35.8, marketCap: 'LARGE', ma50: 11250, ma200: 10850 },
+      { symbol: 'TATAMOTORS', name: 'Tata Motors', sector: 'Auto', price: 825, pe: 18.5, dividendYield: 0.8, roe: 22.5, performance52w: 52.5, marketCap: 'LARGE', ma50: 790, ma200: 720 },
+      { symbol: 'M&M', name: 'Mahindra & Mahindra', sector: 'Auto', price: 1850, pe: 22.8, dividendYield: 1.2, roe: 18.5, performance52w: 42.5, marketCap: 'LARGE', ma50: 1820, ma200: 1680 },
+      { symbol: 'BAJAJ-AUTO', name: 'Bajaj Auto', sector: 'Auto', price: 8250, pe: 28.5, dividendYield: 2.8, roe: 32.5, performance52w: 28.5, marketCap: 'LARGE', ma50: 8100, ma200: 7650 },
+      { symbol: 'HEROMOTOCO', name: 'Hero MotoCorp', sector: 'Auto', price: 4250, pe: 26.5, dividendYield: 2.2, roe: 28.5, performance52w: 22.5, marketCap: 'LARGE', ma50: 4180, ma200: 3950 },
+
+      // Metals Sector
+      { symbol: 'TATASTEEL', name: 'Tata Steel', sector: 'Metals', price: 128, pe: 8.5, dividendYield: 2.8, roe: 18.5, performance52w: 15.2, marketCap: 'LARGE', ma50: 125, ma200: 118 },
+      { symbol: 'HINDALCO', name: 'Hindalco Industries', sector: 'Metals', price: 585, pe: 12.5, dividendYield: 1.5, roe: 16.8, performance52w: 22.5, marketCap: 'LARGE', ma50: 575, ma200: 550 },
+      { symbol: 'JSWSTEEL', name: 'JSW Steel', sector: 'Metals', price: 825, pe: 14.5, dividendYield: 1.8, roe: 15.5, performance52w: 18.5, marketCap: 'LARGE', ma50: 810, ma200: 780 },
+      { symbol: 'VEDL', name: 'Vedanta Limited', sector: 'Metals', price: 385, pe: 9.8, dividendYield: 5.5, roe: 22.5, performance52w: 32.5, marketCap: 'MID', ma50: 375, ma200: 350 },
+      { symbol: 'SAIL', name: 'Steel Authority of India', sector: 'Metals', price: 115, pe: 6.5, dividendYield: 3.2, roe: 14.5, performance52w: 12.5, marketCap: 'MID', ma50: 112, ma200: 105 },
+    ] : [
+      // US Technology
+      { symbol: 'AAPL', name: 'Apple Inc.', sector: 'Technology', price: 185, pe: 28.5, dividendYield: 0.5, roe: 147.5, performance52w: 42.5, marketCap: 'LARGE', ma50: 182, ma200: 175 },
+      { symbol: 'MSFT', name: 'Microsoft Corporation', sector: 'Technology', price: 380, pe: 32.8, dividendYield: 0.8, roe: 43.2, performance52w: 52.8, marketCap: 'LARGE', ma50: 375, ma200: 355 },
+      { symbol: 'GOOGL', name: 'Alphabet Inc.', sector: 'Technology', price: 142, pe: 24.2, dividendYield: 0, roe: 28.5, performance52w: 38.5, marketCap: 'LARGE', ma50: 140, ma200: 132 },
+      { symbol: 'META', name: 'Meta Platforms', sector: 'Technology', price: 485, pe: 26.5, dividendYield: 0.4, roe: 32.5, performance52w: 58.5, marketCap: 'LARGE', ma50: 475, ma200: 445 },
+      { symbol: 'NVDA', name: 'NVIDIA Corporation', sector: 'Technology', price: 495, pe: 72.5, dividendYield: 0.1, roe: 85.5, performance52w: 125.5, marketCap: 'LARGE', ma50: 485, ma200: 425 },
+      { symbol: 'TSLA', name: 'Tesla Inc.', sector: 'Auto', price: 245, pe: 68.5, dividendYield: 0, roe: 28.5, performance52w: 52.5, marketCap: 'LARGE', ma50: 240, ma200: 215 },
+      { symbol: 'AMZN', name: 'Amazon.com Inc.', sector: 'Technology', price: 155, pe: 58.5, dividendYield: 0, roe: 18.5, performance52w: 48.5, marketCap: 'LARGE', ma50: 152, ma200: 142 },
+
+      // US Finance
+      { symbol: 'JPM', name: 'JPMorgan Chase', sector: 'Finance', price: 165, pe: 12.5, dividendYield: 2.5, roe: 15.8, performance52w: 22.5, marketCap: 'LARGE', ma50: 162, ma200: 155 },
+      { symbol: 'BAC', name: 'Bank of America', sector: 'Finance', price: 38, pe: 11.8, dividendYield: 2.8, roe: 12.5, performance52w: 18.5, marketCap: 'LARGE', ma50: 37, ma200: 35 },
+      { symbol: 'WFC', name: 'Wells Fargo', sector: 'Finance', price: 52, pe: 10.5, dividendYield: 3.2, roe: 11.8, performance52w: 25.5, marketCap: 'LARGE', ma50: 51, ma200: 48 },
+      { symbol: 'GS', name: 'Goldman Sachs', sector: 'Finance', price: 385, pe: 14.5, dividendYield: 2.2, roe: 14.5, performance52w: 32.5, marketCap: 'LARGE', ma50: 378, ma200: 355 },
+      { symbol: 'MS', name: 'Morgan Stanley', sector: 'Finance', price: 92, pe: 13.5, dividendYield: 3.5, roe: 13.2, performance52w: 28.5, marketCap: 'LARGE', ma50: 90, ma200: 85 },
+
+      // US Healthcare
+      { symbol: 'JNJ', name: 'Johnson & Johnson', sector: 'Healthcare', price: 158, pe: 24.5, dividendYield: 2.6, roe: 25.3, performance52w: 8.5, marketCap: 'LARGE', ma50: 156, ma200: 152 },
+      { symbol: 'UNH', name: 'UnitedHealth Group', sector: 'Healthcare', price: 525, pe: 28.5, dividendYield: 1.2, roe: 28.5, performance52w: 22.5, marketCap: 'LARGE', ma50: 518, ma200: 495 },
+      { symbol: 'PFE', name: 'Pfizer Inc.', sector: 'Healthcare', price: 28, pe: 18.5, dividendYield: 5.8, roe: 12.5, performance52w: -8.5, marketCap: 'LARGE', ma50: 27, ma200: 29 },
+      { symbol: 'ABBV', name: 'AbbVie Inc.', sector: 'Healthcare', price: 168, pe: 22.5, dividendYield: 3.5, roe: 52.5, performance52w: 18.5, marketCap: 'LARGE', ma50: 165, ma200: 158 },
+      { symbol: 'LLY', name: 'Eli Lilly', sector: 'Healthcare', price: 685, pe: 85.5, dividendYield: 0.6, roe: 48.5, performance52w: 95.5, marketCap: 'LARGE', ma50: 670, ma200: 595 },
+
+      // US Consumer
+      { symbol: 'KO', name: 'Coca-Cola Company', sector: 'Consumer', price: 62, pe: 26.3, dividendYield: 3.0, roe: 40.2, performance52w: 12.5, marketCap: 'LARGE', ma50: 61, ma200: 59 },
+      { symbol: 'PG', name: 'Procter & Gamble', sector: 'Consumer', price: 158, pe: 27.5, dividendYield: 2.4, roe: 32.8, performance52w: 15.2, marketCap: 'LARGE', ma50: 156, ma200: 152 },
+      { symbol: 'WMT', name: 'Walmart Inc.', sector: 'Consumer', price: 172, pe: 32.5, dividendYield: 1.2, roe: 22.5, performance52w: 28.5, marketCap: 'LARGE', ma50: 169, ma200: 162 },
+      { symbol: 'MCD', name: 'McDonalds Corp', sector: 'Consumer', price: 285, pe: 28.5, dividendYield: 2.1, roe: 52.5, performance52w: 18.5, marketCap: 'LARGE', ma50: 282, ma200: 272 },
+      { symbol: 'NKE', name: 'Nike Inc.', sector: 'Consumer', price: 105, pe: 32.5, dividendYield: 1.2, roe: 38.5, performance52w: 8.5, marketCap: 'LARGE', ma50: 103, ma200: 108 },
+    ];
+
+    let results = [...stockDatabase];
+
+    // Apply filters
+    if (filters.marketCap && filters.marketCap !== 'ALL') {
+      results = results.filter(s => s.marketCap === filters.marketCap);
+    }
+
+    if (filters.sector && filters.sector !== 'ALL') {
+      results = results.filter(s => s.sector === filters.sector);
+    }
+
+    if (filters.peRatio && filters.peRatio !== 'ALL') {
+      if (filters.peRatio === '<15') {
+        results = results.filter(s => s.pe < 15);
+      } else if (filters.peRatio === '15-25') {
+        results = results.filter(s => s.pe >= 15 && s.pe <= 25);
+      } else if (filters.peRatio === '>25') {
+        results = results.filter(s => s.pe > 25);
+      }
+    }
+
+    if (filters.dividendYield && filters.dividendYield !== 'ALL') {
+      if (filters.dividendYield === '>2%') {
+        results = results.filter(s => s.dividendYield > 2);
+      } else if (filters.dividendYield === '>4%') {
+        results = results.filter(s => s.dividendYield > 4);
+      }
+    }
+
+    if (filters.roe && filters.roe !== 'ALL') {
+      if (filters.roe === '>15%') {
+        results = results.filter(s => s.roe > 15);
+      } else if (filters.roe === '>20%') {
+        results = results.filter(s => s.roe > 20);
+      }
+    }
+
+    if (filters.performance52w && filters.performance52w !== 'ALL') {
+      if (filters.performance52w === 'NEAR_HIGH') {
+        results = results.filter(s => s.performance52w > 40); // Within 10% of 52W high
+      } else if (filters.performance52w === 'NEAR_LOW') {
+        results = results.filter(s => s.performance52w < 10); // Near 52W low
+      }
+    }
+
+    // Apply Moving Average filter
+    if (filters.ma && filters.ma !== 'ALL') {
+      if (filters.ma === 'ABOVE_50') {
+        results = results.filter(s => s.price > (s.ma50 || 0));
+      } else if (filters.ma === 'ABOVE_200') {
+        results = results.filter(s => s.price > (s.ma200 || 0));
+      }
+    }
+
+    res.json(results);
+
+  } catch (error) {
+    console.error('Stock screener error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // === IMPORT HISTORY APIs ===
 
 // Get import history
@@ -1765,12 +2405,16 @@ app.post('/api/refresh-prices', async (req, res) => {
   for (const holding of data.holdings) {
     const mapped = SYMBOL_MAP[holding.symbol.toUpperCase()] || holding.symbol;
 
-    // For REITs, use BSE first (NSE data is often stale)
-    // For others, try NSE first, then BSE
+    // Build symbol list based on market
     let symbolsToTry;
-    if (USE_BSE_EXCHANGE.includes(mapped.toUpperCase())) {
+    if (holding.market === 'NYSE' || holding.market === 'NASDAQ') {
+      // US stocks: use symbol as-is (no .NS/.BO suffix)
+      symbolsToTry = [mapped];
+    } else if (USE_BSE_EXCHANGE.includes(mapped.toUpperCase())) {
+      // For REITs, use BSE first (NSE data is often stale)
       symbolsToTry = [`${mapped}.BO`, `${mapped}.NS`, mapped];
     } else {
+      // For other Indian stocks, try NSE first, then BSE
       symbolsToTry = [`${mapped}.NS`, `${mapped}.BO`, mapped];
     }
 
@@ -1853,19 +2497,48 @@ function parseCSV(content) {
   const lines = content.split('\n').filter(line => line.trim());
   if (lines.length < 2) return [];
 
-  const headers = lines[0].toLowerCase().split(',').map(h => h.trim());
+  // Parse headers using CSV line parser to handle quoted values
+  const headerValues = parseCSVLine(lines[0]);
+  const headers = headerValues.map(h => String(h).toLowerCase().trim().replace(/"/g, ''));
+
+  // Detect format from headers
+  const headerStr = headers.join('|');
+  let detectedFormat = 'generic';
+  let detectedMarket = null;
+
+  // Zerodha format: "Instrument", "Qty.", "Avg. cost", "LTP", "Invested", "Cur. val", "P&L"
+  if (headerStr.includes('instrument') && headerStr.includes('qty') && headerStr.includes('avg. cost')) {
+    detectedFormat = 'zerodha';
+    detectedMarket = 'IN';
+    console.log('Detected Zerodha CSV format');
+  }
+  // INDmoney format: "Stock Symbol", "Holding Since", "Quantity", "Avg. Price ($)"
+  else if (headerStr.includes('stock symbol') && headerStr.includes('holding since')) {
+    detectedFormat = 'indmoney';
+    detectedMarket = 'US';
+    console.log('Detected INDmoney CSV format');
+  }
+  // Groww format: "Stock Name", "ISIN", "Quantity"
+  else if (headerStr.includes('stock name') || headerStr.includes('isin')) {
+    detectedFormat = 'groww';
+    detectedMarket = 'IN';
+    console.log('Detected Groww CSV format');
+  }
+
   const transactions = [];
 
   for (let i = 1; i < lines.length; i++) {
     const values = parseCSVLine(lines[i]);
-    if (values.length < headers.length) continue;
+    if (values.length === 0) continue;
 
     const row = {};
     headers.forEach((header, idx) => {
-      row[header] = values[idx]?.trim() || '';
+      if (idx < values.length) {
+        row[header] = String(values[idx] || '').trim().replace(/"/g, '');
+      }
     });
 
-    const tx = parseTransactionRow(row);
+    const tx = parseTransactionRow(row, detectedFormat, detectedMarket);
     if (tx) transactions.push(tx);
   }
 
@@ -1894,13 +2567,15 @@ function parseCSVLine(line) {
 function parseExcelData(data, workbook) {
   const transactions = [];
 
-  // Try to detect Groww format by checking for header row pattern
+  // Try to detect format by checking for header row pattern
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
   const rawData = XLSX.utils.sheet_to_json(sheet, { defval: '', header: 1 });
 
   // Find the header row (look for "Stock Name" or similar)
   let headerRowIndex = -1;
   let headers = [];
+  let detectedFormat = 'generic';
+  let detectedMarket = null; // Auto-detected market
 
   for (let i = 0; i < Math.min(rawData.length, 20); i++) {
     const row = rawData[i];
@@ -1908,10 +2583,32 @@ function parseExcelData(data, workbook) {
 
     const rowStr = row.map(c => String(c).toLowerCase()).join('|');
 
+    // Zerodha format: "Instrument", "Qty.", "Avg. cost", "LTP", "Invested", "Cur. val", "P&L"
+    if (rowStr.includes('instrument') && rowStr.includes('qty') && rowStr.includes('avg. cost')) {
+      headerRowIndex = i;
+      headers = row.map(h => String(h).toLowerCase().trim());
+      detectedFormat = 'zerodha';
+      detectedMarket = 'IN'; // Zerodha = Indian stocks (NSE/BSE)
+      console.log('Detected Zerodha format at row', i);
+      break;
+    }
+
+    // INDmoney format: "Stock Symbol", "Holding Since", "Quantity", "Avg. Price ($)", "Total Value ($)"
+    if (rowStr.includes('stock symbol') && rowStr.includes('holding since')) {
+      headerRowIndex = i;
+      headers = row.map(h => String(h).toLowerCase().trim());
+      detectedFormat = 'indmoney';
+      detectedMarket = 'US'; // INDmoney = US stocks
+      console.log('Detected INDmoney format at row', i);
+      break;
+    }
+
     // Groww format: "Stock Name", "ISIN", "Quantity", etc.
     if (rowStr.includes('stock name') || rowStr.includes('isin')) {
       headerRowIndex = i;
       headers = row.map(h => String(h).toLowerCase().trim());
+      detectedFormat = 'groww';
+      detectedMarket = 'IN'; // Groww = Indian stocks
       break;
     }
 
@@ -1924,11 +2621,27 @@ function parseExcelData(data, workbook) {
     }
   }
 
+  // Auto-detect market from currency symbols in headers if not already detected
+  if (!detectedMarket) {
+    const headerStr = headers.join(' ');
+    if (headerStr.includes('$') || headerStr.includes('usd')) {
+      detectedMarket = 'US';
+    } else if (headerStr.includes('₹') || headerStr.includes('rs') || headerStr.includes('inr')) {
+      detectedMarket = 'IN';
+    }
+  }
+
+  console.log('Detected format:', detectedFormat, 'Headers:', headers, 'Market:', detectedMarket);
+
   // If we found headers, parse the data rows
   if (headerRowIndex >= 0 && headers.length > 0) {
     for (let i = headerRowIndex + 1; i < rawData.length; i++) {
       const row = rawData[i];
       if (!row || !Array.isArray(row) || row.length === 0) continue;
+
+      // Skip empty rows (all cells empty or whitespace)
+      const hasData = row.some(cell => cell !== null && cell !== undefined && String(cell).trim() !== '');
+      if (!hasData) continue;
 
       const normalizedRow = {};
       headers.forEach((header, idx) => {
@@ -1937,7 +2650,7 @@ function parseExcelData(data, workbook) {
         }
       });
 
-      const tx = parseTransactionRow(normalizedRow);
+      const tx = parseTransactionRow(normalizedRow, detectedFormat, detectedMarket);
       if (tx) transactions.push(tx);
     }
   } else {
@@ -1948,7 +2661,7 @@ function parseExcelData(data, workbook) {
         normalizedRow[key.toLowerCase().trim()] = String(row[key]).trim();
       });
 
-      const tx = parseTransactionRow(normalizedRow);
+      const tx = parseTransactionRow(normalizedRow, detectedFormat, detectedMarket);
       if (tx) transactions.push(tx);
     }
   }
@@ -1956,41 +2669,93 @@ function parseExcelData(data, workbook) {
   return transactions;
 }
 
-function parseTransactionRow(row) {
+// Auto-detect market from row data
+function detectMarketFromRow(row, detectedMarket) {
+  // If already detected from headers, return it
+  if (detectedMarket) return detectedMarket;
+
+  // Check currency symbols in price columns
+  const priceColumns = ['avg. price ($)', 'avg. price', 'avg price', 'average buy price',
+                        'closing price', 'current price', 'total value ($)', 'total value'];
+
+  for (const col of priceColumns) {
+    const value = row[col];
+    if (value) {
+      const valueStr = String(value);
+      if (valueStr.includes('$') || valueStr.includes('USD')) return 'US';
+      if (valueStr.includes('₹') || valueStr.includes('Rs') || valueStr.includes('INR')) return 'IN';
+    }
+  }
+
+  // Check ISIN pattern
+  const isin = row['isin'] || row['isin code'] || '';
+  if (isin) {
+    const isinStr = String(isin).trim();
+    if (isinStr.startsWith('INE')) return 'IN'; // Indian ISIN
+    if (isinStr.startsWith('US')) return 'US';  // US ISIN
+  }
+
+  // Check symbol pattern (heuristic)
+  const symbol = row['symbol'] || row['stock symbol'] || '';
+  if (symbol) {
+    const symStr = String(symbol).trim();
+    // Short symbols (1-4 chars, all caps) often US
+    if (symStr.length <= 4 && /^[A-Z]+$/.test(symStr)) return 'US';
+    // Symbols with .NS or .BO are Indian
+    if (symStr.includes('.NS') || symStr.includes('.BO')) return 'IN';
+  }
+
+  return null; // Unknown
+}
+
+function parseTransactionRow(row, detectedFormat = 'generic', detectedMarket = null) {
+  // INDmoney specific parsing
+  if (detectedFormat === 'indmoney') {
+    return parseINDmoneyRow(row, detectedMarket);
+  }
+
+  // Zerodha specific parsing
+  if (detectedFormat === 'zerodha') {
+    return parseZerodhaRow(row, detectedMarket);
+  }
+
   // Try to find symbol - support Groww format "stock name"
   const symbol = row['symbol'] || row['stock'] || row['scrip'] || row['ticker'] ||
-                 row['stock name'] || row['name'] || row['fund name'] || row['fund_name'];
+                 row['stock name'] || row['name'] || row['fund name'] || row['fund_name'] ||
+                 row['stock symbol'] || row['instrument'];
   if (!symbol || symbol === 'null' || symbol === '') return null;
 
-  // Try to find quantity
-  const quantityStr = row['quantity'] || row['qty'] || row['units'] || row['shares'] || '1';
-  const quantity = parseFloat(quantityStr) || 0;
+  // Try to find quantity - Zerodha format "qty."
+  const quantityStr = row['quantity'] || row['qty'] || row['qty.'] || row['units'] || row['shares'] || '1';
+  const quantity = parseFloat(String(quantityStr).replace(/,/g, '')) || 0;
   if (quantity <= 0) return null;
 
-  // Try to find average buy price - Groww format "average buy price"
+  // Try to find average buy price - Zerodha format "avg. cost"
   const avgPriceStr = row['average buy price'] || row['avg_price'] || row['average_price'] ||
-                      row['buy price'] || row['price'] || row['rate'] || row['nav'] || '0';
-  const avgPrice = parseFloat(String(avgPriceStr).replace(/[₹,]/g, '')) || 0;
+                      row['buy price'] || row['price'] || row['rate'] || row['nav'] ||
+                      row['avg. price ($)'] || row['avg. price'] || row['avg. cost'] || '0';
+  const avgPrice = parseFloat(String(avgPriceStr).replace(/[₹,$]/g, '')) || 0;
   if (avgPrice <= 0) return null;
 
-  // Try to find buy value (invested amount)
+  // Try to find buy value (invested amount) - Zerodha format "invested"
   const buyValueStr = row['buy value'] || row['invested'] || row['invested value'] ||
                       row['investment'] || row['cost'] || '0';
-  const buyValue = parseFloat(String(buyValueStr).replace(/[₹,]/g, '')) || (avgPrice * quantity);
+  const buyValue = parseFloat(String(buyValueStr).replace(/[₹,$]/g, '')) || (avgPrice * quantity);
 
-  // Try to find closing/current price - Groww format "closing price"
+  // Try to find closing/current price - Zerodha format "ltp"
   const closingPriceStr = row['closing price'] || row['current price'] || row['ltp'] ||
                           row['last price'] || row['market price'] || '0';
-  const closingPrice = parseFloat(String(closingPriceStr).replace(/[₹,]/g, '')) || 0;
+  const closingPrice = parseFloat(String(closingPriceStr).replace(/[₹,$]/g, '')) || 0;
 
-  // Try to find closing value (current value) - Groww format "closing value"
-  const closingValueStr = row['closing value'] || row['current value'] || row['market value'] || '0';
-  const closingValue = parseFloat(String(closingValueStr).replace(/[₹,]/g, '')) || (closingPrice * quantity);
+  // Try to find closing value (current value) - Zerodha format "cur. val"
+  const closingValueStr = row['closing value'] || row['current value'] || row['market value'] ||
+                          row['total value ($)'] || row['total value'] || row['cur. val'] || '0';
+  const closingValue = parseFloat(String(closingValueStr).replace(/[₹,$]/g, '')) || (closingPrice * quantity);
 
   // Try to find unrealised P&L - Groww format "unrealised p&l"
   const pnlStr = row['unrealised p&l'] || row['unrealized p&l'] || row['p&l'] ||
                  row['profit/loss'] || row['gain/loss'] || row['pnl'] || '0';
-  const unrealisedPnL = parseFloat(String(pnlStr).replace(/[₹,]/g, '')) || (closingValue - buyValue);
+  const unrealisedPnL = parseFloat(String(pnlStr).replace(/[₹,$]/g, '')) || (closingValue - buyValue);
 
   // Calculate P&L percent
   const pnlPercent = buyValue > 0 ? (unrealisedPnL / buyValue) * 100 : 0;
@@ -1999,7 +2764,8 @@ function parseTransactionRow(row) {
   const isin = row['isin'] || row['isin code'] || '';
 
   // Try to find date
-  const dateStr = row['date'] || row['trade_date'] || row['transaction_date'] || row['purchase_date'];
+  const dateStr = row['date'] || row['trade_date'] || row['transaction_date'] ||
+                  row['purchase_date'] || row['holding since'];
   const date = parseDateString(dateStr) || new Date().toISOString().split('T')[0];
 
   // Try to find type
@@ -2019,6 +2785,15 @@ function parseTransactionRow(row) {
   const fullName = row['stock name'] || row['name'] || row['company'] ||
                    row['fund name'] || row['fund_name'] || symbol;
 
+  // Auto-detect market if not provided
+  const autoDetectedMarket = detectMarketFromRow(row, detectedMarket);
+
+  // Determine source from detected format
+  let source = 'Manual';
+  if (detectedFormat === 'indmoney') source = 'INDmoney';
+  else if (detectedFormat === 'zerodha') source = 'Zerodha';
+  else if (detectedFormat === 'groww') source = 'Groww';
+
   return {
     symbol: cleanSymbol,
     name: String(fullName).trim(),
@@ -2033,8 +2808,161 @@ function parseTransactionRow(row) {
     pnlPercent,                // P&L percentage
     date,
     fees: parseFloat(row['fees'] || row['charges'] || row['brokerage'] || '0') || 0,
-    source: 'Groww',
+    source,
+    detectedMarket: autoDetectedMarket, // Add detected market to transaction
   };
+}
+
+function parseZerodhaRow(row, detectedMarket = 'IN') {
+  // Zerodha format: Instrument | Qty. | Avg. cost | LTP | Invested | Cur. val | P&L | Net chg. | Day chg.
+  const symbol = row['instrument'];
+  if (!symbol || symbol === 'null' || symbol === '') return null;
+
+  const quantityStr = row['qty.'] || row['qty'] || '0';
+  const quantity = parseFloat(String(quantityStr).replace(/,/g, '')) || 0;
+  if (quantity <= 0) return null;
+
+  // Parse avg cost (remove commas)
+  const avgCostStr = row['avg. cost'] || row['avg cost'] || '0';
+  const avgCost = parseFloat(String(avgCostStr).replace(/,/g, '')) || 0;
+  if (avgCost <= 0) return null;
+
+  // Parse LTP (Last Traded Price)
+  const ltpStr = row['ltp'] || '0';
+  const ltp = parseFloat(String(ltpStr).replace(/,/g, '')) || 0;
+
+  // Parse invested amount
+  const investedStr = row['invested'] || '0';
+  const invested = parseFloat(String(investedStr).replace(/,/g, '')) || 0;
+
+  // Parse current value
+  const curValStr = row['cur. val'] || row['cur val'] || '0';
+  const curVal = parseFloat(String(curValStr).replace(/,/g, '')) || 0;
+
+  // Parse P&L
+  const pnlStr = row['p&l'] || '0';
+  const pnl = parseFloat(String(pnlStr).replace(/,/g, '')) || 0;
+
+  // Parse day change percentage
+  const dayChgStr = row['day chg.'] || row['day chg'] || '0';
+  const dayChg = parseFloat(String(dayChgStr).replace(/,/g, '')) || 0;
+
+  // Calculate P&L percent
+  const pnlPercent = invested > 0 ? (pnl / invested) * 100 : 0;
+
+  console.log('Parsed Zerodha row:', {
+    symbol: symbol.toUpperCase(),
+    quantity,
+    avgCost,
+    ltp,
+    invested,
+    curVal,
+    pnl,
+    pnlPercent,
+    detectedMarket
+  });
+
+  return {
+    symbol: symbol.toUpperCase().trim(),
+    name: symbol.toUpperCase().trim(), // Zerodha uses symbol as name
+    isin: '',
+    type: 'BUY',
+    quantity,
+    price: avgCost,           // Average cost
+    buyValue: invested,       // Total invested
+    closingPrice: ltp,        // Last traded price
+    closingValue: curVal,     // Current value
+    unrealisedPnL: pnl,       // P&L amount
+    pnlPercent,               // P&L percentage
+    date: new Date().toISOString().split('T')[0], // Default to today
+    fees: 0,
+    source: 'Zerodha',
+    detectedMarket: detectedMarket || 'IN', // Zerodha is Indian stocks (NSE/BSE)
+  };
+}
+
+function parseINDmoneyRow(row, detectedMarket = 'US') {
+  // INDmoney format: Stock Symbol | Holding Since | Quantity | Avg. Price ($) | Total Value ($)
+  // NOTE: "Total Value ($)" is the INVESTED amount (buy value), not current market value
+  const symbol = row['stock symbol'] || row['symbol'];
+  if (!symbol || symbol === 'null' || symbol === '') return null;
+
+  const quantityStr = row['quantity'] || '0';
+  const quantity = parseFloat(quantityStr) || 0;
+  if (quantity <= 0) return null;
+
+  // Parse avg price (remove $ and commas)
+  const avgPriceStr = row['avg. price ($)'] || row['avg price'] || row['avg. price'] || '0';
+  const avgPrice = parseFloat(String(avgPriceStr).replace(/[$,]/g, '')) || 0;
+  if (avgPrice <= 0) return null;
+
+  // Parse total value - this is the BUY/INVESTED value, not current market value
+  const totalValueStr = row['total value ($)'] || row['total value'] || '0';
+  const totalValue = parseFloat(String(totalValueStr).replace(/[$,]/g, '')) || 0;
+
+  // Use total value as buy value (this is what was invested)
+  const buyValue = totalValue;
+
+  // Current price is same as avg price initially (will be updated by price refresh)
+  const closingPrice = avgPrice;
+
+  // Current value is same as buy value initially (will be updated by price refresh)
+  const closingValue = buyValue;
+
+  // P&L is 0 initially (will be calculated after price refresh)
+  const unrealisedPnL = 0;
+  const pnlPercent = 0;
+
+  // Parse holding since date (e.g., "12 Jul 2026, 06:39 AM")
+  const dateStr = row['holding since'] || '';
+  const date = parseINDmoneyDate(dateStr) || new Date().toISOString().split('T')[0];
+
+  console.log('Parsed INDmoney row:', {
+    symbol: symbol.toUpperCase(),
+    quantity,
+    avgPrice,
+    buyValue,
+    date,
+    detectedMarket
+  });
+
+  return {
+    symbol: symbol.toUpperCase().trim(),
+    name: symbol.toUpperCase().trim(), // US stocks don't have long names in this format
+    isin: '',
+    type: 'BUY',
+    quantity,
+    price: avgPrice,
+    buyValue,
+    closingPrice,
+    closingValue,
+    unrealisedPnL,
+    pnlPercent,
+    date,
+    fees: 0,
+    source: 'INDmoney',
+    detectedMarket: detectedMarket || 'US', // INDmoney is typically US stocks
+  };
+}
+
+function parseINDmoneyDate(dateStr) {
+  if (!dateStr) return null;
+
+  try {
+    // Format: "12 Jul 2026, 06:39 AM"
+    // Extract just the date part before the comma
+    const datePart = dateStr.split(',')[0].trim();
+
+    // Parse using Date constructor
+    const date = new Date(datePart);
+    if (!isNaN(date.getTime())) {
+      return date.toISOString().split('T')[0];
+    }
+  } catch (e) {
+    console.error('Failed to parse INDmoney date:', dateStr, e);
+  }
+
+  return null;
 }
 
 function parseDateString(dateStr) {
@@ -3854,6 +4782,77 @@ ${portfolioContext}`;
     res.status(500).json({ error: errorMessage });
   }
 });
+
+// Get historical data for stock charts
+app.get('/api/historical/:symbol/:market', async (req, res) => {
+  try {
+    const { symbol, market } = req.params;
+    const { period = '1y' } = req.query;
+
+    const yahooSymbol = getYahooSymbol(symbol, market);
+
+    // Map period to Yahoo Finance ranges
+    const periodMap = {
+      '1mo': { range: '1mo', interval: '1d' },
+      '3mo': { range: '3mo', interval: '1d' },
+      '6mo': { range: '6mo', interval: '1d' },
+      '1y': { range: '1y', interval: '1d' },
+      '2y': { range: '2y', interval: '1d' },
+      '5y': { range: '5y', interval: '1wk' },
+    };
+
+    const { range, interval } = periodMap[period] || periodMap['1y'];
+
+    const result = await yahooFinance.chart(yahooSymbol, {
+      period1: getStartDate(period),
+      period2: Math.floor(Date.now() / 1000),
+      interval,
+    });
+
+    if (!result || !result.quotes || result.quotes.length === 0) {
+      return res.status(404).json({ error: 'No historical data found' });
+    }
+
+    // Format the data
+    const historicalData = result.quotes.map(quote => ({
+      date: new Date(quote.date).toISOString().split('T')[0],
+      open: quote.open || 0,
+      high: quote.high || 0,
+      low: quote.low || 0,
+      close: quote.close || 0,
+      volume: quote.volume || 0,
+    }));
+
+    res.json({
+      symbol,
+      market,
+      period,
+      data: historicalData,
+    });
+  } catch (error) {
+    console.error('Historical data error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Helper function to calculate start date from period
+function getStartDate(period) {
+  const now = new Date();
+  const msPerDay = 24 * 60 * 60 * 1000;
+
+  let daysBack;
+  switch (period) {
+    case '1mo': daysBack = 30; break;
+    case '3mo': daysBack = 90; break;
+    case '6mo': daysBack = 180; break;
+    case '1y': daysBack = 365; break;
+    case '2y': daysBack = 730; break;
+    case '5y': daysBack = 1825; break;
+    default: daysBack = 365;
+  }
+
+  return Math.floor((now.getTime() - (daysBack * msPerDay)) / 1000);
+}
 
 // Serve React app for all other routes
 app.get('*', (req, res) => {

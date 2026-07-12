@@ -644,12 +644,57 @@ For issues and feature requests:
 | Feature | URL | Description |
 |---------|-----|-------------|
 | Dashboard | http://localhost:3001/ | Portfolio overview, market indices (live), & summary |
-| Portfolio | http://localhost:3001/portfolio | Holdings with India/US tabs, auto-refresh, sortable columns |
+| Portfolio | http://localhost:3001/portfolio | Holdings with India/US tabs, auto-refresh, sortable columns, clickable stocks |
+| Learn | http://localhost:3001/learn | 6 educational modules with calculators & progress tracking |
 | Recommendations | http://localhost:3001/recommendations | Portfolio insights, sector analysis & alerts (with export) |
 | Analytics | http://localhost:3001/analytics | Charts & health scores (with Excel/CSV/MD export) |
 | Tax Analysis | http://localhost:3001/tax-analysis | Capital gains & ITR helper (with Excel/CSV/MD export) |
-| Import | http://localhost:3001/import | Import from brokers |
+| Import | http://localhost:3001/import | Import from brokers (Groww, INDmoney, Zerodha) |
 | AI Assistant | http://localhost:3001/ai-chat | AI chat with bookmarks |
+
+### Learn Page Details
+
+The Learn page provides comprehensive stock market education:
+
+**6 Educational Modules**:
+1. **Stock Market Fundamentals** - Stocks, exchanges, market cap, bull/bear markets, dividends
+2. **Financial Metrics & Calculations** - P/E, ROE, EPS, Dividend Yield, CAGR (with calculators)
+3. **Technical Analysis Basics** - Moving averages, RSI, MACD, support/resistance, volume
+4. **Criteria for Good Stocks** - Quality checklist, value/growth/dividend stocks, red flags
+5. **Portfolio Management** - Professional strategies, diversification, rebalancing, famous investors
+6. **Success Criteria & Benchmarks** - Performance metrics, benchmarks, goal setting
+
+**Interactive Calculators**:
+- P/E Ratio Calculator (price, EPS → P/E)
+- CAGR Calculator (start, end, years → annual growth %)
+- Dividend Yield Calculator (dividend, price → yield %)
+
+**Progress Tracking**:
+- Module completion status saved in browser
+- Progress bar showing X/6 modules completed
+- Green checkmarks on completed modules
+- Certificate unlock after completing all 6
+
+### Stock Detail Modal
+
+Click any stock symbol throughout the app to open detailed modal:
+
+**Live Quote Data**:
+- Current price, day change, open/high/low
+- 52-week high/low with distance indicators
+- Volume, market cap, P/E, P/B, dividend yield
+
+**Interactive Price Chart**:
+- Timeframes: 1W, 1M, 3M, 6M, 1Y, 5Y
+- 50-Day and 200-Day Moving Averages (DMAs)
+- Golden Cross detection (50 DMA > 200 DMA) - Bullish signal
+- Death Cross detection (50 DMA < 200 DMA) - Bearish signal
+- Hover tooltips with exact price and date
+
+**Technical Indicators**:
+- Price position relative to DMAs
+- Trend analysis (uptrend/downtrend)
+- Volume analysis
 
 ### Recommendations Module Details
 
@@ -662,6 +707,7 @@ The Recommendations page provides three analysis tabs:
 - 52-week high/low context
 - P&L tracking with STCG/LTCG tax status
 - Detailed rationale for each recommendation
+- Bookmark functionality to save snapshots
 
 **Sector Analysis**
 - Current vs benchmark allocation comparison (Nifty 50 weights)
@@ -690,8 +736,31 @@ The Recommendations page provides three analysis tabs:
 - Total P&L with percentage
 - 1D Return with change from last refresh in subscript
 
+**Clickable Stock Symbols**
+- Click any stock symbol to open Stock Detail Modal
+- View live quotes, charts, DMAs, Golden/Death Cross
+- Access from Portfolio, Analytics, Recommendations pages
+
 **Sortable Columns**
 Click any column header to sort: Symbol, Qty, Avg Price, Current Price, Value, P&L, 1D Change
+
+### Import Features
+
+**Supported Brokers**:
+1. **Groww** - Excel format with auto-detection
+2. **INDmoney** - Excel format with automatic market detection (NSE vs NYSE based on ISIN)
+3. **Zerodha** - CSV format with holdings parsing
+
+**Market Detection**:
+- INDmoney: ISIN code determines market
+  - ISIN starts with "US" → NYSE/NASDAQ
+  - ISIN starts with "IN" → NSE/BSE
+- Automatic currency assignment (USD vs INR)
+
+**Duplicate Handling**:
+- Detects previous imports from same broker
+- Options: Replace, Keep Both, Cancel
+- Replace deletes old holdings and transactions
 
 ### Dashboard Features
 

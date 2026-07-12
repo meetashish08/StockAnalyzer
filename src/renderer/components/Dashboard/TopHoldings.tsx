@@ -1,6 +1,7 @@
 import React from 'react';
 import type { HoldingWithPrice } from '../../../shared/types';
 import { formatCurrency, formatPercent } from '../../utils/format';
+import ClickableStock from '../common/ClickableStock';
 
 interface Props {
   holdings: HoldingWithPrice[];
@@ -27,7 +28,12 @@ export default function TopHoldings({ holdings }: Props) {
               {index + 1}
             </div>
             <div>
-              <p className="font-medium text-white">{holding.symbol}</p>
+              <ClickableStock
+                symbol={holding.symbol}
+                market={holding.market}
+                name={holding.name}
+                className="font-medium"
+              />
               <p className="text-xs text-slate-400">{holding.market} • {holding.quantity} shares</p>
             </div>
           </div>

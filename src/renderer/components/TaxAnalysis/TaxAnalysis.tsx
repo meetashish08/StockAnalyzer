@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import ClickableStock from '../common/ClickableStock';
 
 interface ColumnMapping {
   index: number;
@@ -1049,7 +1050,12 @@ export default function TaxAnalysis() {
                   currentAnalysis.topLosers.map((t, i) => (
                     <div key={i} className="flex items-center justify-between bg-slate-700/50 rounded-lg p-3">
                       <div>
-                        <p className="text-white font-medium">{t.name || t.symbol}</p>
+                        <ClickableStock
+                          symbol={t.symbol}
+                          market={t.exchange || 'NSE'}
+                          name={t.name}
+                          className="font-medium block"
+                        />
                         <p className="text-sm text-slate-400">
                           {t.classification?.type || 'N/A'} • {t.classification?.holdingMonths || 0}m
                         </p>
@@ -1089,7 +1095,16 @@ export default function TaxAnalysis() {
                 {currentAnalysis.transactions.map((t, i) => (
                   <tr key={i} className="hover:bg-slate-700/50">
                     <td className="px-4 py-3">
-                      <p className="text-white font-medium">{t.symbol || '-'}</p>
+                      {t.symbol ? (
+                        <ClickableStock
+                          symbol={t.symbol}
+                          market={t.exchange || 'NSE'}
+                          name={t.name}
+                          className="font-medium block"
+                        />
+                      ) : (
+                        <p className="text-white font-medium">-</p>
+                      )}
                       {t.name !== t.symbol && <p className="text-sm text-slate-400">{t.name}</p>}
                     </td>
                     <td className="px-4 py-3 text-slate-300">{formatDate(t.buyDate)}</td>

@@ -1007,15 +1007,524 @@ function getYahooSymbol(symbol, market) {
 
 ---
 
+---
+
+## Learn Page Module
+
+### Overview
+Educational platform with 6 comprehensive modules covering stock market fundamentals to advanced portfolio management.
+
+### Component Structure
+```typescript
+// src/renderer/components/Learn/LearnPage.tsx
+interface Module {
+  id: 'fundamentals' | 'metrics' | 'technical' | 'criteria' | 'portfolio-mgmt' | 'success';
+  title: string;
+  icon: string;
+}
+
+interface CalculatorState {
+  pePrice: string;      // P/E calculator inputs
+  peEps: string;
+  cagrStart: string;    // CAGR calculator inputs
+  cagrEnd: string;
+  cagrYears: string;
+  divAnnual: string;    // Dividend yield inputs
+  divPrice: string;
+}
+```
+
+### Features
+- **6 Modules**: Fundamentals, Metrics, Technical Analysis, Stock Criteria, Portfolio Mgmt, Success Benchmarks
+- **Interactive Calculators**: P/E Ratio, CAGR, Dividend Yield
+- **Progress Tracking**: LocalStorage persistence of completed modules
+- **Search**: Filter topics across all modules
+- **Collapsible Sections**: Expandable content areas
+
+### Calculator Implementations
+```javascript
+// P/E Ratio Calculator
+calculatePE() {
+  const price = parseFloat(pePrice);
+  const eps = parseFloat(peEps);
+  return price && eps ? (price / eps).toFixed(2) : '-';
+}
+
+// CAGR Calculator
+calculateCAGR() {
+  const cagr = (Math.pow(end / start, 1 / years) - 1) * 100;
+  return cagr.toFixed(2);
+}
+
+// Dividend Yield Calculator
+calculateDivYield() {
+  return ((annual / price) * 100).toFixed(2);
+}
+```
+
+### Progress Storage
+```javascript
+localStorage.setItem('completedModules', JSON.stringify(['fundamentals', 'metrics']));
+const completed = new Set(JSON.parse(localStorage.getItem('completedModules')));
+```
+
+---
+
+## Stock Detail Modal Module
+
+### Overview
+Comprehensive stock information modal with live quotes, interactive charts, and technical indicators (50/200 DMAs, Golden/Death Cross).
+
+### Component Files
+```
+src/renderer/components/StockDetail/
+├── StockDetailModal.tsx       # Main modal component
+├── StockHeader.tsx            # Header with quote data
+├── StockPriceChart.tsx        # Recharts line chart
+└── technicalAnalysis.ts       # DMA calculations
+```
+
+### API Endpoint
+```
+GET /api/quote/:symbol/:market
+```
+
+**Response**:
+```json
+{
+  "symbol": "TCS",
+  "name": "Tata Consultancy Services",
+  "market": "NSE",
+  "price": 3500.0,
+  "change": 75.5,
+  "changePercent": 2.2,
+  "open": 3450.0,
+  "high": 3520.0,
+  "low": 3440.0,
+  "previousClose": 3424.5,
+  "volume": 1250000,
+  "marketCap": 1275000000000,
+  "pe": 28.5,
+  "pb": 12.3,
+  "dividendYield": 1.2,
+  "high52Week": 3800.0,
+  "low52Week": 2900.0
+}
+```
+
+### Historical Data Endpoint
+```
+GET /api/quote/:symbol/:market/history?period=1y
+```
+
+**Periods**: 1w, 1mo, 3mo, 6mo, 1y, 5y
+
+**Response**:
+```json
+{
+  "prices": [
+    {
+      "date": "2024-01-15",
+      "open": 3400.0,
+      "high": 3450.0,
+      "low": 3380.0,
+      "close": 3420.0,
+      "volume": 1100000
+    }
+  ]
+}
+```
+
+### Technical Analysis Functions
+```typescript
+// src/renderer/utils/technicalAnalysis.ts
+
+// Calculate Simple Moving Average
+export function calculateSMA(prices: PricePoint[], period: number): number[] {
+  const sma: number[] = [];
+  for (let i = 0; i < prices.length; i++) {
+    if (i < period - 1) {
+      sma.push(NaN);
+    } else {
+      const sum = prices.slice(i - period + 1, i + 1)
+        .reduce((acc, p) => acc + p.close, 0);
+      sma.push(sum / period);
+    }
+  }
+  return sma;
+}
+
+// Detect Golden Cross (50 DMA crosses above 200 DMA)
+export function detectGoldenCross(sma50: number[], sma200: number[]): number[] {
+  const crosses: number[] = [];
+  for (let i = 1; i < sma50.length; i++) {
+    if (!isNaN(sma50[i]) && !isNaN(sma200[i]) &&
+        sma50[i-1] < sma200[i-1] && sma50[i] > sma200[i]) {
+      crosses.push(i);
+    }
+  }
+  return crosses;
+}
+
+// Detect Death Cross (50 DMA crosses below 200 DMA)
+export function detectDeathCross(sma50: number[], sma200: number[]): number[] {
+  const crosses: number[] = [];
+  for (let i = 1; i < sma50.length; i++) {
+    if (!isNaN(sma50[i]) && !isNaN(sma200[i]) &&
+        sma50[i-1] > sma200[i-1] && sma50[i] < sma200[i]) {
+      crosses.push(i);
+    }
+  }
+  return crosses;
+}
+```
+
+### Chart Data Transformation
+```typescript
+interface ChartDataPoint {
+  date: string;
+  price: number;
+  sma50?: number;
+  sma200?: number;
+  isGoldenCross?: boolean;
+  isDeathCross?: boolean;
+}
+
+// Transform historical data to chart format
+const chartData: ChartDataPoint[] = prices.map((p, idx) => ({
+  date: p.date,
+  price: p.close,
+  sma50: sma50Values[idx],
+  sma200: sma200Values[idx],
+  isGoldenCross: goldenCrosses.includes(idx),
+  isDeathCross: deathCrosses.includes(idx),
+}));
+```
+
+### Modal Trigger Implementation
+```typescript
+// Make stock symbols clickable throughout app
+<span
+  className="text-blue-500 hover:text-blue-600 cursor-pointer underline"
+  onClick={() => setSelectedStock(holding)}
+>
+  {holding.symbol}
+</span>
+
+// Modal component
+{selectedStock && (
+  <StockDetailModal
+    holding={selectedStock}
+    onClose={() => setSelectedStock(null)}
+  />
+)}
+```
+
+---
+
+## Enhanced Import Module
+
+### Zerodha CSV Import
+
+#### Detection Logic
+```javascript
+function detectZerodhaFormat(rows) {
+  const headers = rows[0];
+  return headers.includes('instrument') || 
+         headers.includes('Instrument') ||
+         headers.includes('Kite Holdings');
+}
+```
+
+#### Column Mapping
+```javascript
+const ZERODHA_COLUMNS = {
+  symbol: ['instrument', 'tradingsymbol', 'symbol'],
+  quantity: ['quantity', 'qty'],
+  avgPrice: ['average price', 'avg. cost', 'average_price'],
+  ltp: ['ltp', 'last_price', 'close price'],
+  pnl: ['p&l', 'pnl', 'profit/loss']
+};
+```
+
+#### Parser Implementation
+```javascript
+function parseZerodhaCSV(data) {
+  const holdings = [];
+  
+  data.forEach((row, index) => {
+    if (index === 0) return; // Skip header
+    
+    const symbol = getValue(row, ZERODHA_COLUMNS.symbol);
+    const quantity = parseFloat(getValue(row, ZERODHA_COLUMNS.quantity));
+    const avgPrice = parseFloat(getValue(row, ZERODHA_COLUMNS.avgPrice));
+    const ltp = parseFloat(getValue(row, ZERODHA_COLUMNS.ltp));
+    
+    holdings.push({
+      symbol: symbol.toUpperCase(),
+      market: 'NSE',  // Default to NSE for Zerodha
+      quantity,
+      avgPrice,
+      currentPrice: ltp,
+      type: 'STOCK',
+    });
+  });
+  
+  return holdings;
+}
+```
+
+### INDmoney Market Detection
+
+#### ISIN-Based Detection
+```javascript
+function detectMarketFromISIN(isin) {
+  if (!isin) return 'NSE';  // Default
+  
+  const prefix = isin.substring(0, 2).toUpperCase();
+  
+  if (prefix === 'US') {
+    return 'NYSE';  // US securities
+  } else if (prefix === 'IN') {
+    return 'NSE';   // Indian securities
+  }
+  
+  return 'NSE';  // Fallback
+}
+```
+
+#### Symbol Extraction for US Stocks
+```javascript
+function extractUSSymbol(name, isin) {
+  // Remove common suffixes
+  let symbol = name
+    .replace(/\s+(Inc\.|Corp\.|Ltd\.|LLC)/gi, '')
+    .trim()
+    .toUpperCase();
+  
+  // Use ISIN suffix as ticker if available
+  if (isin && isin.startsWith('US')) {
+    const ticker = isin.substring(2, isin.length - 1);
+    if (ticker.length <= 5) {
+      symbol = ticker;
+    }
+  }
+  
+  return symbol;
+}
+```
+
+#### Enhanced INDmoney Parser
+```javascript
+function parseINDmoneyExcel(worksheet) {
+  const holdings = [];
+  const rows = XLSX.utils.sheet_to_json(worksheet);
+  
+  rows.forEach(row => {
+    const isin = row['ISIN'];
+    const market = detectMarketFromISIN(isin);
+    const symbol = market === 'NYSE' 
+      ? extractUSSymbol(row['Stock Name'], isin)
+      : row['Stock Name'];
+    
+    holdings.push({
+      symbol,
+      market,
+      isin,
+      name: row['Stock Name'],
+      quantity: parseFloat(row['Quantity']),
+      avgPrice: parseFloat(row['Avg Buy Price']),
+      currentPrice: parseFloat(row['LTP']),
+      type: 'STOCK',
+    });
+  });
+  
+  return holdings;
+}
+```
+
+### Duplicate Detection & Replacement
+
+#### Duplicate Check Endpoint
+```
+GET /api/import-history/check?source=Groww
+```
+
+**Response**:
+```json
+{
+  "exists": true,
+  "import": {
+    "id": 5,
+    "source": "Groww",
+    "filename": "portfolio_jan2024.xlsx",
+    "importDate": "2024-01-15T10:30:00Z",
+    "holdingsCount": 25
+  }
+}
+```
+
+#### Replacement Logic
+```javascript
+async function handleDuplicateImport(importId) {
+  // 1. Delete old holdings
+  const oldHoldings = await getHoldingsByImportId(importId);
+  await Promise.all(oldHoldings.map(h => deleteHolding(h.id)));
+  
+  // 2. Delete old transactions
+  const oldTxns = await getTransactionsByImportId(importId);
+  await Promise.all(oldTxns.map(t => deleteTransaction(t.id)));
+  
+  // 3. Delete import record
+  await deleteImportRecord(importId);
+  
+  // 4. Create new import (continues with normal import flow)
+}
+```
+
+---
+
+## Common UI Components
+
+### Tooltip Component
+```typescript
+// src/renderer/components/common/Tooltip.tsx
+interface TooltipProps {
+  content: string;
+  children: React.ReactNode;
+  position?: 'top' | 'bottom' | 'left' | 'right';
+}
+
+export default function Tooltip({ content, children, position = 'top' }: TooltipProps) {
+  const [show, setShow] = useState(false);
+  
+  return (
+    <div className="relative inline-block">
+      <div
+        onMouseEnter={() => setShow(true)}
+        onMouseLeave={() => setShow(false)}
+      >
+        {children}
+      </div>
+      {show && (
+        <div className={`absolute z-50 px-3 py-2 text-sm bg-slate-800 text-white rounded shadow-lg ${positionClasses[position]}`}>
+          {content}
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+### InfoIcon Component
+```typescript
+// src/renderer/components/common/InfoIcon.tsx
+interface InfoIconProps {
+  tooltip: string;
+  size?: 'sm' | 'md' | 'lg';
+}
+
+export default function InfoIcon({ tooltip, size = 'sm' }: InfoIconProps) {
+  return (
+    <Tooltip content={tooltip}>
+      <span className={`inline-flex items-center justify-center rounded-full bg-blue-500/20 text-blue-400 ${sizeClasses[size]}`}>
+        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" />
+        </svg>
+      </span>
+    </Tooltip>
+  );
+}
+```
+
+**Usage**:
+```tsx
+<div className="flex items-center gap-2">
+  <span>P/E Ratio</span>
+  <InfoIcon tooltip="Price-to-Earnings ratio. Lower values may indicate undervaluation." />
+</div>
+```
+
+---
+
+## Auto-Refresh Feature
+
+### Implementation
+```typescript
+// Portfolio page state
+const [autoRefreshInterval, setAutoRefreshInterval] = useState<number | null>(null);
+const [countdown, setCountdown] = useState<number>(0);
+
+// Interval options (in milliseconds)
+const REFRESH_INTERVALS = {
+  'Off': null,
+  '1 min': 60000,
+  '2 min': 120000,
+  '5 min': 300000,
+  '10 min': 600000,
+  '15 min': 900000,
+  '30 min': 1800000,
+  '1 hour': 3600000,
+  '2 hours': 7200000,
+};
+
+// Silent refresh (updates prices without loading spinner)
+async function silentRefresh() {
+  const response = await fetch('/api/refresh-prices');
+  const result = await response.json();
+  
+  // Update only price fields in state
+  setHoldings(prev => prev.map(h => ({
+    ...h,
+    currentPrice: result.prices[h.id] || h.currentPrice,
+    dayChange: result.changes[h.id]?.day || h.dayChange,
+  })));
+  
+  // Show brief toast notification
+  showToast(`Auto-updated ${result.updated} stocks`);
+}
+
+// Setup auto-refresh interval
+useEffect(() => {
+  if (!autoRefreshInterval) return;
+  
+  const intervalId = setInterval(() => {
+    silentRefresh();
+    setCountdown(autoRefreshInterval / 1000); // Reset countdown
+  }, autoRefreshInterval);
+  
+  // Countdown timer
+  const countdownId = setInterval(() => {
+    setCountdown(prev => prev > 0 ? prev - 1 : 0);
+  }, 1000);
+  
+  return () => {
+    clearInterval(intervalId);
+    clearInterval(countdownId);
+  };
+}, [autoRefreshInterval]);
+```
+
+### Countdown Display
+```tsx
+{autoRefreshInterval && (
+  <div className="text-sm text-slate-400">
+    Next: {Math.floor(countdown / 60)}m {countdown % 60}s
+  </div>
+)}
+```
+
+---
+
 ## Future Improvements
 
 1. **Database**: Migrate from JSON to SQLite/PostgreSQL
 2. **Authentication**: Add user login for multi-user support
 3. **Real-time Updates**: WebSocket for live price updates
-4. **More Brokers**: Add Zerodha, Angel One, Upstox parsers
+4. **More Brokers**: Add Angel One, Upstox parsers
 5. **Mobile App**: React Native version
 6. **Advanced Alerts**: Price targets, stop-loss notifications
-7. **Advanced Tax**: Support for debt funds, grandfathering clause
-8. **Market Screener**: Screen Nifty 200 by technical indicators
-9. **Watchlist**: Track stocks not in portfolio
-10. **Correlation Analysis**: Identify correlated holdings
+7. **Watchlist**: Track stocks not in portfolio
+8. **Correlation Analysis**: Identify correlated holdings
+9. **Backtesting**: Test strategies on historical data
+10. **News Integration**: Real-time news alerts for holdings

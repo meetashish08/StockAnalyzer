@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { formatCurrency } from '../../utils/format';
+import ClickableStock from '../common/ClickableStock';
 
 type TabType = 'portfolio' | 'sectors' | 'alerts' | 'bookmarks';
 
@@ -719,7 +720,12 @@ export default function Recommendations() {
                             }`}
                           >
                             <td className="p-3">
-                              <p className="font-medium text-white">{stock.symbol}</p>
+                              <ClickableStock
+                                symbol={stock.symbol}
+                                market={stock.market}
+                                name={stock.name}
+                                className="font-medium block"
+                              />
                               <p className="text-xs text-slate-400 truncate max-w-[150px]">{stock.name}</p>
                             </td>
                             <td className="p-3">

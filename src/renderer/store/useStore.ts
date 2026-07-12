@@ -30,6 +30,10 @@ interface StoreState {
   selectedHolding: Holding | null;
   setSelectedHolding: (holding: Holding | null) => void;
 
+  // Stock Detail Modal State
+  selectedStockForDetail: { symbol: string; market: string; name?: string } | null;
+  setSelectedStockForDetail: (stock: { symbol: string; market: string; name?: string } | null) => void;
+
   // Error handling
   error: string | null;
   clearError: () => void;
@@ -186,6 +190,10 @@ export const useStore = create<StoreState>((set, get) => ({
   // UI State
   selectedHolding: null,
   setSelectedHolding: (holding) => set({ selectedHolding: holding }),
+
+  // Stock Detail Modal State
+  selectedStockForDetail: null,
+  setSelectedStockForDetail: (stock) => set({ selectedStockForDetail: stock }),
 
   // Error handling
   error: null,
