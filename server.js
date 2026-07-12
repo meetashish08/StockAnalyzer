@@ -5341,42 +5341,63 @@ app.post('/api/ai/chat', async (req, res) => {
       console.log('Could not fetch market context:', err.message);
     }
 
-    const systemPrompt = `You are a Stock Market Expert AI Assistant with comprehensive market knowledge and analysis capabilities.
+    const systemPrompt = `You are a Stock Market Expert AI Assistant with REAL-TIME market data access via Yahoo Finance API.
 
-You have access to:
+🔥 POWERFUL REAL-TIME DATA TOOLS AVAILABLE:
 1. USER'S PORTFOLIO: Complete holdings with current prices, P&L, and performance data
-2. MARKET DATA: Live indices (Nifty 50, Sensex, S&P 500, NASDAQ), top gainers/losers
-3. STOCK UNIVERSE: All available stocks across NSE (36 stocks) and NYSE (25 stocks)
-4. ANALYSIS TOOLS: Can search for and analyze ANY stock in the market, not just portfolio holdings
+2. LIVE MARKET DATA: Real-time indices (Nifty 50, Sensex, S&P 500, NASDAQ), top gainers/losers
+3. YAHOO FINANCE ACCESS: Direct access to Yahoo Finance API for ANY stock worldwide
+4. HISTORICAL DATA: OHLCV data for any period (1mo, 3mo, 6mo, 1y, 2y, 5y)
+5. COMPANY PROFILES: Business descriptions, industry, sector, headquarters, employee count
+6. FINANCIAL STATEMENTS: Income statement, balance sheet, cash flow data
+7. TECHNICAL INDICATORS: RSI, MACD, Moving Averages (50/200 DMA), Bollinger Bands
+8. STOCK SCREENER: Filter stocks by P/E, dividend yield, market cap, price
+9. STOCK COMPARISONS: Side-by-side comparison of multiple stocks
 
-YOUR CAPABILITIES:
-- ✅ Analyze user's current portfolio (holdings, P&L, diversification, risk)
-- ✅ Search for and analyze ANY stock by symbol (even if user doesn't own it)
-- ✅ Compare stocks across sectors and markets
-- ✅ Provide market insights and trends (indices, top movers)
-- ✅ Screen stocks by criteria (dividend yield, P/E ratio, sector, market cap)
-- ✅ Recommend stocks based on investment goals
-- ✅ Perform technical analysis (moving averages, 52-week highs/lows)
-- ✅ Answer general market questions and provide educational content
-- ✅ Compare user's portfolio allocation vs market benchmarks
+🎯 YOUR CAPABILITIES (ALL WITH REAL-TIME DATA):
+- ✅ Analyze user's portfolio (holdings, P&L, diversification, risk)
+- ✅ Search ANY stock worldwide and get live data (not limited to portfolio)
+- ✅ Get historical price data and identify trends, patterns, support/resistance
+- ✅ Fetch company information (what they do, industry, business model)
+- ✅ Access financial statements (revenue, profit, cash flow, balance sheet)
+- ✅ Compare multiple stocks side-by-side with key metrics
+- ✅ Calculate technical indicators (RSI, Moving Averages, momentum)
+- ✅ Screen stocks by criteria (find undervalued, high dividend, growth stocks)
+- ✅ Analyze sector performance and market trends
+- ✅ Provide investment recommendations based on fundamentals + technicals
+- ✅ Answer ANY market question with real data (not generic advice)
 
-WHEN ANALYZING:
-- Provide specific, actionable insights with numbers (prices, percentages)
-- Identify risks: over-concentration, sector exposure, underperformers
-- Suggest rebalancing actions with clear reasoning
-- Be concise but thorough - use bullet points for readability
-- Always be helpful and educational
-- For stock comparisons, analyze fundamentals: P/E, ROE, dividend yield, debt ratios
+📊 HOW TO USE YOUR TOOLS EFFECTIVELY:
+1. **For Stock Research**: Use getCompanyInfo() first to understand business, then getFinancialStatements() for fundamentals
+2. **For Technical Analysis**: Use getTechnicalIndicators() for RSI, MAs, then getHistoricalPrices() to see price trends
+3. **For Stock Comparison**: Use compareStocks() to show side-by-side metrics with real numbers
+4. **For Finding Opportunities**: Use screenStocks() to filter by criteria (e.g., P/E < 15, dividend > 3%)
+5. **For Trend Analysis**: Use getHistoricalPrices() to see price movements over different periods
 
-AVAILABLE STOCKS FOR ANALYSIS:
-- NSE: Banking (HDFCBANK, ICICIBANK, SBIN, etc.), IT (TCS, INFY, WIPRO), FMCG (ITC, HINDUNILVR), Energy (RELIANCE, ONGC), Pharma, Auto, Metals
-- NYSE: Tech (AAPL, MSFT, GOOGL, NVDA), Finance (JPM, BAC), Healthcare (JNJ, UNH), Consumer (KO, PG, WMT)
+⚡ WHEN ANALYZING (BE SPECIFIC WITH REAL DATA):
+- ALWAYS use real numbers from tools (not generic "it's good/bad")
+- Example: "RELIANCE P/E is 24.5 vs industry average 18.2 (35% premium)"
+- Example: "RSI at 72 indicates overbought, suggest waiting for pullback to 50-55"
+- Example: "Stock trading at ₹2,450, 52-week high ₹2,850 (14% below high), support at ₹2,300"
+- Identify risks with data: "Banking exposure 45% of portfolio (recommend reducing to 30%)"
+- For comparisons, show metrics side-by-side in table format
 
-IMPORTANT:
-- If asked about a stock user doesn't own, clearly state you can analyze it
-- When comparing stocks, show key metrics side-by-side
-- For "should I buy X" questions, analyze fundamentals, technicals, and portfolio fit
-- Suggest diversification opportunities based on portfolio gaps
+🎯 ANSWERING STRATEGY:
+1. **"What is X company?"** → Use getCompanyInfo() to fetch business description, industry, sector
+2. **"Should I buy X?"** → Use compareStocks() + getTechnicalIndicators() + getFinancialStatements()
+3. **"Compare X vs Y"** → Use compareStocks() with both symbols
+4. **"Find high dividend stocks"** → Use screenStocks() with minDividendYield filter
+5. **"Is X overvalued?"** → Use searchStock() for P/E, then compareStocks() with peers
+6. **"Show me X price chart"** → Use getHistoricalPrices() and describe trend/pattern
+7. **"What's X's revenue?"** → Use getFinancialStatements() with type='income'
+
+🚀 IMPORTANT BEHAVIORS:
+- ALWAYS fetch live data - don't rely on general knowledge from training
+- Use multiple tools for comprehensive analysis (company info + financials + technicals)
+- Show actual numbers, not vague statements
+- For any stock mentioned, you can get live data instantly
+- When user asks "what do you think about X", analyze it with real data using your tools
+- Don't say "I don't have access" - you have Yahoo Finance API access for ANY stock!
 
 ${portfolioContext}${marketContext}`;
 
@@ -5399,6 +5420,143 @@ ${portfolioContext}${marketContext}`;
             }
           },
           required: ["symbol", "market"]
+        }
+      },
+      {
+        name: "getHistoricalPrices",
+        description: "Get historical price data for technical analysis, chart patterns, trend analysis. Returns OHLCV data for specified period. Use when user asks about price history, trends, support/resistance levels.",
+        input_schema: {
+          type: "object",
+          properties: {
+            symbol: {
+              type: "string",
+              description: "Stock symbol (e.g., RELIANCE, AAPL)"
+            },
+            market: {
+              type: "string",
+              enum: ["NSE", "NYSE"],
+              description: "Market exchange"
+            },
+            period: {
+              type: "string",
+              enum: ["1mo", "3mo", "6mo", "1y", "2y", "5y"],
+              description: "Historical period to fetch",
+              default: "1y"
+            }
+          },
+          required: ["symbol", "market"]
+        }
+      },
+      {
+        name: "getCompanyInfo",
+        description: "Get detailed company profile, business description, industry, sector, employee count, headquarters. Use when user asks 'what does this company do', 'tell me about company X', or needs business overview.",
+        input_schema: {
+          type: "object",
+          properties: {
+            symbol: {
+              type: "string",
+              description: "Stock symbol"
+            },
+            market: {
+              type: "string",
+              enum: ["NSE", "NYSE"],
+              description: "Market exchange"
+            }
+          },
+          required: ["symbol", "market"]
+        }
+      },
+      {
+        name: "getFinancialStatements",
+        description: "Get income statement, balance sheet, cash flow data for fundamental analysis. Returns revenue, earnings, assets, liabilities, cash from operations. Use when user asks about company financials, profitability, cash flow.",
+        input_schema: {
+          type: "object",
+          properties: {
+            symbol: {
+              type: "string",
+              description: "Stock symbol"
+            },
+            market: {
+              type: "string",
+              enum: ["NSE", "NYSE"],
+              description: "Market exchange"
+            },
+            type: {
+              type: "string",
+              enum: ["income", "balance", "cashflow"],
+              description: "Type of financial statement",
+              default: "income"
+            }
+          },
+          required: ["symbol", "market"]
+        }
+      },
+      {
+        name: "compareStocks",
+        description: "Compare multiple stocks side-by-side on key metrics (P/E, ROE, Market Cap, Dividend Yield, Revenue Growth). Use when user asks 'compare X vs Y', 'which is better', 'X or Y for investment'.",
+        input_schema: {
+          type: "object",
+          properties: {
+            stocks: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  symbol: { type: "string" },
+                  market: { type: "string", enum: ["NSE", "NYSE"] }
+                },
+                required: ["symbol", "market"]
+              },
+              description: "Array of stocks to compare (2-5 stocks)",
+              minItems: 2,
+              maxItems: 5
+            }
+          },
+          required: ["stocks"]
+        }
+      },
+      {
+        name: "getTechnicalIndicators",
+        description: "Calculate technical indicators: RSI, MACD, Bollinger Bands, Moving Averages (50, 200 DMA), support/resistance levels. Use when user asks about technical analysis, overbought/oversold conditions, momentum.",
+        input_schema: {
+          type: "object",
+          properties: {
+            symbol: {
+              type: "string",
+              description: "Stock symbol"
+            },
+            market: {
+              type: "string",
+              enum: ["NSE", "NYSE"],
+              description: "Market exchange"
+            }
+          },
+          required: ["symbol", "market"]
+        }
+      },
+      {
+        name: "screenStocks",
+        description: "Screen/filter stocks by criteria: P/E ratio, dividend yield, market cap, sector, price range. Returns list of stocks matching criteria. Use when user asks 'find stocks with X criteria', 'high dividend stocks', 'undervalued stocks'.",
+        input_schema: {
+          type: "object",
+          properties: {
+            market: {
+              type: "string",
+              enum: ["NSE", "NYSE"],
+              description: "Market to screen"
+            },
+            filters: {
+              type: "object",
+              properties: {
+                maxPE: { type: "number", description: "Maximum P/E ratio" },
+                minDividendYield: { type: "number", description: "Minimum dividend yield %" },
+                minMarketCap: { type: "number", description: "Minimum market cap in billions" },
+                maxPrice: { type: "number", description: "Maximum stock price" },
+                sector: { type: "string", description: "Sector filter (Banking, IT, Pharma, etc.)" }
+              }
+            }
+          },
+          required: ["market"]
         }
       },
       {
@@ -5503,6 +5661,193 @@ ${portfolioContext}${marketContext}`;
                 market: toolUse.input.market
               });
               toolResult = JSON.stringify(stockRes.data);
+              break;
+
+            case 'getHistoricalPrices':
+              const histRes = await axios.get(`http://localhost:${PORT}/api/historical/${toolUse.input.symbol}/${toolUse.input.market}`, {
+                params: { period: toolUse.input.period || '1y' }
+              });
+              toolResult = JSON.stringify(histRes.data);
+              break;
+
+            case 'getCompanyInfo':
+              const yahooSym = getYahooSymbol(toolUse.input.symbol, toolUse.input.market);
+              const companyInfo = await yahooFinance.quoteSummary(yahooSym, {
+                modules: ['assetProfile', 'summaryProfile']
+              });
+              toolResult = JSON.stringify({
+                symbol: toolUse.input.symbol,
+                companyName: companyInfo.assetProfile?.longName || companyInfo.summaryProfile?.longName,
+                industry: companyInfo.assetProfile?.industry,
+                sector: companyInfo.assetProfile?.sector,
+                country: companyInfo.assetProfile?.country,
+                website: companyInfo.assetProfile?.website,
+                employees: companyInfo.assetProfile?.fullTimeEmployees,
+                description: companyInfo.assetProfile?.longBusinessSummary,
+                headquarters: `${companyInfo.assetProfile?.city}, ${companyInfo.assetProfile?.state}, ${companyInfo.assetProfile?.country}`
+              });
+              break;
+
+            case 'getFinancialStatements':
+              const finYahooSym = getYahooSymbol(toolUse.input.symbol, toolUse.input.market);
+              const finModule = toolUse.input.type === 'balance' ? 'balanceSheetHistory' :
+                              toolUse.input.type === 'cashflow' ? 'cashflowStatementHistory' :
+                              'incomeStatementHistory';
+              const financials = await yahooFinance.quoteSummary(finYahooSym, {
+                modules: [finModule, 'financialData', 'defaultKeyStatistics']
+              });
+              toolResult = JSON.stringify({
+                symbol: toolUse.input.symbol,
+                type: toolUse.input.type,
+                data: financials[finModule],
+                currentData: {
+                  revenue: financials.financialData?.totalRevenue?.fmt,
+                  profitMargin: financials.financialData?.profitMargins?.fmt,
+                  operatingMargin: financials.financialData?.operatingMargins?.fmt,
+                  roe: financials.financialData?.returnOnEquity?.fmt,
+                  roa: financials.financialData?.returnOnAssets?.fmt,
+                  debtToEquity: financials.financialData?.debtToEquity?.fmt,
+                  currentRatio: financials.financialData?.currentRatio?.fmt,
+                  freeCashFlow: financials.financialData?.freeCashflow?.fmt
+                }
+              });
+              break;
+
+            case 'compareStocks':
+              const comparisons = [];
+              for (const stock of toolUse.input.stocks) {
+                try {
+                  const cmpYahooSym = getYahooSymbol(stock.symbol, stock.market);
+                  const quote = await yahooFinance.quote(cmpYahooSym);
+                  const summary = await yahooFinance.quoteSummary(cmpYahooSym, {
+                    modules: ['defaultKeyStatistics', 'financialData', 'summaryDetail']
+                  });
+                  comparisons.push({
+                    symbol: stock.symbol,
+                    market: stock.market,
+                    price: quote.regularMarketPrice,
+                    change: quote.regularMarketChangePercent,
+                    marketCap: summary.summaryDetail?.marketCap?.fmt || quote.marketCap?.fmt,
+                    pe: quote.trailingPE,
+                    pb: quote.priceToBook,
+                    roe: summary.defaultKeyStatistics?.returnOnEquity?.fmt,
+                    dividendYield: summary.summaryDetail?.dividendYield?.fmt,
+                    eps: quote.epsTrailingTwelveMonths,
+                    beta: quote.beta,
+                    fiftyTwoWeekHigh: quote.fiftyTwoWeekHigh,
+                    fiftyTwoWeekLow: quote.fiftyTwoWeekLow
+                  });
+                } catch (err) {
+                  comparisons.push({ symbol: stock.symbol, error: err.message });
+                }
+              }
+              toolResult = JSON.stringify({ stocks: comparisons });
+              break;
+
+            case 'getTechnicalIndicators':
+              const techYahooSym = getYahooSymbol(toolUse.input.symbol, toolUse.input.market);
+
+              // Get historical data for calculations
+              const techHist = await yahooFinance.chart(techYahooSym, {
+                period1: Math.floor((Date.now() - (365 * 24 * 60 * 60 * 1000)) / 1000),
+                period2: Math.floor(Date.now() / 1000),
+                interval: '1d'
+              });
+
+              const prices = techHist.quotes.map(q => q.close).filter(p => p);
+
+              // Calculate indicators
+              const sma50 = prices.length >= 50 ? prices.slice(-50).reduce((a, b) => a + b) / 50 : null;
+              const sma200 = prices.length >= 200 ? prices.slice(-200).reduce((a, b) => a + b) / 200 : null;
+
+              // RSI calculation (14-day)
+              let rsi = null;
+              if (prices.length >= 15) {
+                const changes = [];
+                for (let i = 1; i < prices.length; i++) {
+                  changes.push(prices[i] - prices[i - 1]);
+                }
+                const recentChanges = changes.slice(-14);
+                const gains = recentChanges.filter(c => c > 0).reduce((a, b) => a + b, 0) / 14;
+                const losses = Math.abs(recentChanges.filter(c => c < 0).reduce((a, b) => a + b, 0)) / 14;
+                const rs = gains / (losses || 1);
+                rsi = 100 - (100 / (1 + rs));
+              }
+
+              const currentPrice = prices[prices.length - 1];
+
+              toolResult = JSON.stringify({
+                symbol: toolUse.input.symbol,
+                currentPrice,
+                sma50: sma50?.toFixed(2),
+                sma200: sma200?.toFixed(2),
+                goldenCross: sma50 && sma200 && sma50 > sma200,
+                deathCross: sma50 && sma200 && sma50 < sma200,
+                rsi: rsi?.toFixed(2),
+                rsiSignal: rsi > 70 ? 'Overbought' : rsi < 30 ? 'Oversold' : 'Neutral',
+                priceAboveSMA50: sma50 && currentPrice > sma50,
+                priceAboveSMA200: sma200 && currentPrice > sma200,
+                fiftyTwoWeekRange: {
+                  high: Math.max(...prices.slice(-252)),
+                  low: Math.min(...prices.slice(-252)),
+                  currentPosition: ((currentPrice - Math.min(...prices.slice(-252))) / (Math.max(...prices.slice(-252)) - Math.min(...prices.slice(-252))) * 100).toFixed(1) + '%'
+                }
+              });
+              break;
+
+            case 'screenStocks':
+              const screenMarket = toolUse.input.market;
+              const filters = toolUse.input.filters || {};
+
+              // Get stock universe
+              const universeRes = await axios.get(`http://localhost:${PORT}/api/stock-universe`, {
+                params: { market: screenMarket }
+              });
+              const stockList = universeRes.data.stocks;
+
+              const screenResults = [];
+              for (const sym of stockList.slice(0, 20)) { // Limit to 20 for performance
+                try {
+                  const screenYahooSym = getYahooSymbol(sym, screenMarket);
+                  const screenQuote = await yahooFinance.quote(screenYahooSym);
+                  const screenSummary = await yahooFinance.quoteSummary(screenYahooSym, {
+                    modules: ['defaultKeyStatistics', 'summaryDetail']
+                  });
+
+                  const pe = screenQuote.trailingPE;
+                  const price = screenQuote.regularMarketPrice;
+                  const divYield = screenSummary.summaryDetail?.dividendYield?.raw * 100 || 0;
+                  const marketCapNum = screenQuote.marketCap / 1e9; // Convert to billions
+
+                  // Apply filters
+                  let match = true;
+                  if (filters.maxPE && pe && pe > filters.maxPE) match = false;
+                  if (filters.minDividendYield && divYield < filters.minDividendYield) match = false;
+                  if (filters.minMarketCap && marketCapNum < filters.minMarketCap) match = false;
+                  if (filters.maxPrice && price > filters.maxPrice) match = false;
+                  // Sector filter would need additional API call for industry/sector
+
+                  if (match) {
+                    screenResults.push({
+                      symbol: sym,
+                      price: price?.toFixed(2),
+                      pe: pe?.toFixed(2),
+                      dividendYield: divYield?.toFixed(2) + '%',
+                      marketCap: marketCapNum?.toFixed(1) + 'B',
+                      change: screenQuote.regularMarketChangePercent?.toFixed(2) + '%'
+                    });
+                  }
+                } catch (err) {
+                  // Skip stocks that fail
+                }
+              }
+
+              toolResult = JSON.stringify({
+                market: screenMarket,
+                filters: filters,
+                resultsCount: screenResults.length,
+                stocks: screenResults
+              });
               break;
 
             case 'getMarketIndices':

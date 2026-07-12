@@ -48,36 +48,51 @@ const SUGGESTED_PROMPTS: SuggestedPrompt[] = [
     text: 'Risk assessment',
     prompt: 'Assess the risk in my portfolio. Are there any stocks I should be concerned about?',
   },
-  // Market-Wide Analysis (NEW)
+  // Real-Time Market Data (NEW - Yahoo Finance)
+  {
+    icon: '🔬',
+    text: 'Research stock',
+    prompt: 'Research RELIANCE for me - company info, financials, technicals, and investment view.',
+  },
+  {
+    icon: '🔍',
+    text: 'Compare stocks',
+    prompt: 'Compare TCS vs Infosys with real-time data. Show P/E, ROE, dividend yield, and recommend which is better.',
+  },
+  {
+    icon: '📈',
+    text: 'Technical analysis',
+    prompt: 'Check RSI, moving averages, and momentum for AAPL. Is it overbought or good entry point?',
+  },
+  {
+    icon: '💰',
+    text: 'Find dividend stocks',
+    prompt: 'Screen NSE for high dividend stocks with yield above 4% and P/E below 15.',
+  },
+  {
+    icon: '🎯',
+    text: 'Stock screening',
+    prompt: 'Find undervalued large-cap stocks in NSE with good fundamentals.',
+  },
+  {
+    icon: '📊',
+    text: 'Price history',
+    prompt: 'Show me TCS price trend for last 6 months and identify support/resistance levels.',
+  },
+  {
+    icon: '🏢',
+    text: 'Company analysis',
+    prompt: 'What does Microsoft do? Show me their business model, revenue, and competitive position.',
+  },
   {
     icon: '🌍',
     text: 'Market overview',
     prompt: 'What\'s happening in the market today? Show me the major indices and top movers.',
   },
   {
-    icon: '🔍',
-    text: 'Compare stocks',
-    prompt: 'Compare TCS vs Infosys. Which is a better investment right now?',
-  },
-  {
-    icon: '💰',
-    text: 'Find dividend stocks',
-    prompt: 'Find me 5 good dividend-paying stocks with yield above 3%.',
-  },
-  {
-    icon: '🎯',
-    text: 'Sector analysis',
-    prompt: 'How is the IT sector performing? Should I invest more in tech stocks?',
-  },
-  {
-    icon: '🚀',
-    text: 'Stock opportunities',
-    prompt: 'What are some undervalued stocks I should consider adding to my portfolio?',
-  },
-  {
     icon: '⚡',
-    text: 'Analyze any stock',
-    prompt: 'Should I buy Reliance Industries? Give me a detailed analysis.',
+    text: 'Investment decision',
+    prompt: 'Should I buy Apple at current price? Analyze fundamentals, technicals, and give entry/exit points.',
   },
 ];
 
