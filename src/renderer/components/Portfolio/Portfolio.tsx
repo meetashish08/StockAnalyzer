@@ -425,6 +425,9 @@ export default function Portfolio() {
             <p className="text-2xl font-bold text-white">
               {formatCurrency(tabSummaries[activeTab].value, getCurrencyForTab())}
             </p>
+            <p className="text-sm text-slate-400 mt-1">
+              Invested: {formatCurrency(tabSummaries[activeTab].invested, getCurrencyForTab())}
+            </p>
           </div>
           <div className="card bg-gradient-to-br from-slate-800 to-slate-700">
             <p className="text-slate-400 text-sm">Total P&L</p>
@@ -597,8 +600,15 @@ export default function Portfolio() {
                     <td className="p-4 text-right text-white">
                       {formatPrice(holding.currentPrice, currency)}
                     </td>
-                    <td className="p-4 text-right text-white font-medium">
-                      {formatCurrency(holding.currentValue, currency)}
+                    <td className="p-4 text-right">
+                      <div>
+                        <p className="text-white font-medium">
+                          {formatCurrency(holding.currentValue, currency)}
+                        </p>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          Buy: {formatCurrency(holding.avgPrice * holding.quantity, currency)}
+                        </p>
+                      </div>
                     </td>
                     <td className="p-4 text-right">
                       <div className={holding.pnl >= 0 ? 'text-profit' : 'text-loss'}>

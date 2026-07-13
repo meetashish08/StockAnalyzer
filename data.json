@@ -9,15 +9,15 @@
       "quantity": 5,
       "avgPrice": 211.1,
       "importedPrice": 0,
-      "currentPrice": 289.65,
+      "currentPrice": 285.2,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
       "createdAt": "2026-07-12T10:22:42.266Z",
-      "dayChange": -2.8000183,
-      "dayChangePercent": -0.95743483,
-      "previousClose": 292.45,
-      "lastPriceUpdate": "2026-07-12T10:42:02.175Z"
+      "dayChange": -4.4499817,
+      "dayChangePercent": -1.5363307,
+      "previousClose": 289.65,
+      "lastPriceUpdate": "2026-07-13T13:39:01.986Z"
     },
     {
       "id": 2,
@@ -28,15 +28,15 @@
       "quantity": 28,
       "avgPrice": 1032.85,
       "importedPrice": 0,
-      "currentPrice": 1036,
+      "currentPrice": 1037,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783851762235,
       "createdAt": "2026-07-12T10:22:42.279Z",
-      "dayChange": 13.900024,
-      "dayChangePercent": 1.3599477,
-      "previousClose": 1022.1,
-      "lastPriceUpdate": "2026-07-12T10:42:02.590Z"
+      "dayChange": 1,
+      "dayChangePercent": 0.096525095,
+      "previousClose": 1036,
+      "lastPriceUpdate": "2026-07-13T13:39:02.510Z"
     },
     {
       "id": 3,
@@ -47,15 +47,15 @@
       "quantity": 2,
       "avgPrice": 184.1,
       "importedPrice": 0,
-      "currentPrice": 210,
+      "currentPrice": 213.15,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783851762235,
       "createdAt": "2026-07-12T10:22:42.293Z",
-      "dayChange": 10.139999,
-      "dayChangePercent": 5.073551,
-      "previousClose": 199.86,
-      "lastPriceUpdate": "2026-07-12T10:42:02.929Z"
+      "dayChange": 3.149994,
+      "dayChangePercent": 1.4999971,
+      "previousClose": 210,
+      "lastPriceUpdate": "2026-07-13T13:39:02.874Z"
     },
     {
       "id": 4,
@@ -66,15 +66,15 @@
       "quantity": 3,
       "avgPrice": 147.83,
       "importedPrice": 0,
-      "currentPrice": 119.64,
+      "currentPrice": 118.8,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783851762235,
       "createdAt": "2026-07-12T10:22:42.306Z",
-      "dayChange": 1.7900009,
-      "dayChangePercent": 1.5188807,
-      "previousClose": 117.85,
-      "lastPriceUpdate": "2026-07-12T10:42:03.239Z"
+      "dayChange": -0.83999634,
+      "dayChangePercent": -0.70210326,
+      "previousClose": 119.64,
+      "lastPriceUpdate": "2026-07-13T13:39:03.247Z"
     },
     {
       "id": 5,
@@ -85,15 +85,15 @@
       "quantity": 7,
       "avgPrice": 993.16,
       "importedPrice": 0,
-      "currentPrice": 1044.1,
+      "currentPrice": 1048.1,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783851762235,
       "createdAt": "2026-07-12T10:22:42.323Z",
-      "dayChange": 12.400024,
-      "dayChangePercent": 1.2019023,
-      "previousClose": 1031.7,
-      "lastPriceUpdate": "2026-07-12T10:42:03.537Z"
+      "dayChange": 4,
+      "dayChangePercent": 0.38310507,
+      "previousClose": 1044.1,
+      "lastPriceUpdate": "2026-07-13T13:39:03.659Z"
     },
     {
       "id": 6,
@@ -104,15 +104,15 @@
       "quantity": 58,
       "avgPrice": 116.96,
       "importedPrice": 0,
-      "currentPrice": 118.29,
+      "currentPrice": 117.21,
       "purchaseDate": "2026-07-12",
       "type": "ETF",
       "importId": 1783851762235,
       "createdAt": "2026-07-12T10:22:42.338Z",
-      "dayChange": -0.3899994,
-      "dayChangePercent": -0.32861423,
-      "previousClose": 118.68,
-      "lastPriceUpdate": "2026-07-12T10:42:03.863Z"
+      "dayChange": -1.0800018,
+      "dayChangePercent": -0.9130119,
+      "previousClose": 118.29,
+      "lastPriceUpdate": "2026-07-13T13:39:04.036Z"
     },
     {
       "id": 7,
@@ -123,15 +123,15 @@
       "quantity": 11,
       "avgPrice": 496.98,
       "importedPrice": 0,
-      "currentPrice": 586.1,
+      "currentPrice": 589.15,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783856723026,
       "createdAt": "2026-07-12T10:22:42.353Z",
-      "dayChange": 16.399963,
-      "dayChangePercent": 2.8799655,
-      "previousClose": 569.45,
-      "lastPriceUpdate": "2026-07-12T10:42:04.175Z"
+      "dayChange": 3.3000488,
+      "dayChangePercent": 0.5632925,
+      "previousClose": 585.85,
+      "lastPriceUpdate": "2026-07-13T13:39:04.387Z"
     },
     {
       "id": 8,
@@ -142,15 +142,15 @@
       "quantity": 16,
       "avgPrice": 290.26,
       "importedPrice": 0,
-      "currentPrice": 275.07,
+      "currentPrice": 275.3,
       "purchaseDate": "2026-07-12",
       "type": "ETF",
       "importId": 1783851762235,
       "createdAt": "2026-07-12T10:22:42.368Z",
-      "dayChange": 2.3099976,
-      "dayChangePercent": 0.8468974,
-      "previousClose": 272.76,
-      "lastPriceUpdate": "2026-07-12T10:42:04.489Z"
+      "dayChange": 0.22998047,
+      "dayChangePercent": 0.08360798,
+      "previousClose": 275.07,
+      "lastPriceUpdate": "2026-07-13T13:39:04.720Z"
     },
     {
       "id": 9,
@@ -161,15 +161,15 @@
       "quantity": 39,
       "avgPrice": 307.76,
       "importedPrice": 0,
-      "currentPrice": 337.95,
+      "currentPrice": 342.25,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783851762235,
       "createdAt": "2026-07-12T10:22:42.382Z",
-      "dayChange": 6.450012,
-      "dayChangePercent": 1.9457049,
-      "previousClose": 331.5,
-      "lastPriceUpdate": "2026-07-12T10:42:04.800Z"
+      "dayChange": 4.299988,
+      "dayChangePercent": 1.2723739,
+      "previousClose": 337.95,
+      "lastPriceUpdate": "2026-07-13T13:39:05.046Z"
     },
     {
       "id": 10,
@@ -180,15 +180,15 @@
       "quantity": 18,
       "avgPrice": 254.82,
       "importedPrice": 0,
-      "currentPrice": 422.5,
+      "currentPrice": 420.75,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
       "createdAt": "2026-07-12T10:22:42.398Z",
-      "dayChange": 2.649994,
-      "dayChangePercent": 0.63117635,
-      "previousClose": 419.85,
-      "lastPriceUpdate": "2026-07-12T10:42:05.121Z"
+      "dayChange": -1.75,
+      "dayChangePercent": -0.4142012,
+      "previousClose": 422.5,
+      "lastPriceUpdate": "2026-07-13T13:39:05.370Z"
     },
     {
       "id": 11,
@@ -199,15 +199,15 @@
       "quantity": 20,
       "avgPrice": 152.82,
       "importedPrice": 0,
-      "currentPrice": 187.19,
+      "currentPrice": 186.5,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783851762235,
       "createdAt": "2026-07-12T10:22:42.414Z",
-      "dayChange": 4.880005,
-      "dayChangePercent": 2.676762,
-      "previousClose": 182.31,
-      "lastPriceUpdate": "2026-07-12T10:42:05.426Z"
+      "dayChange": -0.69000244,
+      "dayChangePercent": -0.3686107,
+      "previousClose": 187.19,
+      "lastPriceUpdate": "2026-07-13T13:39:05.712Z"
     },
     {
       "id": 12,
@@ -218,15 +218,15 @@
       "quantity": 30,
       "avgPrice": 123.67,
       "importedPrice": 0,
-      "currentPrice": 138.22,
+      "currentPrice": 138.29,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783851762235,
       "createdAt": "2026-07-12T10:22:42.431Z",
-      "dayChange": 2.949997,
-      "dayChangePercent": 2.1808212,
-      "previousClose": 135.27,
-      "lastPriceUpdate": "2026-07-12T10:42:05.739Z"
+      "dayChange": 0.069992065,
+      "dayChangePercent": 0.05063816,
+      "previousClose": 138.22,
+      "lastPriceUpdate": "2026-07-13T13:39:06.040Z"
     },
     {
       "id": 13,
@@ -237,15 +237,15 @@
       "quantity": 160,
       "avgPrice": 120.42,
       "importedPrice": 0,
-      "currentPrice": 117.15,
+      "currentPrice": 117.23,
       "purchaseDate": "2026-07-12",
       "type": "ETF",
       "importId": 1783851762235,
       "createdAt": "2026-07-12T10:22:42.448Z",
-      "dayChange": 1.2300034,
-      "dayChangePercent": 1.0610795,
-      "previousClose": 115.92,
-      "lastPriceUpdate": "2026-07-12T10:42:06.048Z"
+      "dayChange": 0.08000183,
+      "dayChangePercent": 0.068290085,
+      "previousClose": 117.15,
+      "lastPriceUpdate": "2026-07-13T13:39:06.377Z"
     },
     {
       "id": 14,
@@ -256,15 +256,15 @@
       "quantity": 24,
       "avgPrice": 258.01,
       "importedPrice": 0,
-      "currentPrice": 208.83,
+      "currentPrice": 207.46,
       "purchaseDate": "2026-07-12",
       "type": "ETF",
       "importId": 1783851762235,
       "createdAt": "2026-07-12T10:22:42.465Z",
-      "dayChange": -4.119995,
-      "dayChangePercent": -1.9347241,
-      "previousClose": 212.95,
-      "lastPriceUpdate": "2026-07-12T10:42:06.367Z"
+      "dayChange": -1.3699951,
+      "dayChangePercent": -0.6560337,
+      "previousClose": 208.83,
+      "lastPriceUpdate": "2026-07-13T13:39:06.717Z"
     },
     {
       "id": 15,
@@ -275,11 +275,15 @@
       "quantity": 2,
       "avgPrice": 802.05,
       "importedPrice": 1654,
-      "currentPrice": 1654,
+      "currentPrice": 1644.6,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.080Z"
+      "createdAt": "2026-07-12T10:53:45.080Z",
+      "dayChange": -9.400024,
+      "dayChangePercent": -0.5683207,
+      "previousClose": 1654,
+      "lastPriceUpdate": "2026-07-13T13:39:07.243Z"
     },
     {
       "id": 16,
@@ -290,11 +294,15 @@
       "quantity": 10,
       "avgPrice": 171.5,
       "importedPrice": 218.45,
-      "currentPrice": 218.45,
+      "currentPrice": 215.46,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.090Z"
+      "createdAt": "2026-07-12T10:53:45.090Z",
+      "dayChange": -2.9899902,
+      "dayChangePercent": -1.3687298,
+      "previousClose": 218.45,
+      "lastPriceUpdate": "2026-07-13T13:39:07.810Z"
     },
     {
       "id": 17,
@@ -305,11 +313,15 @@
       "quantity": 15,
       "avgPrice": 411.13,
       "importedPrice": 414.85,
-      "currentPrice": 414.85,
+      "currentPrice": 410.8,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.099Z"
+      "createdAt": "2026-07-12T10:53:45.099Z",
+      "dayChange": -4.0500183,
+      "dayChangePercent": -0.97626084,
+      "previousClose": 414.85,
+      "lastPriceUpdate": "2026-07-13T13:39:08.185Z"
     },
     {
       "id": 18,
@@ -320,11 +332,15 @@
       "quantity": 10,
       "avgPrice": 1820.27,
       "importedPrice": 1920.4,
-      "currentPrice": 1920.4,
+      "currentPrice": 1901.8,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.108Z"
+      "createdAt": "2026-07-12T10:53:45.108Z",
+      "dayChange": -18.599976,
+      "dayChangePercent": -0.968547,
+      "previousClose": 1920.4,
+      "lastPriceUpdate": "2026-07-13T13:39:08.527Z"
     },
     {
       "id": 19,
@@ -335,11 +351,15 @@
       "quantity": 15,
       "avgPrice": 329.36,
       "importedPrice": 337.68,
-      "currentPrice": 337.68,
+      "currentPrice": 340.95,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.117Z"
+      "createdAt": "2026-07-12T10:53:45.117Z",
+      "dayChange": 2.9400024,
+      "dayChangePercent": 0.86979747,
+      "previousClose": 338.01,
+      "lastPriceUpdate": "2026-07-13T13:39:08.871Z"
     },
     {
       "id": 20,
@@ -350,11 +370,15 @@
       "quantity": 6,
       "avgPrice": 4000.48,
       "importedPrice": 3811.6,
-      "currentPrice": 3811.6,
+      "currentPrice": 3804.2,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783856723026,
-      "createdAt": "2026-07-12T10:53:45.125Z"
+      "createdAt": "2026-07-12T10:53:45.125Z",
+      "dayChange": -7.4001465,
+      "dayChangePercent": -0.19414803,
+      "previousClose": 3811.6,
+      "lastPriceUpdate": "2026-07-13T13:39:09.223Z"
     },
     {
       "id": 21,
@@ -365,11 +389,15 @@
       "quantity": 21,
       "avgPrice": 457.18,
       "importedPrice": 429.3,
-      "currentPrice": 429.45,
+      "currentPrice": 430.2,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783856723026,
-      "createdAt": "2026-07-12T10:53:45.133Z"
+      "createdAt": "2026-07-12T10:53:45.133Z",
+      "dayChange": 0.9000244,
+      "dayChangePercent": 0.20964931,
+      "previousClose": 429.3,
+      "lastPriceUpdate": "2026-07-13T13:39:09.561Z"
     },
     {
       "id": 22,
@@ -380,11 +408,15 @@
       "quantity": 19,
       "avgPrice": 145.86,
       "importedPrice": 212.24,
-      "currentPrice": 212.24,
+      "currentPrice": 206.83,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783856723026,
-      "createdAt": "2026-07-12T10:53:45.142Z"
+      "createdAt": "2026-07-12T10:53:45.142Z",
+      "dayChange": -5.4100037,
+      "dayChangePercent": -2.549003,
+      "previousClose": 212.24,
+      "lastPriceUpdate": "2026-07-13T13:39:09.898Z"
     },
     {
       "id": 23,
@@ -395,11 +427,15 @@
       "quantity": 5,
       "avgPrice": 3000.2,
       "importedPrice": 4343,
-      "currentPrice": 4343,
+      "currentPrice": 4270.3,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.150Z"
+      "createdAt": "2026-07-12T10:53:45.150Z",
+      "dayChange": -72.700195,
+      "dayChangePercent": -1.6739626,
+      "previousClose": 4343,
+      "lastPriceUpdate": "2026-07-13T13:39:10.378Z"
     },
     {
       "id": 24,
@@ -410,11 +446,15 @@
       "quantity": 5,
       "avgPrice": 600,
       "importedPrice": 685.75,
-      "currentPrice": 685.75,
+      "currentPrice": 682.35,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.159Z"
+      "createdAt": "2026-07-12T10:53:45.159Z",
+      "dayChange": -3.4000244,
+      "dayChangePercent": -0.49581107,
+      "previousClose": 685.75,
+      "lastPriceUpdate": "2026-07-13T13:39:10.707Z"
     },
     {
       "id": 25,
@@ -425,11 +465,15 @@
       "quantity": 20,
       "avgPrice": 416.42,
       "importedPrice": 450.03,
-      "currentPrice": 450.03,
+      "currentPrice": 443.52,
       "purchaseDate": "2026-07-12",
       "type": "REIT",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.167Z"
+      "createdAt": "2026-07-12T10:53:45.167Z",
+      "dayChange": -6.580017,
+      "dayChangePercent": -1.4619012,
+      "previousClose": 450.1,
+      "lastPriceUpdate": "2026-07-13T13:39:11.026Z"
     },
     {
       "id": 26,
@@ -440,11 +484,15 @@
       "quantity": 40,
       "avgPrice": 164.73,
       "importedPrice": 173.73,
-      "currentPrice": 173.73,
+      "currentPrice": 173.12,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.185Z"
+      "createdAt": "2026-07-12T10:53:45.185Z",
+      "dayChange": -0.6100006,
+      "dayChangePercent": -0.3511199,
+      "previousClose": 173.73,
+      "lastPriceUpdate": "2026-07-13T13:39:11.366Z"
     },
     {
       "id": 27,
@@ -455,11 +503,15 @@
       "quantity": 16,
       "avgPrice": 255.18,
       "importedPrice": 317.05,
-      "currentPrice": 317.05,
+      "currentPrice": 317.65,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.194Z"
+      "createdAt": "2026-07-12T10:53:45.194Z",
+      "dayChange": 0.6000061,
+      "dayChangePercent": 0.18924654,
+      "previousClose": 317.05,
+      "lastPriceUpdate": "2026-07-13T13:39:11.689Z"
     },
     {
       "id": 28,
@@ -470,11 +522,15 @@
       "quantity": 14,
       "avgPrice": 769.75,
       "importedPrice": 824.95,
-      "currentPrice": 824.95,
+      "currentPrice": 817.95,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.202Z"
+      "createdAt": "2026-07-12T10:53:45.202Z",
+      "dayChange": -7,
+      "dayChangePercent": -0.8485363,
+      "previousClose": 824.95,
+      "lastPriceUpdate": "2026-07-13T13:39:12.018Z"
     },
     {
       "id": 29,
@@ -485,11 +541,15 @@
       "quantity": 74,
       "avgPrice": 156.69,
       "importedPrice": 182.6,
-      "currentPrice": 182.6,
+      "currentPrice": 183.23,
       "purchaseDate": "2026-07-12",
       "type": "MUTUAL_FUND",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.212Z"
+      "createdAt": "2026-07-12T10:53:45.212Z",
+      "dayChange": 0.6299896,
+      "dayChangePercent": 0.34501073,
+      "previousClose": 182.6,
+      "lastPriceUpdate": "2026-07-13T13:39:12.351Z"
     },
     {
       "id": 30,
@@ -500,11 +560,15 @@
       "quantity": 5,
       "avgPrice": 657.31,
       "importedPrice": 967.45,
-      "currentPrice": 967.45,
+      "currentPrice": 966.85,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.221Z"
+      "createdAt": "2026-07-12T10:53:45.221Z",
+      "dayChange": -0.6000366,
+      "dayChangePercent": -0.062022492,
+      "previousClose": 967.45,
+      "lastPriceUpdate": "2026-07-13T13:39:12.695Z"
     },
     {
       "id": 31,
@@ -515,11 +579,15 @@
       "quantity": 2,
       "avgPrice": 4101,
       "importedPrice": 4506.8,
-      "currentPrice": 4506.8,
+      "currentPrice": 4511.3,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.231Z"
+      "createdAt": "2026-07-12T10:53:45.231Z",
+      "dayChange": 4.5,
+      "dayChangePercent": 0.09984912,
+      "previousClose": 4506.8,
+      "lastPriceUpdate": "2026-07-13T13:39:13.139Z"
     },
     {
       "id": 32,
@@ -530,11 +598,15 @@
       "quantity": 15,
       "avgPrice": 519.83,
       "importedPrice": 498.65,
-      "currentPrice": 498.65,
+      "currentPrice": 497.95,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.242Z"
+      "createdAt": "2026-07-12T10:53:45.242Z",
+      "dayChange": -0.6999817,
+      "dayChangePercent": -0.14037535,
+      "previousClose": 498.65,
+      "lastPriceUpdate": "2026-07-13T13:39:13.472Z"
     },
     {
       "id": 33,
@@ -545,11 +617,15 @@
       "quantity": 15,
       "avgPrice": 2062.6,
       "importedPrice": 2150.6,
-      "currentPrice": 2150.6,
+      "currentPrice": 2130.6,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.252Z"
+      "createdAt": "2026-07-12T10:53:45.252Z",
+      "dayChange": -20,
+      "dayChangePercent": -0.929973,
+      "previousClose": 2150.6,
+      "lastPriceUpdate": "2026-07-13T13:39:13.809Z"
     },
     {
       "id": 34,
@@ -560,11 +636,15 @@
       "quantity": 5,
       "avgPrice": 1345.04,
       "importedPrice": 1401.2,
-      "currentPrice": 1401.2,
+      "currentPrice": 1409.5,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.262Z"
+      "createdAt": "2026-07-12T10:53:45.262Z",
+      "dayChange": 8.300049,
+      "dayChangePercent": 0.5923529,
+      "previousClose": 1401.2,
+      "lastPriceUpdate": "2026-07-13T13:39:14.146Z"
     },
     {
       "id": 35,
@@ -575,11 +655,15 @@
       "quantity": 25,
       "avgPrice": 135.15,
       "importedPrice": 89.9,
-      "currentPrice": 89.9,
+      "currentPrice": 89.75,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.276Z"
+      "createdAt": "2026-07-12T10:53:45.276Z",
+      "dayChange": -0.15000153,
+      "dayChangePercent": -0.16685376,
+      "previousClose": 89.9,
+      "lastPriceUpdate": "2026-07-13T13:39:14.481Z"
     },
     {
       "id": 36,
@@ -590,11 +674,15 @@
       "quantity": 15,
       "avgPrice": 304.7,
       "importedPrice": 281.75,
-      "currentPrice": 281.75,
+      "currentPrice": 279.65,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.286Z"
+      "createdAt": "2026-07-12T10:53:45.286Z",
+      "dayChange": -2.100006,
+      "dayChangePercent": -0.7453438,
+      "previousClose": 281.75,
+      "lastPriceUpdate": "2026-07-13T13:39:14.940Z"
     },
     {
       "id": 37,
@@ -605,11 +693,15 @@
       "quantity": 4,
       "avgPrice": 128.79,
       "importedPrice": 241.96,
-      "currentPrice": 241.96,
+      "currentPrice": 241.41,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.301Z"
+      "createdAt": "2026-07-12T10:53:45.301Z",
+      "dayChange": -0.55000305,
+      "dayChangePercent": -0.22731155,
+      "previousClose": 241.96,
+      "lastPriceUpdate": "2026-07-13T13:39:15.291Z"
     },
     {
       "id": 38,
@@ -620,11 +712,15 @@
       "quantity": 31,
       "avgPrice": 28.5,
       "importedPrice": 21.96,
-      "currentPrice": 21.96,
+      "currentPrice": 21.97,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.317Z"
+      "createdAt": "2026-07-12T10:53:45.317Z",
+      "dayChange": 0.010000229,
+      "dayChangePercent": 0.045538384,
+      "previousClose": 21.96,
+      "lastPriceUpdate": "2026-07-13T13:39:15.626Z"
     },
     {
       "id": 39,
@@ -635,11 +731,15 @@
       "quantity": 5,
       "avgPrice": 179.5,
       "importedPrice": 321.25,
-      "currentPrice": 321.25,
+      "currentPrice": 324.7,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.330Z"
+      "createdAt": "2026-07-12T10:53:45.330Z",
+      "dayChange": 3.4500122,
+      "dayChangePercent": 1.0739337,
+      "previousClose": 321.25,
+      "lastPriceUpdate": "2026-07-13T13:39:15.967Z"
     },
     {
       "id": 40,
@@ -650,11 +750,15 @@
       "quantity": 9,
       "avgPrice": 3677.22,
       "importedPrice": 3945.8,
-      "currentPrice": 3945.8,
+      "currentPrice": 3928.5,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.342Z"
+      "createdAt": "2026-07-12T10:53:45.342Z",
+      "dayChange": -17.300049,
+      "dayChangePercent": -0.43844214,
+      "previousClose": 3945.8,
+      "lastPriceUpdate": "2026-07-13T13:39:16.323Z"
     },
     {
       "id": 41,
@@ -665,11 +769,15 @@
       "quantity": 9,
       "avgPrice": 3301.47,
       "importedPrice": 3129.4,
-      "currentPrice": 3129.4,
+      "currentPrice": 3160.4,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.352Z"
+      "createdAt": "2026-07-12T10:53:45.352Z",
+      "dayChange": 31,
+      "dayChangePercent": 0.99060524,
+      "previousClose": 3129.4,
+      "lastPriceUpdate": "2026-07-13T13:39:16.822Z"
     },
     {
       "id": 42,
@@ -680,11 +788,15 @@
       "quantity": 3,
       "avgPrice": 2708.5,
       "importedPrice": 2420.1,
-      "currentPrice": 2420.1,
+      "currentPrice": 2402.6,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.362Z"
+      "createdAt": "2026-07-12T10:53:45.362Z",
+      "dayChange": -17.5,
+      "dayChangePercent": -0.7231106,
+      "previousClose": 2420.1,
+      "lastPriceUpdate": "2026-07-13T13:39:17.158Z"
     },
     {
       "id": 43,
@@ -695,11 +807,15 @@
       "quantity": 20,
       "avgPrice": 460.13,
       "importedPrice": 488.47,
-      "currentPrice": 488.47,
+      "currentPrice": 489.22,
       "purchaseDate": "2026-07-12",
       "type": "REIT",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.372Z"
+      "createdAt": "2026-07-12T10:53:45.372Z",
+      "dayChange": 0.3999939,
+      "dayChangePercent": 0.08182846,
+      "previousClose": 488.82,
+      "lastPriceUpdate": "2026-07-13T13:39:17.500Z"
     },
     {
       "id": 44,
@@ -710,11 +826,15 @@
       "quantity": 90,
       "avgPrice": 38.15,
       "importedPrice": 29.64,
-      "currentPrice": 29.64,
+      "currentPrice": 30.66,
       "purchaseDate": "2026-07-12",
       "type": "ETF",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.382Z"
+      "createdAt": "2026-07-12T10:53:45.382Z",
+      "dayChange": 1.0200005,
+      "dayChangePercent": 3.4412973,
+      "previousClose": 29.64,
+      "lastPriceUpdate": "2026-07-13T13:39:17.833Z"
     },
     {
       "id": 45,
@@ -725,11 +845,15 @@
       "quantity": 52,
       "avgPrice": 124.17,
       "importedPrice": 118.14,
-      "currentPrice": 118.14,
+      "currentPrice": 116.95,
       "purchaseDate": "2026-07-12",
       "type": "ETF",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.395Z"
+      "createdAt": "2026-07-12T10:53:45.395Z",
+      "dayChange": -1.1900024,
+      "dayChangePercent": -1.0072817,
+      "previousClose": 118.14,
+      "lastPriceUpdate": "2026-07-13T13:39:18.171Z"
     },
     {
       "id": 46,
@@ -740,11 +864,15 @@
       "quantity": 100,
       "avgPrice": 35.23,
       "importedPrice": 31.04,
-      "currentPrice": 31.04,
+      "currentPrice": 32.16,
       "purchaseDate": "2026-07-12",
       "type": "ETF",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.403Z"
+      "createdAt": "2026-07-12T10:53:45.403Z",
+      "dayChange": 1.1199989,
+      "dayChangePercent": 3.608244,
+      "previousClose": 31.04,
+      "lastPriceUpdate": "2026-07-13T13:39:18.662Z"
     },
     {
       "id": 47,
@@ -755,11 +883,15 @@
       "quantity": 20,
       "avgPrice": 219.25,
       "importedPrice": 239.58,
-      "currentPrice": 239.58,
+      "currentPrice": 239.34,
       "purchaseDate": "2026-07-12",
       "type": "ETF",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.414Z"
+      "createdAt": "2026-07-12T10:53:45.414Z",
+      "dayChange": -0.2400055,
+      "dayChangePercent": -0.10017759,
+      "previousClose": 239.58,
+      "lastPriceUpdate": "2026-07-13T13:39:19.004Z"
     },
     {
       "id": 48,
@@ -770,11 +902,15 @@
       "quantity": 67,
       "avgPrice": 261,
       "importedPrice": 275.07,
-      "currentPrice": 275.07,
+      "currentPrice": 275.3,
       "purchaseDate": "2026-07-12",
       "type": "ETF",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.427Z"
+      "createdAt": "2026-07-12T10:53:45.427Z",
+      "dayChange": 0.22998047,
+      "dayChangePercent": 0.08360798,
+      "previousClose": 275.07,
+      "lastPriceUpdate": "2026-07-13T13:39:19.354Z"
     },
     {
       "id": 49,
@@ -785,11 +921,15 @@
       "quantity": 55,
       "avgPrice": 92.66,
       "importedPrice": 94.35,
-      "currentPrice": 94.35,
+      "currentPrice": 94.6,
       "purchaseDate": "2026-07-12",
       "type": "ETF",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.436Z"
+      "createdAt": "2026-07-12T10:53:45.436Z",
+      "dayChange": 0.25,
+      "dayChangePercent": 0.26497087,
+      "previousClose": 94.35,
+      "lastPriceUpdate": "2026-07-13T13:39:19.688Z"
     },
     {
       "id": 50,
@@ -800,11 +940,15 @@
       "quantity": 75,
       "avgPrice": 351.44,
       "importedPrice": 344.55,
-      "currentPrice": 344.55,
+      "currentPrice": 351.75,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.449Z"
+      "createdAt": "2026-07-12T10:53:45.449Z",
+      "dayChange": 7.200012,
+      "dayChangePercent": 2.0896857,
+      "previousClose": 344.55,
+      "lastPriceUpdate": "2026-07-13T13:39:20.035Z"
     },
     {
       "id": 51,
@@ -815,11 +959,15 @@
       "quantity": 40,
       "avgPrice": 261.41,
       "importedPrice": 244.96,
-      "currentPrice": 244.96,
+      "currentPrice": 248.45,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.463Z"
+      "createdAt": "2026-07-12T10:53:45.463Z",
+      "dayChange": 3.4899902,
+      "dayChangePercent": 1.4247184,
+      "previousClose": 244.96,
+      "lastPriceUpdate": "2026-07-13T13:39:20.378Z"
     },
     {
       "id": 52,
@@ -830,11 +978,15 @@
       "quantity": 55,
       "avgPrice": 30.27,
       "importedPrice": 40.41,
-      "currentPrice": 40.41,
+      "currentPrice": 40.32,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.476Z"
+      "createdAt": "2026-07-12T10:53:45.476Z",
+      "dayChange": -0.09000015,
+      "dayChangePercent": -0.22271752,
+      "previousClose": 40.41,
+      "lastPriceUpdate": "2026-07-13T13:39:20.713Z"
     },
     {
       "id": 53,
@@ -845,11 +997,15 @@
       "quantity": 3,
       "avgPrice": 1412.03,
       "importedPrice": 1423.6,
-      "currentPrice": 1423.6,
+      "currentPrice": 1401.2,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.488Z"
+      "createdAt": "2026-07-12T10:53:45.488Z",
+      "dayChange": -22.400024,
+      "dayChangePercent": -1.5734775,
+      "previousClose": 1423.6,
+      "lastPriceUpdate": "2026-07-13T13:39:21.059Z"
     },
     {
       "id": 54,
@@ -860,11 +1016,15 @@
       "quantity": 55,
       "avgPrice": 73.33,
       "importedPrice": 105.41,
-      "currentPrice": 105.41,
+      "currentPrice": 106.34,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.499Z"
+      "createdAt": "2026-07-12T10:53:45.499Z",
+      "dayChange": 0.9299927,
+      "dayChangePercent": 0.8822623,
+      "previousClose": 105.41,
+      "lastPriceUpdate": "2026-07-13T13:39:21.394Z"
     },
     {
       "id": 55,
@@ -875,11 +1035,15 @@
       "quantity": 5,
       "avgPrice": 431.6,
       "importedPrice": 232.67,
-      "currentPrice": 232.67,
+      "currentPrice": 231.54,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.511Z"
+      "createdAt": "2026-07-12T10:53:45.511Z",
+      "dayChange": -1.1300049,
+      "dayChangePercent": -0.4856685,
+      "previousClose": 232.67,
+      "lastPriceUpdate": "2026-07-13T13:39:21.737Z"
     },
     {
       "id": 56,
@@ -890,11 +1054,15 @@
       "quantity": 11,
       "avgPrice": 1323.76,
       "importedPrice": 1307.8,
-      "currentPrice": 1307.8,
+      "currentPrice": 1296.9,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.522Z"
+      "createdAt": "2026-07-12T10:53:45.522Z",
+      "dayChange": -10.900024,
+      "dayChangePercent": -0.83346266,
+      "previousClose": 1307.8,
+      "lastPriceUpdate": "2026-07-13T13:39:22.075Z"
     },
     {
       "id": 57,
@@ -905,11 +1073,15 @@
       "quantity": 3,
       "avgPrice": 128.64,
       "importedPrice": 121.86,
-      "currentPrice": 121.86,
+      "currentPrice": 120.67,
       "purchaseDate": "2026-07-12",
       "type": "ETF",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.532Z"
+      "createdAt": "2026-07-12T10:53:45.532Z",
+      "dayChange": -1.1900024,
+      "dayChangePercent": -0.9765324,
+      "previousClose": 121.86,
+      "lastPriceUpdate": "2026-07-13T13:39:22.435Z"
     },
     {
       "id": 58,
@@ -920,11 +1092,15 @@
       "quantity": 20,
       "avgPrice": 262.25,
       "importedPrice": 260.02,
-      "currentPrice": 260.02,
+      "currentPrice": 260.49,
       "purchaseDate": "2026-07-12",
       "type": "ETF",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.544Z"
+      "createdAt": "2026-07-12T10:53:45.544Z",
+      "dayChange": 0.47000122,
+      "dayChangePercent": 0.1807558,
+      "previousClose": 260.02,
+      "lastPriceUpdate": "2026-07-13T13:39:22.781Z"
     },
     {
       "id": 59,
@@ -935,11 +1111,15 @@
       "quantity": 30,
       "avgPrice": 62.36,
       "importedPrice": 70.88,
-      "currentPrice": 70.88,
+      "currentPrice": 70.57,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.554Z"
+      "createdAt": "2026-07-12T10:53:45.554Z",
+      "dayChange": -0.30999756,
+      "dayChangePercent": -0.43735552,
+      "previousClose": 70.88,
+      "lastPriceUpdate": "2026-07-13T13:39:23.167Z"
     },
     {
       "id": 60,
@@ -950,11 +1130,15 @@
       "quantity": 30,
       "avgPrice": 146.72,
       "importedPrice": 167.95,
-      "currentPrice": 167.95,
+      "currentPrice": 167.01,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.563Z"
+      "createdAt": "2026-07-12T10:53:45.563Z",
+      "dayChange": -0.94000244,
+      "dayChangePercent": -0.55969185,
+      "previousClose": 167.95,
+      "lastPriceUpdate": "2026-07-13T13:39:23.695Z"
     },
     {
       "id": 61,
@@ -965,11 +1149,15 @@
       "quantity": 3,
       "avgPrice": 1791,
       "importedPrice": 1935.5,
-      "currentPrice": 1935.5,
+      "currentPrice": 1921.4,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.574Z"
+      "createdAt": "2026-07-12T10:53:45.574Z",
+      "dayChange": -14.099976,
+      "dayChangePercent": -0.7284927,
+      "previousClose": 1935.5,
+      "lastPriceUpdate": "2026-07-13T13:39:24.107Z"
     },
     {
       "id": 62,
@@ -980,11 +1168,15 @@
       "quantity": 80,
       "avgPrice": 40.08,
       "importedPrice": 53.92,
-      "currentPrice": 53.92,
+      "currentPrice": 53.17,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.584Z"
+      "createdAt": "2026-07-12T10:53:45.584Z",
+      "dayChange": -0.75,
+      "dayChangePercent": -1.3909496,
+      "previousClose": 53.92,
+      "lastPriceUpdate": "2026-07-13T13:39:24.605Z"
     },
     {
       "id": 63,
@@ -995,11 +1187,15 @@
       "quantity": 13,
       "avgPrice": 2518.76,
       "importedPrice": 2069,
-      "currentPrice": 2069,
+      "currentPrice": 2181.5,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.594Z"
+      "createdAt": "2026-07-12T10:53:45.594Z",
+      "dayChange": 112.5,
+      "dayChangePercent": 5.4374094,
+      "previousClose": 2069,
+      "lastPriceUpdate": "2026-07-13T13:39:24.938Z"
     },
     {
       "id": 64,
@@ -1010,11 +1206,15 @@
       "quantity": 18,
       "avgPrice": 563.23,
       "importedPrice": 337.95,
-      "currentPrice": 337.95,
+      "currentPrice": 342.25,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.613Z"
+      "createdAt": "2026-07-12T10:53:45.613Z",
+      "dayChange": 4.299988,
+      "dayChangePercent": 1.2723739,
+      "previousClose": 337.95,
+      "lastPriceUpdate": "2026-07-13T13:39:25.273Z"
     },
     {
       "id": 65,
@@ -1025,11 +1225,15 @@
       "quantity": 7,
       "avgPrice": 381.37,
       "importedPrice": 381.3,
-      "currentPrice": 381.3,
+      "currentPrice": 377.85,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.624Z"
+      "createdAt": "2026-07-12T10:53:45.624Z",
+      "dayChange": -3.4499817,
+      "dayChangePercent": -0.9047946,
+      "previousClose": 381.3,
+      "lastPriceUpdate": "2026-07-13T13:39:25.832Z"
     },
     {
       "id": 66,
@@ -1040,11 +1244,15 @@
       "quantity": 56,
       "avgPrice": 172.23,
       "importedPrice": 191.19,
-      "currentPrice": 191.19,
+      "currentPrice": 187.11,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.637Z"
+      "createdAt": "2026-07-12T10:53:45.637Z",
+      "dayChange": -4.080002,
+      "dayChangePercent": -2.1340036,
+      "previousClose": 191.19,
+      "lastPriceUpdate": "2026-07-13T13:39:26.173Z"
     },
     {
       "id": 67,
@@ -1055,11 +1263,15 @@
       "quantity": 1,
       "avgPrice": 783,
       "importedPrice": 835.8,
-      "currentPrice": 835.8,
+      "currentPrice": 849.3,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.650Z"
+      "createdAt": "2026-07-12T10:53:45.650Z",
+      "dayChange": 13.5,
+      "dayChangePercent": 1.615219,
+      "previousClose": 835.8,
+      "lastPriceUpdate": "2026-07-13T13:39:26.511Z"
     },
     {
       "id": 68,
@@ -1070,11 +1282,15 @@
       "quantity": 20,
       "avgPrice": 44.82,
       "importedPrice": 34.68,
-      "currentPrice": 34.68,
+      "currentPrice": 36.41,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.663Z"
+      "createdAt": "2026-07-12T10:53:45.663Z",
+      "dayChange": 1.7299995,
+      "dayChangePercent": 4.988465,
+      "previousClose": 34.68,
+      "lastPriceUpdate": "2026-07-13T13:39:26.831Z"
     },
     {
       "id": 69,
@@ -1085,11 +1301,15 @@
       "quantity": 20,
       "avgPrice": 345.53,
       "importedPrice": 272.55,
-      "currentPrice": 272.55,
+      "currentPrice": 269.65,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.676Z"
+      "createdAt": "2026-07-12T10:53:45.676Z",
+      "dayChange": -2.899994,
+      "dayChangePercent": -1.0640228,
+      "previousClose": 272.55,
+      "lastPriceUpdate": "2026-07-13T13:39:27.166Z"
     },
     {
       "id": 70,
@@ -1100,11 +1320,15 @@
       "quantity": 20,
       "avgPrice": 141.87,
       "importedPrice": 38.74,
-      "currentPrice": 38.74,
+      "currentPrice": 38.97,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.688Z"
+      "createdAt": "2026-07-12T10:53:45.688Z",
+      "dayChange": 0.22999954,
+      "dayChangePercent": 0.5937004,
+      "previousClose": 38.74,
+      "lastPriceUpdate": "2026-07-13T13:39:27.507Z"
     },
     {
       "id": 71,
@@ -1115,11 +1339,15 @@
       "quantity": 20,
       "avgPrice": 80.73,
       "importedPrice": 41.83,
-      "currentPrice": 41.83,
+      "currentPrice": 41.43,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.697Z"
+      "createdAt": "2026-07-12T10:53:45.697Z",
+      "dayChange": -0.40000153,
+      "dayChangePercent": -0.9562551,
+      "previousClose": 41.83,
+      "lastPriceUpdate": "2026-07-13T13:39:27.844Z"
     },
     {
       "id": 72,
@@ -1130,11 +1358,15 @@
       "quantity": 3,
       "avgPrice": 615,
       "importedPrice": 777.85,
-      "currentPrice": 777.85,
+      "currentPrice": 767.9,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.710Z"
+      "createdAt": "2026-07-12T10:53:45.710Z",
+      "dayChange": -9.949951,
+      "dayChangePercent": -1.2791606,
+      "previousClose": 777.85,
+      "lastPriceUpdate": "2026-07-13T13:39:28.177Z"
     },
     {
       "id": 73,
@@ -1145,11 +1377,15 @@
       "quantity": 35,
       "avgPrice": 204.52,
       "importedPrice": 175.46,
-      "currentPrice": 175.46,
+      "currentPrice": 178.43,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783853625064,
-      "createdAt": "2026-07-12T10:53:45.721Z"
+      "createdAt": "2026-07-12T10:53:45.721Z",
+      "dayChange": 2.969986,
+      "dayChangePercent": 1.6926855,
+      "previousClose": 175.46,
+      "lastPriceUpdate": "2026-07-13T13:39:28.513Z"
     },
     {
       "id": 74,
@@ -1160,11 +1396,15 @@
       "quantity": 0.05864057,
       "avgPrice": 170.0188112086905,
       "importedPrice": 170.0188112086905,
-      "currentPrice": 170.0188112086905,
+      "currentPrice": 154.7977,
       "purchaseDate": "2026-07-11",
       "type": "STOCK",
       "importId": 1783855303297,
-      "createdAt": "2026-07-12T11:21:43.309Z"
+      "createdAt": "2026-07-12T11:21:43.309Z",
+      "dayChange": 2.1777039,
+      "dayChangePercent": 1.4268798,
+      "previousClose": 152.62,
+      "lastPriceUpdate": "2026-07-13T13:39:28.849Z"
     },
     {
       "id": 75,
@@ -1175,11 +1415,15 @@
       "quantity": 0.00531438,
       "avgPrice": 1881.6870453373679,
       "importedPrice": 1881.6870453373679,
-      "currentPrice": 1881.6870453373679,
+      "currentPrice": 1739.66,
       "purchaseDate": "2026-07-08",
       "type": "STOCK",
       "importId": 1783855303297,
-      "createdAt": "2026-07-12T11:21:43.319Z"
+      "createdAt": "2026-07-12T11:21:43.319Z",
+      "dayChange": -176.26001,
+      "dayChangePercent": -9.199758,
+      "previousClose": 1915.92,
+      "lastPriceUpdate": "2026-07-13T13:39:29.185Z"
     },
     {
       "id": 76,
@@ -1190,11 +1434,15 @@
       "quantity": 0.13074711,
       "avgPrice": 171.01716435644352,
       "importedPrice": 171.01716435644352,
-      "currentPrice": 171.01716435644352,
+      "currentPrice": 141.885,
       "purchaseDate": "2026-06-12",
       "type": "STOCK",
       "importId": 1783855303297,
-      "createdAt": "2026-07-12T11:21:43.330Z"
+      "createdAt": "2026-07-12T11:21:43.330Z",
+      "dayChange": -3.4150085,
+      "dayChangePercent": -2.3503156,
+      "previousClose": 145.3,
+      "lastPriceUpdate": "2026-07-13T13:39:29.532Z"
     },
     {
       "id": 77,
@@ -1205,11 +1453,15 @@
       "quantity": 0.19562943,
       "avgPrice": 127.79263324541712,
       "importedPrice": 127.79263324541712,
-      "currentPrice": 127.79263324541712,
+      "currentPrice": 104.86,
       "purchaseDate": "2026-06-11",
       "type": "STOCK",
       "importId": 1783855303297,
-      "createdAt": "2026-07-12T11:21:43.339Z"
+      "createdAt": "2026-07-12T11:21:43.339Z",
+      "dayChange": -4.9799957,
+      "dayChangePercent": -4.5338635,
+      "previousClose": 109.84,
+      "lastPriceUpdate": "2026-07-13T13:39:30.046Z"
     },
     {
       "id": 78,
@@ -1220,11 +1472,15 @@
       "quantity": 0.01705063,
       "avgPrice": 586.4885930901087,
       "importedPrice": 586.4885930901087,
-      "currentPrice": 586.4885930901087,
+      "currentPrice": 538.69,
       "purchaseDate": "2026-07-09",
       "type": "STOCK",
       "importId": 1783855303297,
-      "createdAt": "2026-07-12T11:21:43.349Z"
+      "createdAt": "2026-07-12T11:21:43.349Z",
+      "dayChange": -43.89502,
+      "dayChangePercent": -7.534526,
+      "previousClose": 582.585,
+      "lastPriceUpdate": "2026-07-13T13:39:30.375Z"
     },
     {
       "id": 79,
@@ -1235,11 +1491,15 @@
       "quantity": 0.5119479,
       "avgPrice": 195.33237659535277,
       "importedPrice": 195.33237659535277,
-      "currentPrice": 195.33237659535277,
+      "currentPrice": 209.0499,
       "purchaseDate": "2025-08-31",
       "type": "STOCK",
       "importId": 1783855303297,
-      "createdAt": "2026-07-12T11:21:43.357Z"
+      "createdAt": "2026-07-12T11:21:43.357Z",
+      "dayChange": -1.9101105,
+      "dayChangePercent": -0.90543723,
+      "previousClose": 210.96,
+      "lastPriceUpdate": "2026-07-13T13:39:30.714Z"
     },
     {
       "id": 80,
@@ -1250,11 +1510,15 @@
       "quantity": 0.0689421,
       "avgPrice": 358.4167003906176,
       "importedPrice": 358.4167003906176,
-      "currentPrice": 358.4167003906176,
+      "currentPrice": 354.07,
       "purchaseDate": "2025-07-01",
       "type": "STOCK",
       "importId": 1783855303297,
-      "createdAt": "2026-07-12T11:21:43.365Z"
+      "createdAt": "2026-07-12T11:21:43.365Z",
+      "dayChange": -0.95999146,
+      "dayChangePercent": -0.2704049,
+      "previousClose": 355.03,
+      "lastPriceUpdate": "2026-07-13T13:39:31.076Z"
     },
     {
       "id": 81,
@@ -1265,11 +1529,15 @@
       "quantity": 0.23803382,
       "avgPrice": 222.36335996288258,
       "importedPrice": 222.36335996288258,
-      "currentPrice": 222.36335996288258,
+      "currentPrice": 247.99,
       "purchaseDate": "2025-04-20",
       "type": "STOCK",
       "importId": 1783855303297,
-      "createdAt": "2026-07-12T11:21:43.374Z"
+      "createdAt": "2026-07-12T11:21:43.374Z",
+      "dayChange": 2.6500092,
+      "dayChangePercent": 1.0797853,
+      "previousClose": 245.34,
+      "lastPriceUpdate": "2026-07-13T13:39:31.414Z"
     },
     {
       "id": 82,
@@ -1280,11 +1548,15 @@
       "quantity": 0.60472807,
       "avgPrice": 235.31237767745762,
       "importedPrice": 235.31237767745762,
-      "currentPrice": 235.31237767745762,
+      "currentPrice": 386.5,
       "purchaseDate": "2025-04-15",
       "type": "STOCK",
       "importId": 1783855303297,
-      "createdAt": "2026-07-12T11:21:43.384Z"
+      "createdAt": "2026-07-12T11:21:43.384Z",
+      "dayChange": -9.149994,
+      "dayChangePercent": -2.3126485,
+      "previousClose": 395.65,
+      "lastPriceUpdate": "2026-07-13T13:39:31.759Z"
     },
     {
       "id": 83,
@@ -1295,11 +1567,15 @@
       "quantity": 0.05807136,
       "avgPrice": 964.3307819896072,
       "importedPrice": 964.3307819896072,
-      "currentPrice": 964.3307819896072,
+      "currentPrice": 911.915,
       "purchaseDate": "2026-06-01",
       "type": "STOCK",
       "importId": 1783855303297,
-      "createdAt": "2026-07-12T11:21:43.393Z"
+      "createdAt": "2026-07-12T11:21:43.393Z",
+      "dayChange": -67.38501,
+      "dayChangePercent": -6.8809366,
+      "previousClose": 979.3,
+      "lastPriceUpdate": "2026-07-13T13:39:32.083Z"
     },
     {
       "id": 84,
@@ -1310,11 +1586,15 @@
       "quantity": 0.27091843,
       "avgPrice": 234.35098158512142,
       "importedPrice": 234.35098158512142,
-      "currentPrice": 234.35098158512142,
+      "currentPrice": 321.995,
       "purchaseDate": "2025-04-22",
       "type": "STOCK",
       "importId": 1783855303297,
-      "createdAt": "2026-07-12T11:21:43.401Z"
+      "createdAt": "2026-07-12T11:21:43.401Z",
+      "dayChange": 6.674988,
+      "dayChangePercent": 2.1168933,
+      "previousClose": 315.32,
+      "lastPriceUpdate": "2026-07-13T13:39:32.419Z"
     },
     {
       "id": 85,
@@ -1325,11 +1605,15 @@
       "quantity": 2,
       "avgPrice": 14212.5,
       "importedPrice": 14120,
-      "currentPrice": 14120,
+      "currentPrice": 13847,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783856723026,
-      "createdAt": "2026-07-12T11:45:23.050Z"
+      "createdAt": "2026-07-12T11:45:23.050Z",
+      "dayChange": -211,
+      "dayChangePercent": -1.5009248,
+      "previousClose": 14058,
+      "lastPriceUpdate": "2026-07-13T13:39:32.775Z"
     },
     {
       "id": 86,
@@ -1340,11 +1624,15 @@
       "quantity": 14,
       "avgPrice": 421.24,
       "importedPrice": 414.85,
-      "currentPrice": 414.85,
+      "currentPrice": 410.8,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783856723026,
-      "createdAt": "2026-07-12T11:45:23.060Z"
+      "createdAt": "2026-07-12T11:45:23.060Z",
+      "dayChange": -4.0500183,
+      "dayChangePercent": -0.97626084,
+      "previousClose": 414.85,
+      "lastPriceUpdate": "2026-07-13T13:39:33.121Z"
     },
     {
       "id": 87,
@@ -1355,11 +1643,15 @@
       "quantity": 8,
       "avgPrice": 1774.26,
       "importedPrice": 1862.6,
-      "currentPrice": 1862.6,
+      "currentPrice": 1885.9,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783856723026,
-      "createdAt": "2026-07-12T11:45:23.070Z"
+      "createdAt": "2026-07-12T11:45:23.070Z",
+      "dayChange": 23.300049,
+      "dayChangePercent": 1.2509421,
+      "previousClose": 1862.6,
+      "lastPriceUpdate": "2026-07-13T13:39:33.458Z"
     },
     {
       "id": 88,
@@ -1370,11 +1662,15 @@
       "quantity": 23,
       "avgPrice": 380.26,
       "importedPrice": 395.3,
-      "currentPrice": 395.3,
+      "currentPrice": 409.1,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783856723026,
-      "createdAt": "2026-07-12T11:45:23.080Z"
+      "createdAt": "2026-07-12T11:45:23.080Z",
+      "dayChange": 13.850006,
+      "dayChangePercent": 3.5041127,
+      "previousClose": 395.25,
+      "lastPriceUpdate": "2026-07-13T13:39:34.024Z"
     },
     {
       "id": 89,
@@ -1385,11 +1681,15 @@
       "quantity": 1,
       "avgPrice": 1325.4,
       "importedPrice": 1431.9,
-      "currentPrice": 1431.9,
+      "currentPrice": 1444.5,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783856723026,
-      "createdAt": "2026-07-12T11:45:23.099Z"
+      "createdAt": "2026-07-12T11:45:23.099Z",
+      "dayChange": 12.599976,
+      "dayChangePercent": 0.879948,
+      "previousClose": 1431.9,
+      "lastPriceUpdate": "2026-07-13T13:39:34.372Z"
     },
     {
       "id": 90,
@@ -1400,11 +1700,15 @@
       "quantity": 5,
       "avgPrice": 1669.3,
       "importedPrice": 1418,
-      "currentPrice": 1418,
+      "currentPrice": 1411.8,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783856723026,
-      "createdAt": "2026-07-12T11:45:23.119Z"
+      "createdAt": "2026-07-12T11:45:23.119Z",
+      "dayChange": -6.199951,
+      "dayChangePercent": -0.4372321,
+      "previousClose": 1418,
+      "lastPriceUpdate": "2026-07-13T13:39:34.707Z"
     },
     {
       "id": 91,
@@ -1415,11 +1719,15 @@
       "quantity": 7,
       "avgPrice": 4057.86,
       "importedPrice": 4343,
-      "currentPrice": 4343,
+      "currentPrice": 4270.3,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783856723026,
-      "createdAt": "2026-07-12T11:45:23.140Z"
+      "createdAt": "2026-07-12T11:45:23.140Z",
+      "dayChange": -72.700195,
+      "dayChangePercent": -1.6739626,
+      "previousClose": 4343,
+      "lastPriceUpdate": "2026-07-13T13:39:35.050Z"
     },
     {
       "id": 92,
@@ -1430,11 +1738,15 @@
       "quantity": 1,
       "avgPrice": 13185,
       "importedPrice": 13421,
-      "currentPrice": 13421,
+      "currentPrice": 13490,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783856723026,
-      "createdAt": "2026-07-12T11:45:23.150Z"
+      "createdAt": "2026-07-12T11:45:23.150Z",
+      "dayChange": 69,
+      "dayChangePercent": 0.5141197,
+      "previousClose": 13421,
+      "lastPriceUpdate": "2026-07-13T13:39:35.374Z"
     },
     {
       "id": 93,
@@ -1445,11 +1757,15 @@
       "quantity": 2,
       "avgPrice": 316.63,
       "importedPrice": 317.05,
-      "currentPrice": 317.05,
+      "currentPrice": 317.65,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783856723026,
-      "createdAt": "2026-07-12T11:45:23.163Z"
+      "createdAt": "2026-07-12T11:45:23.163Z",
+      "dayChange": 0.6000061,
+      "dayChangePercent": 0.18924654,
+      "previousClose": 317.05,
+      "lastPriceUpdate": "2026-07-13T13:39:35.778Z"
     },
     {
       "id": 94,
@@ -1460,11 +1776,15 @@
       "quantity": 10,
       "avgPrice": 118.17,
       "importedPrice": 118.18,
-      "currentPrice": 118.18,
+      "currentPrice": 116.95,
       "purchaseDate": "2026-07-12",
       "type": "ETF",
       "importId": 1783856723026,
-      "createdAt": "2026-07-12T11:45:23.174Z"
+      "createdAt": "2026-07-12T11:45:23.174Z",
+      "dayChange": -1.1900024,
+      "dayChangePercent": -1.0072817,
+      "previousClose": 118.14,
+      "lastPriceUpdate": "2026-07-13T13:39:36.190Z"
     },
     {
       "id": 95,
@@ -1475,11 +1795,15 @@
       "quantity": 2,
       "avgPrice": 2802.5,
       "importedPrice": 2662,
-      "currentPrice": 2662,
+      "currentPrice": 2640.6,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783856723026,
-      "createdAt": "2026-07-12T11:45:23.183Z"
+      "createdAt": "2026-07-12T11:45:23.183Z",
+      "dayChange": -21.399902,
+      "dayChangePercent": -0.8039032,
+      "previousClose": 2662,
+      "lastPriceUpdate": "2026-07-13T13:39:36.521Z"
     },
     {
       "id": 96,
@@ -1490,11 +1814,15 @@
       "quantity": 71,
       "avgPrice": 169.8,
       "importedPrice": 182.6,
-      "currentPrice": 182.6,
+      "currentPrice": 183.23,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783856723026,
-      "createdAt": "2026-07-12T11:45:23.193Z"
+      "createdAt": "2026-07-12T11:45:23.193Z",
+      "dayChange": 0.6299896,
+      "dayChangePercent": 0.34501073,
+      "previousClose": 182.6,
+      "lastPriceUpdate": "2026-07-13T13:39:36.858Z"
     },
     {
       "id": 97,
@@ -1505,11 +1833,15 @@
       "quantity": 8,
       "avgPrice": 622.73,
       "importedPrice": 536.95,
-      "currentPrice": 536.95,
+      "currentPrice": 532.6,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783856723026,
-      "createdAt": "2026-07-12T11:45:23.203Z"
+      "createdAt": "2026-07-12T11:45:23.203Z",
+      "dayChange": -4.3500366,
+      "dayChangePercent": -0.8101381,
+      "previousClose": 536.95,
+      "lastPriceUpdate": "2026-07-13T13:39:37.191Z"
     },
     {
       "id": 98,
@@ -1520,11 +1852,15 @@
       "quantity": 241,
       "avgPrice": 12.94,
       "importedPrice": 14.2,
-      "currentPrice": 14.2,
+      "currentPrice": 13.96,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783856723026,
-      "createdAt": "2026-07-12T11:45:23.214Z"
+      "createdAt": "2026-07-12T11:45:23.214Z",
+      "dayChange": -0.22999954,
+      "dayChangePercent": -1.6208566,
+      "previousClose": 14.19,
+      "lastPriceUpdate": "2026-07-13T13:39:37.530Z"
     },
     {
       "id": 99,
@@ -1550,11 +1886,15 @@
       "quantity": 23,
       "avgPrice": 104.71,
       "importedPrice": 89.9,
-      "currentPrice": 89.9,
+      "currentPrice": 89.75,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783856723026,
-      "createdAt": "2026-07-12T11:45:23.235Z"
+      "createdAt": "2026-07-12T11:45:23.235Z",
+      "dayChange": -0.15000153,
+      "dayChangePercent": -0.16685376,
+      "previousClose": 89.9,
+      "lastPriceUpdate": "2026-07-13T13:39:38.503Z"
     },
     {
       "id": 101,
@@ -1565,11 +1905,15 @@
       "quantity": 25,
       "avgPrice": 33.45,
       "importedPrice": 31.04,
-      "currentPrice": 31.04,
+      "currentPrice": 32.16,
       "purchaseDate": "2026-07-12",
       "type": "ETF",
       "importId": 1783856723026,
-      "createdAt": "2026-07-12T11:45:23.246Z"
+      "createdAt": "2026-07-12T11:45:23.246Z",
+      "dayChange": 1.1199989,
+      "dayChangePercent": 3.608244,
+      "previousClose": 31.04,
+      "lastPriceUpdate": "2026-07-13T13:39:38.845Z"
     },
     {
       "id": 102,
@@ -1580,11 +1924,15 @@
       "quantity": 1,
       "avgPrice": 1588,
       "importedPrice": 1565.3,
-      "currentPrice": 1565.3,
+      "currentPrice": 1543.5,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783856723026,
-      "createdAt": "2026-07-12T11:45:23.256Z"
+      "createdAt": "2026-07-12T11:45:23.256Z",
+      "dayChange": -21.199951,
+      "dayChangePercent": -1.3548892,
+      "previousClose": 1564.7,
+      "lastPriceUpdate": "2026-07-13T13:39:39.188Z"
     },
     {
       "id": 103,
@@ -1595,11 +1943,15 @@
       "quantity": 5,
       "avgPrice": 3949.8,
       "importedPrice": 3946.55,
-      "currentPrice": 3946.55,
+      "currentPrice": 3928.5,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783856723026,
-      "createdAt": "2026-07-12T11:45:23.265Z"
+      "createdAt": "2026-07-12T11:45:23.265Z",
+      "dayChange": -17.300049,
+      "dayChangePercent": -0.43844214,
+      "previousClose": 3945.8,
+      "lastPriceUpdate": "2026-07-13T13:39:39.531Z"
     },
     {
       "id": 104,
@@ -1610,11 +1962,15 @@
       "quantity": 45,
       "avgPrice": 79.74,
       "importedPrice": 84.35,
-      "currentPrice": 84.35,
+      "currentPrice": 82.56,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783856723026,
-      "createdAt": "2026-07-12T11:45:23.274Z"
+      "createdAt": "2026-07-12T11:45:23.274Z",
+      "dayChange": -1.6900024,
+      "dayChangePercent": -2.0059376,
+      "previousClose": 84.25,
+      "lastPriceUpdate": "2026-07-13T13:39:40.170Z"
     },
     {
       "id": 105,
@@ -1625,11 +1981,15 @@
       "quantity": 2,
       "avgPrice": 2606.55,
       "importedPrice": 2420.1,
-      "currentPrice": 2420.1,
+      "currentPrice": 2402.6,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783856723026,
-      "createdAt": "2026-07-12T11:45:23.284Z"
+      "createdAt": "2026-07-12T11:45:23.284Z",
+      "dayChange": -17.5,
+      "dayChangePercent": -0.7231106,
+      "previousClose": 2420.1,
+      "lastPriceUpdate": "2026-07-13T13:39:40.570Z"
     },
     {
       "id": 106,
@@ -1640,11 +2000,15 @@
       "quantity": 104,
       "avgPrice": 229.26,
       "importedPrice": 239.58,
-      "currentPrice": 239.58,
+      "currentPrice": 239.34,
       "purchaseDate": "2026-07-12",
       "type": "ETF",
       "importId": 1783856723026,
-      "createdAt": "2026-07-12T11:45:23.293Z"
+      "createdAt": "2026-07-12T11:45:23.293Z",
+      "dayChange": -0.2400055,
+      "dayChangePercent": -0.10017759,
+      "previousClose": 239.58,
+      "lastPriceUpdate": "2026-07-13T13:39:40.926Z"
     },
     {
       "id": 107,
@@ -1655,11 +2019,15 @@
       "quantity": 2,
       "avgPrice": 474.25,
       "importedPrice": 488.83,
-      "currentPrice": 488.83,
+      "currentPrice": 489.22,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783856723026,
-      "createdAt": "2026-07-12T11:45:23.302Z"
+      "createdAt": "2026-07-12T11:45:23.302Z",
+      "dayChange": 0.3999939,
+      "dayChangePercent": 0.08182846,
+      "previousClose": 488.82,
+      "lastPriceUpdate": "2026-07-13T13:39:41.277Z"
     },
     {
       "id": 108,
@@ -1670,11 +2038,15 @@
       "quantity": 1,
       "avgPrice": 238.5,
       "importedPrice": 236.82,
-      "currentPrice": 236.82,
+      "currentPrice": 232.83,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783856723026,
-      "createdAt": "2026-07-12T11:45:23.312Z"
+      "createdAt": "2026-07-12T11:45:23.312Z",
+      "dayChange": -3.9900055,
+      "dayChangePercent": -1.6848263,
+      "previousClose": 236.82,
+      "lastPriceUpdate": "2026-07-13T13:39:41.632Z"
     },
     {
       "id": 109,
@@ -1685,11 +2057,15 @@
       "quantity": 1,
       "avgPrice": 6970,
       "importedPrice": 7104.1,
-      "currentPrice": 7104.1,
+      "currentPrice": 6746,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783856723026,
-      "createdAt": "2026-07-12T11:45:23.322Z"
+      "createdAt": "2026-07-12T11:45:23.322Z",
+      "dayChange": -355,
+      "dayChangePercent": -4.999296,
+      "previousClose": 7101,
+      "lastPriceUpdate": "2026-07-13T13:39:42.134Z"
     },
     {
       "id": 110,
@@ -1700,11 +2076,15 @@
       "quantity": 4,
       "avgPrice": 4463.25,
       "importedPrice": 4305,
-      "currentPrice": 4305,
+      "currentPrice": 4400,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783856723026,
-      "createdAt": "2026-07-12T11:45:23.334Z"
+      "createdAt": "2026-07-12T11:45:23.334Z",
+      "dayChange": 95,
+      "dayChangePercent": 2.2067363,
+      "previousClose": 4305,
+      "lastPriceUpdate": "2026-07-13T13:39:42.471Z"
     },
     {
       "id": 111,
@@ -1715,11 +2095,15 @@
       "quantity": 20,
       "avgPrice": 115.07,
       "importedPrice": 94.1,
-      "currentPrice": 94.1,
+      "currentPrice": 94.55,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783856723026,
-      "createdAt": "2026-07-12T11:45:23.345Z"
+      "createdAt": "2026-07-12T11:45:23.345Z",
+      "dayChange": 0.45000458,
+      "dayChangePercent": 0.4782195,
+      "previousClose": 94.1,
+      "lastPriceUpdate": "2026-07-13T13:39:42.822Z"
     },
     {
       "id": 112,
@@ -1730,11 +2114,15 @@
       "quantity": 5,
       "avgPrice": 1034.4,
       "importedPrice": 1253.1,
-      "currentPrice": 1253.1,
+      "currentPrice": 1224.5,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783856723026,
-      "createdAt": "2026-07-12T11:45:23.354Z"
+      "createdAt": "2026-07-12T11:45:23.354Z",
+      "dayChange": -28.599976,
+      "dayChangePercent": -2.282338,
+      "previousClose": 1253.1,
+      "lastPriceUpdate": "2026-07-13T13:39:43.182Z"
     },
     {
       "id": 113,
@@ -1745,11 +2133,15 @@
       "quantity": 21,
       "avgPrice": 186.33,
       "importedPrice": 168.05,
-      "currentPrice": 168.05,
+      "currentPrice": 167.01,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783856723026,
-      "createdAt": "2026-07-12T11:45:23.363Z"
+      "createdAt": "2026-07-12T11:45:23.363Z",
+      "dayChange": -0.94000244,
+      "dayChangePercent": -0.55969185,
+      "previousClose": 167.95,
+      "lastPriceUpdate": "2026-07-13T13:39:43.537Z"
     },
     {
       "id": 114,
@@ -1760,11 +2152,15 @@
       "quantity": 5,
       "avgPrice": 1285.12,
       "importedPrice": 1413.8,
-      "currentPrice": 1413.8,
+      "currentPrice": 1378.3,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783856723026,
-      "createdAt": "2026-07-12T11:45:23.374Z"
+      "createdAt": "2026-07-12T11:45:23.374Z",
+      "dayChange": -35.899902,
+      "dayChangePercent": -2.5385308,
+      "previousClose": 1414.2,
+      "lastPriceUpdate": "2026-07-13T13:39:43.882Z"
     },
     {
       "id": 115,
@@ -1775,11 +2171,15 @@
       "quantity": 4,
       "avgPrice": 221.8,
       "importedPrice": 218.08,
-      "currentPrice": 218.08,
+      "currentPrice": 216.5,
       "purchaseDate": "2026-07-12",
       "type": "ETF",
       "importId": 1783856723026,
-      "createdAt": "2026-07-12T11:45:23.382Z"
+      "createdAt": "2026-07-12T11:45:23.382Z",
+      "dayChange": -1.5700073,
+      "dayChangePercent": -0.7199557,
+      "previousClose": 218.07,
+      "lastPriceUpdate": "2026-07-13T13:39:44.217Z"
     },
     {
       "id": 116,
@@ -1790,11 +2190,15 @@
       "quantity": 74,
       "avgPrice": 54.66,
       "importedPrice": 53.92,
-      "currentPrice": 53.92,
+      "currentPrice": 53.17,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783856723026,
-      "createdAt": "2026-07-12T11:45:23.393Z"
+      "createdAt": "2026-07-12T11:45:23.393Z",
+      "dayChange": -0.75,
+      "dayChangePercent": -1.3909496,
+      "previousClose": 53.92,
+      "lastPriceUpdate": "2026-07-13T13:39:44.600Z"
     },
     {
       "id": 117,
@@ -1805,11 +2209,15 @@
       "quantity": 8,
       "avgPrice": 445.26,
       "importedPrice": 381.3,
-      "currentPrice": 381.3,
+      "currentPrice": 377.85,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783856723026,
-      "createdAt": "2026-07-12T11:45:23.402Z"
+      "createdAt": "2026-07-12T11:45:23.402Z",
+      "dayChange": -3.4499817,
+      "dayChangePercent": -0.9047946,
+      "previousClose": 381.3,
+      "lastPriceUpdate": "2026-07-13T13:39:44.970Z"
     },
     {
       "id": 118,
@@ -1820,11 +2228,15 @@
       "quantity": 1,
       "avgPrice": 2284,
       "importedPrice": 2069.05,
-      "currentPrice": 2069.05,
+      "currentPrice": 2181.5,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783856723026,
-      "createdAt": "2026-07-12T11:45:23.412Z"
+      "createdAt": "2026-07-12T11:45:23.412Z",
+      "dayChange": 112.5,
+      "dayChangePercent": 5.4374094,
+      "previousClose": 2069,
+      "lastPriceUpdate": "2026-07-13T13:39:45.424Z"
     },
     {
       "id": 119,
@@ -1835,11 +2247,15 @@
       "quantity": 15,
       "avgPrice": 349,
       "importedPrice": 338.1,
-      "currentPrice": 338.1,
+      "currentPrice": 342.25,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783856723026,
-      "createdAt": "2026-07-12T11:45:23.424Z"
+      "createdAt": "2026-07-12T11:45:23.424Z",
+      "dayChange": 4.299988,
+      "dayChangePercent": 1.2723739,
+      "previousClose": 337.95,
+      "lastPriceUpdate": "2026-07-13T13:39:45.881Z"
     },
     {
       "id": 120,
@@ -1850,11 +2266,15 @@
       "quantity": 6,
       "avgPrice": 316.42,
       "importedPrice": 272.6,
-      "currentPrice": 272.6,
+      "currentPrice": 269.65,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783856723026,
-      "createdAt": "2026-07-12T11:45:23.433Z"
+      "createdAt": "2026-07-12T11:45:23.433Z",
+      "dayChange": -2.899994,
+      "dayChangePercent": -1.0640228,
+      "previousClose": 272.55,
+      "lastPriceUpdate": "2026-07-13T13:39:46.251Z"
     },
     {
       "id": 121,
@@ -1865,11 +2285,15 @@
       "quantity": 5,
       "avgPrice": 40.62,
       "importedPrice": 41.86,
-      "currentPrice": 41.86,
+      "currentPrice": 41.43,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783856723026,
-      "createdAt": "2026-07-12T11:45:23.443Z"
+      "createdAt": "2026-07-12T11:45:23.443Z",
+      "dayChange": -0.40000153,
+      "dayChangePercent": -0.9562551,
+      "previousClose": 41.83,
+      "lastPriceUpdate": "2026-07-13T13:39:46.585Z"
     },
     {
       "id": 122,
@@ -1880,11 +2304,15 @@
       "quantity": 1,
       "avgPrice": 989,
       "importedPrice": 1016.3,
-      "currentPrice": 1016.3,
+      "currentPrice": 1007.2,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783856723026,
-      "createdAt": "2026-07-12T11:45:23.453Z"
+      "createdAt": "2026-07-12T11:45:23.453Z",
+      "dayChange": -9.099976,
+      "dayChangePercent": -0.8954025,
+      "previousClose": 1016.3,
+      "lastPriceUpdate": "2026-07-13T13:39:46.930Z"
     },
     {
       "id": 123,
@@ -1895,11 +2323,15 @@
       "quantity": 9,
       "avgPrice": 101.75,
       "importedPrice": 97.47,
-      "currentPrice": 97.47,
+      "currentPrice": 101.33,
       "purchaseDate": "2026-07-12",
       "type": "STOCK",
       "importId": 1783856723026,
-      "createdAt": "2026-07-12T11:45:23.464Z"
+      "createdAt": "2026-07-12T11:45:23.464Z",
+      "dayChange": 3.8600006,
+      "dayChangePercent": 3.9601934,
+      "previousClose": 97.47,
+      "lastPriceUpdate": "2026-07-13T13:39:47.284Z"
     }
   ],
   "transactions": [
