@@ -43,6 +43,7 @@ export default function Portfolio() {
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshStatus, setRefreshStatus] = useState<string>('');
+  const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
   const [activeTab, setActiveTab] = useState<MarketTab>('all');
   const [autoRefreshInterval, setAutoRefreshIntervalValue] = useState(0);
   const [nextRefreshIn, setNextRefreshIn] = useState<number | null>(null);
@@ -68,6 +69,7 @@ export default function Portfolio() {
       if (result.success) {
         // Fetch updated holdings without showing loading indicator
         await fetchHoldings();
+        setLastRefreshTime(new Date());
         setRefreshStatus(`Auto-updated ${result.updated} stocks`);
         setTimeout(() => setRefreshStatus(''), 3000);
       }
@@ -270,6 +272,7 @@ export default function Portfolio() {
       if (result.success) {
         setRefreshStatus(`Updated ${result.updated} of ${result.total} stocks`);
         await fetchHoldings();
+        setLastRefreshTime(new Date());
 
         // Clear status after 5 seconds
         setTimeout(() => setRefreshStatus(''), 5000);
@@ -359,14 +362,41 @@ export default function Portfolio() {
         </div>
       </div>
 
-      {/* Refresh Status */}
-      {refreshStatus && (
-        <div className={`p-3 rounded-lg ${
-          refreshStatus.includes('Failed') ? 'bg-red-900/30 text-red-400' : 'bg-green-900/30 text-green-400'
-        }`}>
-          {refreshStatus}
-        </div>
-      )}
+      {/* Fixed-Height Refresh Status Bar */}
+      <div className="min-h-[48px] flex items-center">
+        {refreshStatus ? (
+          <div className={`w-full p-3 rounded-lg ${
+            refreshStatus.includes('Failed') ? 'bg-red-900/30 text-red-400' : 'bg-green-900/30 text-green-400'
+          }`}>
+            {refreshStatus}
+          </div>
+        ) : lastRefreshTime ? (
+          <div className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-slate-800/50">
+            <span className="text-slate-400 text-sm flex items-center gap-2">
+              <span className="text-green-400">✓</span>
+              Last updated: {lastRefreshTime.toLocaleTimeString()}
+            </span>
+            {autoRefreshInterval > 0 && (
+              <span className="text-slate-500 text-xs">
+                Auto-refresh: {REFRESH_INTERVALS.find(r => r.value === autoRefreshInterval)?.label}
+              </span>
+            )}
+          </div>
+        ) : autoRefreshInterval > 0 ? (
+          <div className="w-full px-3 py-2 rounded-lg bg-slate-800/50">
+            <span className="text-slate-400 text-sm flex items-center gap-2">
+              <span className="text-blue-400 animate-pulse">●</span>
+              Auto-refresh enabled: {REFRESH_INTERVALS.find(r => r.value === autoRefreshInterval)?.label}
+            </span>
+          </div>
+        ) : (
+          <div className="w-full px-3 py-2">
+            <span className="text-slate-500 text-sm">
+              Auto-refresh: Off
+            </span>
+          </div>
+        )}
+      </div>
 
       {/* Market Tabs */}
       <div className="flex gap-2 border-b border-slate-700 pb-2">
