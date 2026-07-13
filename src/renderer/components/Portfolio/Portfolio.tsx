@@ -1,9 +1,11 @@
-import React, { useEffect, useState, useMemo, useRef } from 'react';
+import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { useStore } from '../../store/useStore';
 import { formatCurrency, formatPrice, formatPercent, formatDate } from '../../utils/format';
 import AddHoldingModal from './AddHoldingModal';
 import AddTransactionModal from './AddTransactionModal';
 import StockDetailModal from '../StockDetail/StockDetailModal';
+import PortfolioSummaryCard from './PortfolioSummaryCard';
+import HoldingsTable from './HoldingsTable';
 import type { Holding, HoldingWithPrice } from '../../../shared/types';
 
 type MarketTab = 'all' | 'india' | 'us';
@@ -200,21 +202,15 @@ export default function Portfolio() {
       });
   }, [tabHoldings, searchTerm, sortField, sortDirection]);
 
-  // Handle column header click for sorting
-  const handleSort = (field: SortField) => {
+  // Handle column header click for sorting - memoized to prevent recreation
+  const handleSort = useCallback((field: SortField) => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
       setSortField(field);
       setSortDirection('desc');
     }
-  };
-
-  // Sort indicator component
-  const SortIndicator = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return <span className="text-slate-500 ml-1">↕</span>;
-    return <span className="text-green-400 ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>;
-  };
+  }, [sortField, sortDirection]);
 
   // Calculate tab summaries with 1D return and P&L percentage
   const tabSummaries = useMemo(() => {
@@ -245,13 +241,13 @@ export default function Portfolio() {
     };
   }, [holdingsWithPrices, indiaHoldings, usHoldings]);
 
-  const handleDelete = async (holding: Holding) => {
+  const handleDelete = useCallback(async (holding: Holding) => {
     if (window.confirm(`Are you sure you want to delete ${holding.symbol}?`)) {
       await deleteHolding(holding.id);
     }
-  };
+  }, [deleteHolding]);
 
-  const handleClearAll = async () => {
+  const handleClearAll = useCallback(async () => {
     if (!window.confirm('Are you sure you want to delete ALL holdings? This cannot be undone.')) return;
     if (!window.confirm('This will remove all portfolio data. Are you absolutely sure?')) return;
 
@@ -261,9 +257,9 @@ export default function Portfolio() {
     } catch (error) {
       console.error('Failed to clear portfolio:', error);
     }
-  };
+  }, [fetchHoldings]);
 
-  const handleRefreshPrices = async () => {
+  const handleRefreshPrices = useCallback(async () => {
     setIsRefreshing(true);
     setRefreshStatus('Fetching latest prices from Yahoo Finance...');
 
@@ -286,17 +282,24 @@ export default function Portfolio() {
     } finally {
       setIsRefreshing(false);
     }
-  };
+  }, [fetchHoldings]);
 
-  const handleAddTransaction = (holding: Holding) => {
+  const handleAddTransaction = useCallback((holding: Holding) => {
     setSelectedHolding(holding);
     setShowAddTransaction(true);
-  };
+  }, [setSelectedHolding]);
 
-  const getCurrencyForTab = () => {
+  const handleRowClick = useCallback((holding: Holding) => {
+    setSelectedStock(holding);
+  }, []);
+
+  // Memoize currency calculation
+  const tabCurrency = useMemo(() => {
     if (activeTab === 'us') return 'USD';
     return 'INR';
-  };
+  }, [activeTab]);
+
+  const getCurrencyForTab = useCallback(() => tabCurrency, [tabCurrency]);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -414,59 +417,34 @@ export default function Portfolio() {
       {/* Tab Summary Cards */}
       {tabHoldings.length > 0 && (
         <div className="grid grid-cols-4 gap-4">
-          <div className="card bg-gradient-to-br from-slate-800 to-slate-700">
-            <p className="text-slate-400 text-sm">
-              {activeTab === 'all' ? 'Total' : activeTab === 'india' ? 'India' : 'US'} Holdings
-            </p>
-            <p className="text-2xl font-bold text-white">{tabSummaries[activeTab].count}</p>
-          </div>
-          <div className="card bg-gradient-to-br from-slate-800 to-slate-700">
-            <p className="text-slate-400 text-sm">Total Value</p>
-            <p className="text-2xl font-bold text-white">
-              {formatCurrency(tabSummaries[activeTab].value, getCurrencyForTab())}
-            </p>
-            <p className="text-sm text-slate-400 mt-1">
-              Invested: {formatCurrency(tabSummaries[activeTab].invested, getCurrencyForTab())}
-            </p>
-          </div>
-          <div className="card bg-gradient-to-br from-slate-800 to-slate-700">
-            <p className="text-slate-400 text-sm">Total P&L</p>
-            <p className={`text-2xl font-bold ${
-              tabSummaries[activeTab].pnl >= 0 ? 'text-profit' : 'text-loss'
-            }`}>
-              {tabSummaries[activeTab].pnl >= 0 ? '+' : ''}
-              {formatCurrency(tabSummaries[activeTab].pnl, getCurrencyForTab())}
-            </p>
-            <p className={`text-sm ${
-              tabSummaries[activeTab].pnlPercent >= 0 ? 'text-profit' : 'text-loss'
-            }`}>
-              {tabSummaries[activeTab].pnlPercent >= 0 ? '+' : ''}
-              {tabSummaries[activeTab].pnlPercent.toFixed(2)}%
-            </p>
-          </div>
-          <div className="card bg-gradient-to-br from-slate-800 to-slate-700">
-            <p className="text-slate-400 text-sm">1D Return</p>
-            <p className={`text-2xl font-bold ${
-              tabSummaries[activeTab].dayReturn >= 0 ? 'text-profit' : 'text-loss'
-            }`}>
-              {tabSummaries[activeTab].dayReturn >= 0 ? '+' : ''}
-              {formatCurrency(tabSummaries[activeTab].dayReturn, getCurrencyForTab())}
-              {previousDayReturn !== null && activeTab === 'all' && (
-                <sub className={`text-xs ml-1 ${
-                  (tabSummaries[activeTab].dayReturn - previousDayReturn) >= 0 ? 'text-green-400' : 'text-red-400'
-                }`}>
-                  {(tabSummaries[activeTab].dayReturn - previousDayReturn) >= 0 ? '+' : ''}
-                  {formatCurrency(tabSummaries[activeTab].dayReturn - previousDayReturn, getCurrencyForTab())}
-                </sub>
-              )}
-            </p>
-            <p className={`text-sm ${
-              tabSummaries[activeTab].dayReturnPercent >= 0 ? 'text-profit' : 'text-loss'
-            }`}>
-              {tabSummaries[activeTab].dayReturnPercent >= 0 ? '+' : ''}
-              {tabSummaries[activeTab].dayReturnPercent.toFixed(2)}%
-            </p>
-          </div>
+          <PortfolioSummaryCard
+            label={`${activeTab === 'all' ? 'Total' : activeTab === 'india' ? 'India' : 'US'} Holdings`}
+            count={tabSummaries[activeTab].count}
+            currency={getCurrencyForTab()}
+            type="count"
+          />
+          <PortfolioSummaryCard
+            label="Total Value"
+            value={tabSummaries[activeTab].value}
+            invested={tabSummaries[activeTab].invested}
+            currency={getCurrencyForTab()}
+            type="value"
+          />
+          <PortfolioSummaryCard
+            label="Total P&L"
+            pnl={tabSummaries[activeTab].pnl}
+            pnlPercent={tabSummaries[activeTab].pnlPercent}
+            currency={getCurrencyForTab()}
+            type="pnl"
+          />
+          <PortfolioSummaryCard
+            label="1D Return"
+            dayReturn={tabSummaries[activeTab].dayReturn}
+            dayReturnPercent={tabSummaries[activeTab].dayReturnPercent}
+            previousDayReturn={activeTab === 'all' ? previousDayReturn : null}
+            currency={getCurrencyForTab()}
+            type="dayReturn"
+          />
         </div>
       )}
 
@@ -518,139 +496,15 @@ export default function Portfolio() {
           )}
         </div>
       ) : (
-        <div className="card overflow-hidden p-0">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-slate-700/50 text-left">
-                <th
-                  className="p-4 text-slate-300 font-medium cursor-pointer hover:text-white transition-colors"
-                  onClick={() => handleSort('symbol')}
-                >
-                  Stock<SortIndicator field="symbol" />
-                </th>
-                <th
-                  className="p-4 text-slate-300 font-medium text-right cursor-pointer hover:text-white transition-colors"
-                  onClick={() => handleSort('quantity')}
-                >
-                  Qty<SortIndicator field="quantity" />
-                </th>
-                <th
-                  className="p-4 text-slate-300 font-medium text-right cursor-pointer hover:text-white transition-colors"
-                  onClick={() => handleSort('avgPrice')}
-                >
-                  Avg Price<SortIndicator field="avgPrice" />
-                </th>
-                <th
-                  className="p-4 text-slate-300 font-medium text-right cursor-pointer hover:text-white transition-colors"
-                  onClick={() => handleSort('importedPrice')}
-                >
-                  Import Price<SortIndicator field="importedPrice" />
-                </th>
-                <th
-                  className="p-4 text-slate-300 font-medium text-right cursor-pointer hover:text-white transition-colors"
-                  onClick={() => handleSort('currentPrice')}
-                >
-                  Today's Price<SortIndicator field="currentPrice" />
-                </th>
-                <th
-                  className="p-4 text-slate-300 font-medium text-right cursor-pointer hover:text-white transition-colors"
-                  onClick={() => handleSort('currentValue')}
-                >
-                  Today's Value<SortIndicator field="currentValue" />
-                </th>
-                <th
-                  className="p-4 text-slate-300 font-medium text-right cursor-pointer hover:text-white transition-colors"
-                  onClick={() => handleSort('pnl')}
-                >
-                  P&L<SortIndicator field="pnl" />
-                </th>
-                <th
-                  className="p-4 text-slate-300 font-medium text-right cursor-pointer hover:text-white transition-colors"
-                  onClick={() => handleSort('dayChangePercent')}
-                >
-                  Day Change<SortIndicator field="dayChangePercent" />
-                </th>
-                <th className="p-4 text-slate-300 font-medium text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredHoldings.map((holding) => {
-                const currency = (holding.market === 'NYSE' || holding.market === 'NASDAQ') ? 'USD' : 'INR';
-                return (
-                  <tr
-                    key={holding.id}
-                    onClick={() => setSelectedStock(holding)}
-                    className="border-t border-slate-700 hover:bg-slate-700/30 transition-colors cursor-pointer"
-                  >
-                    <td className="p-4">
-                      <div>
-                        <p className="font-medium text-white">{holding.symbol}</p>
-                        <p className="text-xs text-slate-400">{holding.market} • {holding.type}</p>
-                      </div>
-                    </td>
-                    <td className="p-4 text-right text-white">
-                      {holding.quantity}
-                    </td>
-                    <td className="p-4 text-right text-slate-300">
-                      {formatPrice(holding.avgPrice, currency)}
-                    </td>
-                    <td className="p-4 text-right text-slate-400">
-                      {holding.importedPrice ? formatPrice(holding.importedPrice, currency) : '-'}
-                    </td>
-                    <td className="p-4 text-right text-white">
-                      {formatPrice(holding.currentPrice, currency)}
-                    </td>
-                    <td className="p-4 text-right">
-                      <div>
-                        <p className="text-white font-medium">
-                          {formatCurrency(holding.currentValue, currency)}
-                        </p>
-                        <p className="text-xs text-slate-400 mt-0.5">
-                          Buy: {formatCurrency(holding.avgPrice * holding.quantity, currency)}
-                        </p>
-                      </div>
-                    </td>
-                    <td className="p-4 text-right">
-                      <div className={holding.pnl >= 0 ? 'text-profit' : 'text-loss'}>
-                        <p>{holding.pnl >= 0 ? '+' : ''}{formatCurrency(holding.pnl, currency)}</p>
-                        <p className="text-sm">{formatPercent(holding.pnlPercent)}</p>
-                      </div>
-                    </td>
-                    <td className="p-4 text-right">
-                      <span className={holding.dayChangePercent >= 0 ? 'text-profit' : 'text-loss'}>
-                        {formatPercent(holding.dayChangePercent)}
-                      </span>
-                    </td>
-                    <td className="p-4 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleAddTransaction(holding);
-                          }}
-                          className="btn-secondary text-sm px-2 py-1"
-                          title="Add Transaction"
-                        >
-                          +Txn
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete(holding);
-                          }}
-                          className="btn-danger text-sm px-2 py-1"
-                          title="Delete"
-                        >
-                          🗑
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <HoldingsTable
+          holdings={filteredHoldings}
+          sortField={sortField}
+          sortDirection={sortDirection}
+          onSort={handleSort}
+          onAddTransaction={handleAddTransaction}
+          onDelete={handleDelete}
+          onRowClick={handleRowClick}
+        />
       )}
 
       {/* Modals */}

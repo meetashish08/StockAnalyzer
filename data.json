@@ -17,7 +17,7 @@
       "dayChange": -4.4499817,
       "dayChangePercent": -1.5363307,
       "previousClose": 289.65,
-      "lastPriceUpdate": "2026-07-13T13:39:01.986Z"
+      "lastPriceUpdate": "2026-07-13T14:10:52.298Z"
     },
     {
       "id": 2,
@@ -36,7 +36,7 @@
       "dayChange": 1,
       "dayChangePercent": 0.096525095,
       "previousClose": 1036,
-      "lastPriceUpdate": "2026-07-13T13:39:02.510Z"
+      "lastPriceUpdate": "2026-07-13T14:10:52.619Z"
     },
     {
       "id": 3,
@@ -55,7 +55,7 @@
       "dayChange": 3.149994,
       "dayChangePercent": 1.4999971,
       "previousClose": 210,
-      "lastPriceUpdate": "2026-07-13T13:39:02.874Z"
+      "lastPriceUpdate": "2026-07-13T14:10:52.964Z"
     },
     {
       "id": 4,
@@ -74,7 +74,7 @@
       "dayChange": -0.83999634,
       "dayChangePercent": -0.70210326,
       "previousClose": 119.64,
-      "lastPriceUpdate": "2026-07-13T13:39:03.247Z"
+      "lastPriceUpdate": "2026-07-13T14:10:53.284Z"
     },
     {
       "id": 5,
@@ -93,7 +93,7 @@
       "dayChange": 4,
       "dayChangePercent": 0.38310507,
       "previousClose": 1044.1,
-      "lastPriceUpdate": "2026-07-13T13:39:03.659Z"
+      "lastPriceUpdate": "2026-07-13T14:10:53.613Z"
     },
     {
       "id": 6,
@@ -112,7 +112,7 @@
       "dayChange": -1.0800018,
       "dayChangePercent": -0.9130119,
       "previousClose": 118.29,
-      "lastPriceUpdate": "2026-07-13T13:39:04.036Z"
+      "lastPriceUpdate": "2026-07-13T14:10:53.929Z"
     },
     {
       "id": 7,
@@ -131,7 +131,7 @@
       "dayChange": 3.3000488,
       "dayChangePercent": 0.5632925,
       "previousClose": 585.85,
-      "lastPriceUpdate": "2026-07-13T13:39:04.387Z"
+      "lastPriceUpdate": "2026-07-13T14:10:54.248Z"
     },
     {
       "id": 8,
@@ -150,7 +150,7 @@
       "dayChange": 0.22998047,
       "dayChangePercent": 0.08360798,
       "previousClose": 275.07,
-      "lastPriceUpdate": "2026-07-13T13:39:04.720Z"
+      "lastPriceUpdate": "2026-07-13T14:10:54.619Z"
     },
     {
       "id": 9,
@@ -169,7 +169,7 @@
       "dayChange": 4.299988,
       "dayChangePercent": 1.2723739,
       "previousClose": 337.95,
-      "lastPriceUpdate": "2026-07-13T13:39:05.046Z"
+      "lastPriceUpdate": "2026-07-13T14:10:54.935Z"
     },
     {
       "id": 10,
@@ -188,7 +188,7 @@
       "dayChange": -1.75,
       "dayChangePercent": -0.4142012,
       "previousClose": 422.5,
-      "lastPriceUpdate": "2026-07-13T13:39:05.370Z"
+      "lastPriceUpdate": "2026-07-13T14:10:55.251Z"
     },
     {
       "id": 11,
@@ -207,7 +207,7 @@
       "dayChange": -0.69000244,
       "dayChangePercent": -0.3686107,
       "previousClose": 187.19,
-      "lastPriceUpdate": "2026-07-13T13:39:05.712Z"
+      "lastPriceUpdate": "2026-07-13T14:10:55.569Z"
     },
     {
       "id": 12,
@@ -226,7 +226,7 @@
       "dayChange": 0.069992065,
       "dayChangePercent": 0.05063816,
       "previousClose": 138.22,
-      "lastPriceUpdate": "2026-07-13T13:39:06.040Z"
+      "lastPriceUpdate": "2026-07-13T14:10:55.883Z"
     },
     {
       "id": 13,
@@ -245,7 +245,7 @@
       "dayChange": 0.08000183,
       "dayChangePercent": 0.068290085,
       "previousClose": 117.15,
-      "lastPriceUpdate": "2026-07-13T13:39:06.377Z"
+      "lastPriceUpdate": "2026-07-13T14:10:56.212Z"
     },
     {
       "id": 14,
@@ -264,7 +264,7 @@
       "dayChange": -1.3699951,
       "dayChangePercent": -0.6560337,
       "previousClose": 208.83,
-      "lastPriceUpdate": "2026-07-13T13:39:06.717Z"
+      "lastPriceUpdate": "2026-07-13T14:10:56.530Z"
     },
     {
       "id": 15,
@@ -283,7 +283,7 @@
       "dayChange": -9.400024,
       "dayChangePercent": -0.5683207,
       "previousClose": 1654,
-      "lastPriceUpdate": "2026-07-13T13:39:07.243Z"
+      "lastPriceUpdate": "2026-07-13T14:10:56.849Z"
     },
     {
       "id": 16,
@@ -302,7 +302,7 @@
       "dayChange": -2.9899902,
       "dayChangePercent": -1.3687298,
       "previousClose": 218.45,
-      "lastPriceUpdate": "2026-07-13T13:39:07.810Z"
+      "lastPriceUpdate": "2026-07-13T14:10:57.164Z"
     },
     {
       "id": 17,
@@ -321,7 +321,7 @@
       "dayChange": -4.0500183,
       "dayChangePercent": -0.97626084,
       "previousClose": 414.85,
-      "lastPriceUpdate": "2026-07-13T13:39:08.185Z"
+      "lastPriceUpdate": "2026-07-13T14:10:57.489Z"
     },
     {
       "id": 18,
@@ -340,7 +340,7 @@
       "dayChange": -18.599976,
       "dayChangePercent": -0.968547,
       "previousClose": 1920.4,
-      "lastPriceUpdate": "2026-07-13T13:39:08.527Z"
+      "lastPriceUpdate": "2026-07-13T14:10:57.811Z"
     },
     {
       "id": 19,
@@ -359,7 +359,7 @@
       "dayChange": 2.9400024,
       "dayChangePercent": 0.86979747,
       "previousClose": 338.01,
-      "lastPriceUpdate": "2026-07-13T13:39:08.871Z"
+      "lastPriceUpdate": "2026-07-13T14:10:58.133Z"
     },
     {
       "id": 20,
@@ -367,8 +367,8 @@
       "market": "NSE",
       "name": "BSE LIMITED",
       "isin": "INE118H01025",
-      "quantity": 6,
-      "avgPrice": 4000.48,
+      "quantity": 7,
+      "avgPrice": 3968.9828571428575,
       "importedPrice": 3811.6,
       "currentPrice": 3804.2,
       "purchaseDate": "2026-07-12",
@@ -378,7 +378,7 @@
       "dayChange": -7.4001465,
       "dayChangePercent": -0.19414803,
       "previousClose": 3811.6,
-      "lastPriceUpdate": "2026-07-13T13:39:09.223Z"
+      "lastPriceUpdate": "2026-07-13T14:10:58.446Z"
     },
     {
       "id": 21,
@@ -397,7 +397,7 @@
       "dayChange": 0.9000244,
       "dayChangePercent": 0.20964931,
       "previousClose": 429.3,
-      "lastPriceUpdate": "2026-07-13T13:39:09.561Z"
+      "lastPriceUpdate": "2026-07-13T14:10:58.746Z"
     },
     {
       "id": 22,
@@ -405,8 +405,8 @@
       "market": "NSE",
       "name": "CUPID LIMITED",
       "isin": "INE509F01029",
-      "quantity": 19,
-      "avgPrice": 145.86,
+      "quantity": 34,
+      "avgPrice": 173.08941176470591,
       "importedPrice": 212.24,
       "currentPrice": 206.83,
       "purchaseDate": "2026-07-12",
@@ -416,7 +416,7 @@
       "dayChange": -5.4100037,
       "dayChangePercent": -2.549003,
       "previousClose": 212.24,
-      "lastPriceUpdate": "2026-07-13T13:39:09.898Z"
+      "lastPriceUpdate": "2026-07-13T14:10:59.174Z"
     },
     {
       "id": 23,
@@ -435,7 +435,7 @@
       "dayChange": -72.700195,
       "dayChangePercent": -1.6739626,
       "previousClose": 4343,
-      "lastPriceUpdate": "2026-07-13T13:39:10.378Z"
+      "lastPriceUpdate": "2026-07-13T14:10:59.517Z"
     },
     {
       "id": 24,
@@ -454,7 +454,7 @@
       "dayChange": -3.4000244,
       "dayChangePercent": -0.49581107,
       "previousClose": 685.75,
-      "lastPriceUpdate": "2026-07-13T13:39:10.707Z"
+      "lastPriceUpdate": "2026-07-13T14:10:59.837Z"
     },
     {
       "id": 25,
@@ -473,7 +473,7 @@
       "dayChange": -6.580017,
       "dayChangePercent": -1.4619012,
       "previousClose": 450.1,
-      "lastPriceUpdate": "2026-07-13T13:39:11.026Z"
+      "lastPriceUpdate": "2026-07-13T14:11:00.155Z"
     },
     {
       "id": 26,
@@ -492,7 +492,7 @@
       "dayChange": -0.6100006,
       "dayChangePercent": -0.3511199,
       "previousClose": 173.73,
-      "lastPriceUpdate": "2026-07-13T13:39:11.366Z"
+      "lastPriceUpdate": "2026-07-13T14:11:00.465Z"
     },
     {
       "id": 27,
@@ -511,7 +511,7 @@
       "dayChange": 0.6000061,
       "dayChangePercent": 0.18924654,
       "previousClose": 317.05,
-      "lastPriceUpdate": "2026-07-13T13:39:11.689Z"
+      "lastPriceUpdate": "2026-07-13T14:11:00.781Z"
     },
     {
       "id": 28,
@@ -530,7 +530,7 @@
       "dayChange": -7,
       "dayChangePercent": -0.8485363,
       "previousClose": 824.95,
-      "lastPriceUpdate": "2026-07-13T13:39:12.018Z"
+      "lastPriceUpdate": "2026-07-13T14:11:01.107Z"
     },
     {
       "id": 29,
@@ -549,7 +549,7 @@
       "dayChange": 0.6299896,
       "dayChangePercent": 0.34501073,
       "previousClose": 182.6,
-      "lastPriceUpdate": "2026-07-13T13:39:12.351Z"
+      "lastPriceUpdate": "2026-07-13T14:11:01.432Z"
     },
     {
       "id": 30,
@@ -568,7 +568,7 @@
       "dayChange": -0.6000366,
       "dayChangePercent": -0.062022492,
       "previousClose": 967.45,
-      "lastPriceUpdate": "2026-07-13T13:39:12.695Z"
+      "lastPriceUpdate": "2026-07-13T14:11:01.763Z"
     },
     {
       "id": 31,
@@ -587,7 +587,7 @@
       "dayChange": 4.5,
       "dayChangePercent": 0.09984912,
       "previousClose": 4506.8,
-      "lastPriceUpdate": "2026-07-13T13:39:13.139Z"
+      "lastPriceUpdate": "2026-07-13T14:11:02.079Z"
     },
     {
       "id": 32,
@@ -606,7 +606,7 @@
       "dayChange": -0.6999817,
       "dayChangePercent": -0.14037535,
       "previousClose": 498.65,
-      "lastPriceUpdate": "2026-07-13T13:39:13.472Z"
+      "lastPriceUpdate": "2026-07-13T14:11:02.400Z"
     },
     {
       "id": 33,
@@ -625,7 +625,7 @@
       "dayChange": -20,
       "dayChangePercent": -0.929973,
       "previousClose": 2150.6,
-      "lastPriceUpdate": "2026-07-13T13:39:13.809Z"
+      "lastPriceUpdate": "2026-07-13T14:11:02.724Z"
     },
     {
       "id": 34,
@@ -644,7 +644,7 @@
       "dayChange": 8.300049,
       "dayChangePercent": 0.5923529,
       "previousClose": 1401.2,
-      "lastPriceUpdate": "2026-07-13T13:39:14.146Z"
+      "lastPriceUpdate": "2026-07-13T14:11:03.048Z"
     },
     {
       "id": 35,
@@ -663,7 +663,7 @@
       "dayChange": -0.15000153,
       "dayChangePercent": -0.16685376,
       "previousClose": 89.9,
-      "lastPriceUpdate": "2026-07-13T13:39:14.481Z"
+      "lastPriceUpdate": "2026-07-13T14:11:03.363Z"
     },
     {
       "id": 36,
@@ -682,7 +682,7 @@
       "dayChange": -2.100006,
       "dayChangePercent": -0.7453438,
       "previousClose": 281.75,
-      "lastPriceUpdate": "2026-07-13T13:39:14.940Z"
+      "lastPriceUpdate": "2026-07-13T14:11:03.667Z"
     },
     {
       "id": 37,
@@ -701,7 +701,7 @@
       "dayChange": -0.55000305,
       "dayChangePercent": -0.22731155,
       "previousClose": 241.96,
-      "lastPriceUpdate": "2026-07-13T13:39:15.291Z"
+      "lastPriceUpdate": "2026-07-13T14:11:04.086Z"
     },
     {
       "id": 38,
@@ -720,7 +720,7 @@
       "dayChange": 0.010000229,
       "dayChangePercent": 0.045538384,
       "previousClose": 21.96,
-      "lastPriceUpdate": "2026-07-13T13:39:15.626Z"
+      "lastPriceUpdate": "2026-07-13T14:11:04.510Z"
     },
     {
       "id": 39,
@@ -739,7 +739,7 @@
       "dayChange": 3.4500122,
       "dayChangePercent": 1.0739337,
       "previousClose": 321.25,
-      "lastPriceUpdate": "2026-07-13T13:39:15.967Z"
+      "lastPriceUpdate": "2026-07-13T14:11:04.827Z"
     },
     {
       "id": 40,
@@ -758,7 +758,7 @@
       "dayChange": -17.300049,
       "dayChangePercent": -0.43844214,
       "previousClose": 3945.8,
-      "lastPriceUpdate": "2026-07-13T13:39:16.323Z"
+      "lastPriceUpdate": "2026-07-13T14:11:05.149Z"
     },
     {
       "id": 41,
@@ -777,7 +777,7 @@
       "dayChange": 31,
       "dayChangePercent": 0.99060524,
       "previousClose": 3129.4,
-      "lastPriceUpdate": "2026-07-13T13:39:16.822Z"
+      "lastPriceUpdate": "2026-07-13T14:11:05.483Z"
     },
     {
       "id": 42,
@@ -796,7 +796,7 @@
       "dayChange": -17.5,
       "dayChangePercent": -0.7231106,
       "previousClose": 2420.1,
-      "lastPriceUpdate": "2026-07-13T13:39:17.158Z"
+      "lastPriceUpdate": "2026-07-13T14:11:05.803Z"
     },
     {
       "id": 43,
@@ -815,7 +815,7 @@
       "dayChange": 0.3999939,
       "dayChangePercent": 0.08182846,
       "previousClose": 488.82,
-      "lastPriceUpdate": "2026-07-13T13:39:17.500Z"
+      "lastPriceUpdate": "2026-07-13T14:11:06.127Z"
     },
     {
       "id": 44,
@@ -834,7 +834,7 @@
       "dayChange": 1.0200005,
       "dayChangePercent": 3.4412973,
       "previousClose": 29.64,
-      "lastPriceUpdate": "2026-07-13T13:39:17.833Z"
+      "lastPriceUpdate": "2026-07-13T14:11:06.479Z"
     },
     {
       "id": 45,
@@ -853,7 +853,7 @@
       "dayChange": -1.1900024,
       "dayChangePercent": -1.0072817,
       "previousClose": 118.14,
-      "lastPriceUpdate": "2026-07-13T13:39:18.171Z"
+      "lastPriceUpdate": "2026-07-13T14:11:06.804Z"
     },
     {
       "id": 46,
@@ -872,7 +872,7 @@
       "dayChange": 1.1199989,
       "dayChangePercent": 3.608244,
       "previousClose": 31.04,
-      "lastPriceUpdate": "2026-07-13T13:39:18.662Z"
+      "lastPriceUpdate": "2026-07-13T14:11:07.125Z"
     },
     {
       "id": 47,
@@ -891,7 +891,7 @@
       "dayChange": -0.2400055,
       "dayChangePercent": -0.10017759,
       "previousClose": 239.58,
-      "lastPriceUpdate": "2026-07-13T13:39:19.004Z"
+      "lastPriceUpdate": "2026-07-13T14:11:07.439Z"
     },
     {
       "id": 48,
@@ -910,7 +910,7 @@
       "dayChange": 0.22998047,
       "dayChangePercent": 0.08360798,
       "previousClose": 275.07,
-      "lastPriceUpdate": "2026-07-13T13:39:19.354Z"
+      "lastPriceUpdate": "2026-07-13T14:11:07.762Z"
     },
     {
       "id": 49,
@@ -929,7 +929,7 @@
       "dayChange": 0.25,
       "dayChangePercent": 0.26497087,
       "previousClose": 94.35,
-      "lastPriceUpdate": "2026-07-13T13:39:19.688Z"
+      "lastPriceUpdate": "2026-07-13T14:11:08.083Z"
     },
     {
       "id": 50,
@@ -948,7 +948,7 @@
       "dayChange": 7.200012,
       "dayChangePercent": 2.0896857,
       "previousClose": 344.55,
-      "lastPriceUpdate": "2026-07-13T13:39:20.035Z"
+      "lastPriceUpdate": "2026-07-13T14:11:08.413Z"
     },
     {
       "id": 51,
@@ -967,7 +967,7 @@
       "dayChange": 3.4899902,
       "dayChangePercent": 1.4247184,
       "previousClose": 244.96,
-      "lastPriceUpdate": "2026-07-13T13:39:20.378Z"
+      "lastPriceUpdate": "2026-07-13T14:11:08.728Z"
     },
     {
       "id": 52,
@@ -986,7 +986,7 @@
       "dayChange": -0.09000015,
       "dayChangePercent": -0.22271752,
       "previousClose": 40.41,
-      "lastPriceUpdate": "2026-07-13T13:39:20.713Z"
+      "lastPriceUpdate": "2026-07-13T14:11:09.044Z"
     },
     {
       "id": 53,
@@ -1005,7 +1005,7 @@
       "dayChange": -22.400024,
       "dayChangePercent": -1.5734775,
       "previousClose": 1423.6,
-      "lastPriceUpdate": "2026-07-13T13:39:21.059Z"
+      "lastPriceUpdate": "2026-07-13T14:11:09.370Z"
     },
     {
       "id": 54,
@@ -1024,7 +1024,7 @@
       "dayChange": 0.9299927,
       "dayChangePercent": 0.8822623,
       "previousClose": 105.41,
-      "lastPriceUpdate": "2026-07-13T13:39:21.394Z"
+      "lastPriceUpdate": "2026-07-13T14:11:09.689Z"
     },
     {
       "id": 55,
@@ -1043,7 +1043,7 @@
       "dayChange": -1.1300049,
       "dayChangePercent": -0.4856685,
       "previousClose": 232.67,
-      "lastPriceUpdate": "2026-07-13T13:39:21.737Z"
+      "lastPriceUpdate": "2026-07-13T14:11:10.010Z"
     },
     {
       "id": 56,
@@ -1062,7 +1062,7 @@
       "dayChange": -10.900024,
       "dayChangePercent": -0.83346266,
       "previousClose": 1307.8,
-      "lastPriceUpdate": "2026-07-13T13:39:22.075Z"
+      "lastPriceUpdate": "2026-07-13T14:11:10.437Z"
     },
     {
       "id": 57,
@@ -1081,7 +1081,7 @@
       "dayChange": -1.1900024,
       "dayChangePercent": -0.9765324,
       "previousClose": 121.86,
-      "lastPriceUpdate": "2026-07-13T13:39:22.435Z"
+      "lastPriceUpdate": "2026-07-13T14:11:10.766Z"
     },
     {
       "id": 58,
@@ -1100,7 +1100,7 @@
       "dayChange": 0.47000122,
       "dayChangePercent": 0.1807558,
       "previousClose": 260.02,
-      "lastPriceUpdate": "2026-07-13T13:39:22.781Z"
+      "lastPriceUpdate": "2026-07-13T14:11:11.088Z"
     },
     {
       "id": 59,
@@ -1119,7 +1119,7 @@
       "dayChange": -0.30999756,
       "dayChangePercent": -0.43735552,
       "previousClose": 70.88,
-      "lastPriceUpdate": "2026-07-13T13:39:23.167Z"
+      "lastPriceUpdate": "2026-07-13T14:11:11.415Z"
     },
     {
       "id": 60,
@@ -1138,7 +1138,7 @@
       "dayChange": -0.94000244,
       "dayChangePercent": -0.55969185,
       "previousClose": 167.95,
-      "lastPriceUpdate": "2026-07-13T13:39:23.695Z"
+      "lastPriceUpdate": "2026-07-13T14:11:11.744Z"
     },
     {
       "id": 61,
@@ -1157,7 +1157,7 @@
       "dayChange": -14.099976,
       "dayChangePercent": -0.7284927,
       "previousClose": 1935.5,
-      "lastPriceUpdate": "2026-07-13T13:39:24.107Z"
+      "lastPriceUpdate": "2026-07-13T14:11:12.060Z"
     },
     {
       "id": 62,
@@ -1176,7 +1176,7 @@
       "dayChange": -0.75,
       "dayChangePercent": -1.3909496,
       "previousClose": 53.92,
-      "lastPriceUpdate": "2026-07-13T13:39:24.605Z"
+      "lastPriceUpdate": "2026-07-13T14:11:12.388Z"
     },
     {
       "id": 63,
@@ -1195,7 +1195,7 @@
       "dayChange": 112.5,
       "dayChangePercent": 5.4374094,
       "previousClose": 2069,
-      "lastPriceUpdate": "2026-07-13T13:39:24.938Z"
+      "lastPriceUpdate": "2026-07-13T14:11:12.710Z"
     },
     {
       "id": 64,
@@ -1214,7 +1214,7 @@
       "dayChange": 4.299988,
       "dayChangePercent": 1.2723739,
       "previousClose": 337.95,
-      "lastPriceUpdate": "2026-07-13T13:39:25.273Z"
+      "lastPriceUpdate": "2026-07-13T14:11:13.039Z"
     },
     {
       "id": 65,
@@ -1233,7 +1233,7 @@
       "dayChange": -3.4499817,
       "dayChangePercent": -0.9047946,
       "previousClose": 381.3,
-      "lastPriceUpdate": "2026-07-13T13:39:25.832Z"
+      "lastPriceUpdate": "2026-07-13T14:11:13.363Z"
     },
     {
       "id": 66,
@@ -1252,7 +1252,7 @@
       "dayChange": -4.080002,
       "dayChangePercent": -2.1340036,
       "previousClose": 191.19,
-      "lastPriceUpdate": "2026-07-13T13:39:26.173Z"
+      "lastPriceUpdate": "2026-07-13T14:11:13.690Z"
     },
     {
       "id": 67,
@@ -1271,7 +1271,7 @@
       "dayChange": 13.5,
       "dayChangePercent": 1.615219,
       "previousClose": 835.8,
-      "lastPriceUpdate": "2026-07-13T13:39:26.511Z"
+      "lastPriceUpdate": "2026-07-13T14:11:13.995Z"
     },
     {
       "id": 68,
@@ -1290,7 +1290,7 @@
       "dayChange": 1.7299995,
       "dayChangePercent": 4.988465,
       "previousClose": 34.68,
-      "lastPriceUpdate": "2026-07-13T13:39:26.831Z"
+      "lastPriceUpdate": "2026-07-13T14:11:14.321Z"
     },
     {
       "id": 69,
@@ -1309,7 +1309,7 @@
       "dayChange": -2.899994,
       "dayChangePercent": -1.0640228,
       "previousClose": 272.55,
-      "lastPriceUpdate": "2026-07-13T13:39:27.166Z"
+      "lastPriceUpdate": "2026-07-13T14:11:14.628Z"
     },
     {
       "id": 70,
@@ -1328,7 +1328,7 @@
       "dayChange": 0.22999954,
       "dayChangePercent": 0.5937004,
       "previousClose": 38.74,
-      "lastPriceUpdate": "2026-07-13T13:39:27.507Z"
+      "lastPriceUpdate": "2026-07-13T14:11:14.952Z"
     },
     {
       "id": 71,
@@ -1347,7 +1347,7 @@
       "dayChange": -0.40000153,
       "dayChangePercent": -0.9562551,
       "previousClose": 41.83,
-      "lastPriceUpdate": "2026-07-13T13:39:27.844Z"
+      "lastPriceUpdate": "2026-07-13T14:11:15.217Z"
     },
     {
       "id": 72,
@@ -1366,7 +1366,7 @@
       "dayChange": -9.949951,
       "dayChangePercent": -1.2791606,
       "previousClose": 777.85,
-      "lastPriceUpdate": "2026-07-13T13:39:28.177Z"
+      "lastPriceUpdate": "2026-07-13T14:11:15.546Z"
     },
     {
       "id": 73,
@@ -1385,7 +1385,7 @@
       "dayChange": 2.969986,
       "dayChangePercent": 1.6926855,
       "previousClose": 175.46,
-      "lastPriceUpdate": "2026-07-13T13:39:28.513Z"
+      "lastPriceUpdate": "2026-07-13T14:11:15.873Z"
     },
     {
       "id": 74,
@@ -1396,15 +1396,15 @@
       "quantity": 0.05864057,
       "avgPrice": 170.0188112086905,
       "importedPrice": 170.0188112086905,
-      "currentPrice": 154.7977,
+      "currentPrice": 155.86,
       "purchaseDate": "2026-07-11",
       "type": "STOCK",
       "importId": 1783855303297,
       "createdAt": "2026-07-12T11:21:43.309Z",
-      "dayChange": 2.1777039,
-      "dayChangePercent": 1.4268798,
-      "previousClose": 152.62,
-      "lastPriceUpdate": "2026-07-13T13:39:28.849Z"
+      "dayChange": -12.149994,
+      "dayChangePercent": -7.231709,
+      "previousClose": 168.01,
+      "lastPriceUpdate": "2026-07-13T14:11:16.195Z"
     },
     {
       "id": 75,
@@ -1412,18 +1412,18 @@
       "market": "NYSE",
       "name": "SNDK",
       "isin": "",
-      "quantity": 0.00531438,
-      "avgPrice": 1881.6870453373679,
+      "quantity": 0.011047,
+      "avgPrice": 1807.7306712591653,
       "importedPrice": 1881.6870453373679,
-      "currentPrice": 1739.66,
+      "currentPrice": 1755.7701,
       "purchaseDate": "2026-07-08",
       "type": "STOCK",
       "importId": 1783855303297,
       "createdAt": "2026-07-12T11:21:43.319Z",
-      "dayChange": -176.26001,
-      "dayChangePercent": -9.199758,
+      "dayChange": -160.1499,
+      "dayChangePercent": -8.358903,
       "previousClose": 1915.92,
-      "lastPriceUpdate": "2026-07-13T13:39:29.185Z"
+      "lastPriceUpdate": "2026-07-13T14:11:16.511Z"
     },
     {
       "id": 76,
@@ -1434,15 +1434,15 @@
       "quantity": 0.13074711,
       "avgPrice": 171.01716435644352,
       "importedPrice": 171.01716435644352,
-      "currentPrice": 141.885,
+      "currentPrice": 138.25,
       "purchaseDate": "2026-06-12",
       "type": "STOCK",
       "importId": 1783855303297,
       "createdAt": "2026-07-12T11:21:43.330Z",
-      "dayChange": -3.4150085,
-      "dayChangePercent": -2.3503156,
+      "dayChange": -7.050003,
+      "dayChangePercent": -4.852032,
       "previousClose": 145.3,
-      "lastPriceUpdate": "2026-07-13T13:39:29.532Z"
+      "lastPriceUpdate": "2026-07-13T14:11:16.829Z"
     },
     {
       "id": 77,
@@ -1453,15 +1453,15 @@
       "quantity": 0.19562943,
       "avgPrice": 127.79263324541712,
       "importedPrice": 127.79263324541712,
-      "currentPrice": 104.86,
+      "currentPrice": 105.145,
       "purchaseDate": "2026-06-11",
       "type": "STOCK",
       "importId": 1783855303297,
       "createdAt": "2026-07-12T11:21:43.339Z",
-      "dayChange": -4.9799957,
-      "dayChangePercent": -4.5338635,
+      "dayChange": -4.6949997,
+      "dayChangePercent": -4.274399,
       "previousClose": 109.84,
-      "lastPriceUpdate": "2026-07-13T13:39:30.046Z"
+      "lastPriceUpdate": "2026-07-13T14:11:17.146Z"
     },
     {
       "id": 78,
@@ -1472,15 +1472,15 @@
       "quantity": 0.01705063,
       "avgPrice": 586.4885930901087,
       "importedPrice": 586.4885930901087,
-      "currentPrice": 538.69,
+      "currentPrice": 543,
       "purchaseDate": "2026-07-09",
       "type": "STOCK",
       "importId": 1783855303297,
       "createdAt": "2026-07-12T11:21:43.349Z",
-      "dayChange": -43.89502,
-      "dayChangePercent": -7.534526,
+      "dayChange": -39.585022,
+      "dayChangePercent": -6.79472,
       "previousClose": 582.585,
-      "lastPriceUpdate": "2026-07-13T13:39:30.375Z"
+      "lastPriceUpdate": "2026-07-13T14:11:17.476Z"
     },
     {
       "id": 79,
@@ -1491,15 +1491,15 @@
       "quantity": 0.5119479,
       "avgPrice": 195.33237659535277,
       "importedPrice": 195.33237659535277,
-      "currentPrice": 209.0499,
+      "currentPrice": 209.425,
       "purchaseDate": "2025-08-31",
       "type": "STOCK",
       "importId": 1783855303297,
       "createdAt": "2026-07-12T11:21:43.357Z",
-      "dayChange": -1.9101105,
-      "dayChangePercent": -0.90543723,
+      "dayChange": -1.5350037,
+      "dayChangePercent": -0.7276106,
       "previousClose": 210.96,
-      "lastPriceUpdate": "2026-07-13T13:39:30.714Z"
+      "lastPriceUpdate": "2026-07-13T14:11:17.805Z"
     },
     {
       "id": 80,
@@ -1510,15 +1510,15 @@
       "quantity": 0.0689421,
       "avgPrice": 358.4167003906176,
       "importedPrice": 358.4167003906176,
-      "currentPrice": 354.07,
+      "currentPrice": 353.31,
       "purchaseDate": "2025-07-01",
       "type": "STOCK",
       "importId": 1783855303297,
       "createdAt": "2026-07-12T11:21:43.365Z",
-      "dayChange": -0.95999146,
-      "dayChangePercent": -0.2704049,
+      "dayChange": -1.7200012,
+      "dayChangePercent": -0.48446643,
       "previousClose": 355.03,
-      "lastPriceUpdate": "2026-07-13T13:39:31.076Z"
+      "lastPriceUpdate": "2026-07-13T14:11:18.105Z"
     },
     {
       "id": 81,
@@ -1529,15 +1529,15 @@
       "quantity": 0.23803382,
       "avgPrice": 222.36335996288258,
       "importedPrice": 222.36335996288258,
-      "currentPrice": 247.99,
+      "currentPrice": 246.95,
       "purchaseDate": "2025-04-20",
       "type": "STOCK",
       "importId": 1783855303297,
       "createdAt": "2026-07-12T11:21:43.374Z",
-      "dayChange": 2.6500092,
-      "dayChangePercent": 1.0797853,
+      "dayChange": 1.6100006,
+      "dayChangePercent": 0.6562324,
       "previousClose": 245.34,
-      "lastPriceUpdate": "2026-07-13T13:39:31.414Z"
+      "lastPriceUpdate": "2026-07-13T14:11:18.425Z"
     },
     {
       "id": 82,
@@ -1548,15 +1548,15 @@
       "quantity": 0.60472807,
       "avgPrice": 235.31237767745762,
       "importedPrice": 235.31237767745762,
-      "currentPrice": 386.5,
+      "currentPrice": 388.585,
       "purchaseDate": "2025-04-15",
       "type": "STOCK",
       "importId": 1783855303297,
       "createdAt": "2026-07-12T11:21:43.384Z",
-      "dayChange": -9.149994,
-      "dayChangePercent": -2.3126485,
+      "dayChange": -7.0650024,
+      "dayChangePercent": -1.7856698,
       "previousClose": 395.65,
-      "lastPriceUpdate": "2026-07-13T13:39:31.759Z"
+      "lastPriceUpdate": "2026-07-13T14:11:18.747Z"
     },
     {
       "id": 83,
@@ -1567,15 +1567,15 @@
       "quantity": 0.05807136,
       "avgPrice": 964.3307819896072,
       "importedPrice": 964.3307819896072,
-      "currentPrice": 911.915,
+      "currentPrice": 931.35,
       "purchaseDate": "2026-06-01",
       "type": "STOCK",
       "importId": 1783855303297,
       "createdAt": "2026-07-12T11:21:43.393Z",
-      "dayChange": -67.38501,
-      "dayChangePercent": -6.8809366,
+      "dayChange": -47.950012,
+      "dayChangePercent": -4.8963556,
       "previousClose": 979.3,
-      "lastPriceUpdate": "2026-07-13T13:39:32.083Z"
+      "lastPriceUpdate": "2026-07-13T14:11:19.061Z"
     },
     {
       "id": 84,
@@ -1586,15 +1586,15 @@
       "quantity": 0.27091843,
       "avgPrice": 234.35098158512142,
       "importedPrice": 234.35098158512142,
-      "currentPrice": 321.995,
+      "currentPrice": 321.25,
       "purchaseDate": "2025-04-22",
       "type": "STOCK",
       "importId": 1783855303297,
       "createdAt": "2026-07-12T11:21:43.401Z",
-      "dayChange": 6.674988,
-      "dayChangePercent": 2.1168933,
+      "dayChange": 5.9299927,
+      "dayChangePercent": 1.8806268,
       "previousClose": 315.32,
-      "lastPriceUpdate": "2026-07-13T13:39:32.419Z"
+      "lastPriceUpdate": "2026-07-13T14:11:19.390Z"
     },
     {
       "id": 85,
@@ -1613,7 +1613,7 @@
       "dayChange": -211,
       "dayChangePercent": -1.5009248,
       "previousClose": 14058,
-      "lastPriceUpdate": "2026-07-13T13:39:32.775Z"
+      "lastPriceUpdate": "2026-07-13T14:11:19.816Z"
     },
     {
       "id": 86,
@@ -1621,8 +1621,8 @@
       "market": "NSE",
       "name": "BEL",
       "isin": "",
-      "quantity": 14,
-      "avgPrice": 421.24,
+      "quantity": 17,
+      "avgPrice": 419.16823529411766,
       "importedPrice": 414.85,
       "currentPrice": 410.8,
       "purchaseDate": "2026-07-12",
@@ -1632,7 +1632,7 @@
       "dayChange": -4.0500183,
       "dayChangePercent": -0.97626084,
       "previousClose": 414.85,
-      "lastPriceUpdate": "2026-07-13T13:39:33.121Z"
+      "lastPriceUpdate": "2026-07-13T14:11:20.249Z"
     },
     {
       "id": 87,
@@ -1651,7 +1651,7 @@
       "dayChange": 23.300049,
       "dayChangePercent": 1.2509421,
       "previousClose": 1862.6,
-      "lastPriceUpdate": "2026-07-13T13:39:33.458Z"
+      "lastPriceUpdate": "2026-07-13T14:11:20.565Z"
     },
     {
       "id": 88,
@@ -1670,7 +1670,7 @@
       "dayChange": 13.850006,
       "dayChangePercent": 3.5041127,
       "previousClose": 395.25,
-      "lastPriceUpdate": "2026-07-13T13:39:34.024Z"
+      "lastPriceUpdate": "2026-07-13T14:11:20.889Z"
     },
     {
       "id": 89,
@@ -1689,7 +1689,7 @@
       "dayChange": 12.599976,
       "dayChangePercent": 0.879948,
       "previousClose": 1431.9,
-      "lastPriceUpdate": "2026-07-13T13:39:34.372Z"
+      "lastPriceUpdate": "2026-07-13T14:11:21.200Z"
     },
     {
       "id": 90,
@@ -1708,7 +1708,7 @@
       "dayChange": -6.199951,
       "dayChangePercent": -0.4372321,
       "previousClose": 1418,
-      "lastPriceUpdate": "2026-07-13T13:39:34.707Z"
+      "lastPriceUpdate": "2026-07-13T14:11:21.524Z"
     },
     {
       "id": 91,
@@ -1727,7 +1727,7 @@
       "dayChange": -72.700195,
       "dayChangePercent": -1.6739626,
       "previousClose": 4343,
-      "lastPriceUpdate": "2026-07-13T13:39:35.050Z"
+      "lastPriceUpdate": "2026-07-13T14:11:21.879Z"
     },
     {
       "id": 92,
@@ -1735,8 +1735,8 @@
       "market": "NSE",
       "name": "DIXON",
       "isin": "",
-      "quantity": 1,
-      "avgPrice": 13185,
+      "quantity": 2,
+      "avgPrice": 13340,
       "importedPrice": 13421,
       "currentPrice": 13490,
       "purchaseDate": "2026-07-12",
@@ -1746,7 +1746,7 @@
       "dayChange": 69,
       "dayChangePercent": 0.5141197,
       "previousClose": 13421,
-      "lastPriceUpdate": "2026-07-13T13:39:35.374Z"
+      "lastPriceUpdate": "2026-07-13T14:11:22.226Z"
     },
     {
       "id": 93,
@@ -1765,7 +1765,7 @@
       "dayChange": 0.6000061,
       "dayChangePercent": 0.18924654,
       "previousClose": 317.05,
-      "lastPriceUpdate": "2026-07-13T13:39:35.778Z"
+      "lastPriceUpdate": "2026-07-13T14:11:22.548Z"
     },
     {
       "id": 94,
@@ -1773,8 +1773,8 @@
       "market": "NSE",
       "name": "GOLDBEES",
       "isin": "",
-      "quantity": 10,
-      "avgPrice": 118.17,
+      "quantity": 15,
+      "avgPrice": 117.77333333333333,
       "importedPrice": 118.18,
       "currentPrice": 116.95,
       "purchaseDate": "2026-07-12",
@@ -1784,7 +1784,7 @@
       "dayChange": -1.1900024,
       "dayChangePercent": -1.0072817,
       "previousClose": 118.14,
-      "lastPriceUpdate": "2026-07-13T13:39:36.190Z"
+      "lastPriceUpdate": "2026-07-13T14:11:22.866Z"
     },
     {
       "id": 95,
@@ -1803,7 +1803,7 @@
       "dayChange": -21.399902,
       "dayChangePercent": -0.8039032,
       "previousClose": 2662,
-      "lastPriceUpdate": "2026-07-13T13:39:36.521Z"
+      "lastPriceUpdate": "2026-07-13T14:11:23.325Z"
     },
     {
       "id": 96,
@@ -1822,7 +1822,7 @@
       "dayChange": 0.6299896,
       "dayChangePercent": 0.34501073,
       "previousClose": 182.6,
-      "lastPriceUpdate": "2026-07-13T13:39:36.858Z"
+      "lastPriceUpdate": "2026-07-13T14:11:23.651Z"
     },
     {
       "id": 97,
@@ -1841,7 +1841,7 @@
       "dayChange": -4.3500366,
       "dayChangePercent": -0.8101381,
       "previousClose": 536.95,
-      "lastPriceUpdate": "2026-07-13T13:39:37.191Z"
+      "lastPriceUpdate": "2026-07-13T14:11:23.973Z"
     },
     {
       "id": 98,
@@ -1860,7 +1860,7 @@
       "dayChange": -0.22999954,
       "dayChangePercent": -1.6208566,
       "previousClose": 14.19,
-      "lastPriceUpdate": "2026-07-13T13:39:37.530Z"
+      "lastPriceUpdate": "2026-07-13T14:11:24.304Z"
     },
     {
       "id": 99,
@@ -1894,7 +1894,7 @@
       "dayChange": -0.15000153,
       "dayChangePercent": -0.16685376,
       "previousClose": 89.9,
-      "lastPriceUpdate": "2026-07-13T13:39:38.503Z"
+      "lastPriceUpdate": "2026-07-13T14:11:25.202Z"
     },
     {
       "id": 101,
@@ -1913,7 +1913,7 @@
       "dayChange": 1.1199989,
       "dayChangePercent": 3.608244,
       "previousClose": 31.04,
-      "lastPriceUpdate": "2026-07-13T13:39:38.845Z"
+      "lastPriceUpdate": "2026-07-13T14:11:25.512Z"
     },
     {
       "id": 102,
@@ -1932,7 +1932,7 @@
       "dayChange": -21.199951,
       "dayChangePercent": -1.3548892,
       "previousClose": 1564.7,
-      "lastPriceUpdate": "2026-07-13T13:39:39.188Z"
+      "lastPriceUpdate": "2026-07-13T14:11:25.832Z"
     },
     {
       "id": 103,
@@ -1951,7 +1951,7 @@
       "dayChange": -17.300049,
       "dayChangePercent": -0.43844214,
       "previousClose": 3945.8,
-      "lastPriceUpdate": "2026-07-13T13:39:39.531Z"
+      "lastPriceUpdate": "2026-07-13T14:11:26.157Z"
     },
     {
       "id": 104,
@@ -1970,7 +1970,7 @@
       "dayChange": -1.6900024,
       "dayChangePercent": -2.0059376,
       "previousClose": 84.25,
-      "lastPriceUpdate": "2026-07-13T13:39:40.170Z"
+      "lastPriceUpdate": "2026-07-13T14:11:26.475Z"
     },
     {
       "id": 105,
@@ -1989,7 +1989,7 @@
       "dayChange": -17.5,
       "dayChangePercent": -0.7231106,
       "previousClose": 2420.1,
-      "lastPriceUpdate": "2026-07-13T13:39:40.570Z"
+      "lastPriceUpdate": "2026-07-13T14:11:26.791Z"
     },
     {
       "id": 106,
@@ -2008,7 +2008,7 @@
       "dayChange": -0.2400055,
       "dayChangePercent": -0.10017759,
       "previousClose": 239.58,
-      "lastPriceUpdate": "2026-07-13T13:39:40.926Z"
+      "lastPriceUpdate": "2026-07-13T14:11:27.119Z"
     },
     {
       "id": 107,
@@ -2027,7 +2027,7 @@
       "dayChange": 0.3999939,
       "dayChangePercent": 0.08182846,
       "previousClose": 488.82,
-      "lastPriceUpdate": "2026-07-13T13:39:41.277Z"
+      "lastPriceUpdate": "2026-07-13T14:11:27.437Z"
     },
     {
       "id": 108,
@@ -2046,7 +2046,7 @@
       "dayChange": -3.9900055,
       "dayChangePercent": -1.6848263,
       "previousClose": 236.82,
-      "lastPriceUpdate": "2026-07-13T13:39:41.632Z"
+      "lastPriceUpdate": "2026-07-13T14:11:27.862Z"
     },
     {
       "id": 109,
@@ -2065,7 +2065,7 @@
       "dayChange": -355,
       "dayChangePercent": -4.999296,
       "previousClose": 7101,
-      "lastPriceUpdate": "2026-07-13T13:39:42.134Z"
+      "lastPriceUpdate": "2026-07-13T14:11:28.291Z"
     },
     {
       "id": 110,
@@ -2084,7 +2084,7 @@
       "dayChange": 95,
       "dayChangePercent": 2.2067363,
       "previousClose": 4305,
-      "lastPriceUpdate": "2026-07-13T13:39:42.471Z"
+      "lastPriceUpdate": "2026-07-13T14:11:28.607Z"
     },
     {
       "id": 111,
@@ -2103,7 +2103,7 @@
       "dayChange": 0.45000458,
       "dayChangePercent": 0.4782195,
       "previousClose": 94.1,
-      "lastPriceUpdate": "2026-07-13T13:39:42.822Z"
+      "lastPriceUpdate": "2026-07-13T14:11:28.921Z"
     },
     {
       "id": 112,
@@ -2122,7 +2122,7 @@
       "dayChange": -28.599976,
       "dayChangePercent": -2.282338,
       "previousClose": 1253.1,
-      "lastPriceUpdate": "2026-07-13T13:39:43.182Z"
+      "lastPriceUpdate": "2026-07-13T14:11:29.242Z"
     },
     {
       "id": 113,
@@ -2141,7 +2141,7 @@
       "dayChange": -0.94000244,
       "dayChangePercent": -0.55969185,
       "previousClose": 167.95,
-      "lastPriceUpdate": "2026-07-13T13:39:43.537Z"
+      "lastPriceUpdate": "2026-07-13T14:11:29.558Z"
     },
     {
       "id": 114,
@@ -2160,7 +2160,7 @@
       "dayChange": -35.899902,
       "dayChangePercent": -2.5385308,
       "previousClose": 1414.2,
-      "lastPriceUpdate": "2026-07-13T13:39:43.882Z"
+      "lastPriceUpdate": "2026-07-13T14:11:29.874Z"
     },
     {
       "id": 115,
@@ -2168,8 +2168,8 @@
       "market": "NSE",
       "name": "SILVERIETF",
       "isin": "",
-      "quantity": 4,
-      "avgPrice": 221.8,
+      "quantity": 5,
+      "avgPrice": 220.71800000000002,
       "importedPrice": 218.08,
       "currentPrice": 216.5,
       "purchaseDate": "2026-07-12",
@@ -2179,7 +2179,7 @@
       "dayChange": -1.5700073,
       "dayChangePercent": -0.7199557,
       "previousClose": 218.07,
-      "lastPriceUpdate": "2026-07-13T13:39:44.217Z"
+      "lastPriceUpdate": "2026-07-13T14:11:30.196Z"
     },
     {
       "id": 116,
@@ -2198,7 +2198,7 @@
       "dayChange": -0.75,
       "dayChangePercent": -1.3909496,
       "previousClose": 53.92,
-      "lastPriceUpdate": "2026-07-13T13:39:44.600Z"
+      "lastPriceUpdate": "2026-07-13T14:11:30.525Z"
     },
     {
       "id": 117,
@@ -2217,7 +2217,7 @@
       "dayChange": -3.4499817,
       "dayChangePercent": -0.9047946,
       "previousClose": 381.3,
-      "lastPriceUpdate": "2026-07-13T13:39:44.970Z"
+      "lastPriceUpdate": "2026-07-13T14:11:30.831Z"
     },
     {
       "id": 118,
@@ -2236,7 +2236,7 @@
       "dayChange": 112.5,
       "dayChangePercent": 5.4374094,
       "previousClose": 2069,
-      "lastPriceUpdate": "2026-07-13T13:39:45.424Z"
+      "lastPriceUpdate": "2026-07-13T14:11:31.147Z"
     },
     {
       "id": 119,
@@ -2255,7 +2255,7 @@
       "dayChange": 4.299988,
       "dayChangePercent": 1.2723739,
       "previousClose": 337.95,
-      "lastPriceUpdate": "2026-07-13T13:39:45.881Z"
+      "lastPriceUpdate": "2026-07-13T14:11:31.457Z"
     },
     {
       "id": 120,
@@ -2274,7 +2274,7 @@
       "dayChange": -2.899994,
       "dayChangePercent": -1.0640228,
       "previousClose": 272.55,
-      "lastPriceUpdate": "2026-07-13T13:39:46.251Z"
+      "lastPriceUpdate": "2026-07-13T14:11:31.774Z"
     },
     {
       "id": 121,
@@ -2293,7 +2293,7 @@
       "dayChange": -0.40000153,
       "dayChangePercent": -0.9562551,
       "previousClose": 41.83,
-      "lastPriceUpdate": "2026-07-13T13:39:46.585Z"
+      "lastPriceUpdate": "2026-07-13T14:11:32.093Z"
     },
     {
       "id": 122,
@@ -2312,7 +2312,7 @@
       "dayChange": -9.099976,
       "dayChangePercent": -0.8954025,
       "previousClose": 1016.3,
-      "lastPriceUpdate": "2026-07-13T13:39:46.930Z"
+      "lastPriceUpdate": "2026-07-13T14:11:32.412Z"
     },
     {
       "id": 123,
@@ -2331,7 +2331,7 @@
       "dayChange": 3.8600006,
       "dayChangePercent": 3.9601934,
       "previousClose": 97.47,
-      "lastPriceUpdate": "2026-07-13T13:39:47.284Z"
+      "lastPriceUpdate": "2026-07-13T14:11:32.735Z"
     }
   ],
   "transactions": [
@@ -3882,6 +3882,86 @@
       "source": "Zerodha",
       "notes": "Imported from Zerodha. P&L: ₹-38.51",
       "createdAt": "2026-07-12T11:45:23.467Z"
+    },
+    {
+      "id": 130,
+      "holdingId": 75,
+      "type": "BUY",
+      "quantity": 0.00573262,
+      "price": 1739.17,
+      "date": "2026-07-13",
+      "fees": 0.03,
+      "source": "MANUAL",
+      "notes": "down by 9%",
+      "createdAt": "2026-07-13T13:56:23.052Z"
+    },
+    {
+      "id": 131,
+      "holdingId": 22,
+      "type": "BUY",
+      "quantity": 15,
+      "price": 207.58,
+      "date": "2026-07-13",
+      "fees": 0,
+      "source": "MANUAL",
+      "notes": "down 2%",
+      "createdAt": "2026-07-13T14:06:45.809Z"
+    },
+    {
+      "id": 132,
+      "holdingId": 86,
+      "type": "BUY",
+      "quantity": 3,
+      "price": 409.5,
+      "date": "2026-07-13",
+      "fees": 0,
+      "source": "MANUAL",
+      "createdAt": "2026-07-13T14:07:37.162Z"
+    },
+    {
+      "id": 133,
+      "holdingId": 20,
+      "type": "BUY",
+      "quantity": 1,
+      "price": 3780,
+      "date": "2026-07-13",
+      "fees": 0,
+      "source": "MANUAL",
+      "notes": "down 1%",
+      "createdAt": "2026-07-13T14:08:13.116Z"
+    },
+    {
+      "id": 134,
+      "holdingId": 92,
+      "type": "BUY",
+      "quantity": 1,
+      "price": 13495,
+      "date": "2026-07-13",
+      "fees": 0,
+      "source": "MANUAL",
+      "createdAt": "2026-07-13T14:08:50.281Z"
+    },
+    {
+      "id": 135,
+      "holdingId": 94,
+      "type": "BUY",
+      "quantity": 5,
+      "price": 116.98,
+      "date": "2026-07-13",
+      "fees": 0,
+      "source": "MANUAL",
+      "createdAt": "2026-07-13T14:09:38.490Z"
+    },
+    {
+      "id": 136,
+      "holdingId": 115,
+      "type": "BUY",
+      "quantity": 1,
+      "price": 216.39,
+      "date": "2026-07-13",
+      "fees": 0,
+      "source": "MANUAL",
+      "createdAt": "2026-07-13T14:10:10.921Z"
     }
   ],
   "importHistory": [
@@ -3917,6 +3997,6 @@
     }
   ],
   "nextHoldingId": 124,
-  "nextTxnId": 130,
+  "nextTxnId": 137,
   "nextImportId": 5
 }
