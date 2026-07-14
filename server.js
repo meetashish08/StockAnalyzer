@@ -5741,12 +5741,19 @@ ${portfolioContext}${marketContext}`;
       }
     );
 
-    // Handle tool calls if Claude requests them
-    let finalResponse = response.data.content[0].text;
+    // Handle tool calls with support for multi-round tool chaining
+    let currentResponse = response;
+    let finalResponse = null;
+    let maxToolDepth = 5; // Prevent infinite loops
+    let toolDepth = 0;
 
-    // Check if Claude used tools
-    if (response.data.stop_reason === 'tool_use') {
-      const toolUses = response.data.content.filter(c => c.type === 'tool_use');
+    // Loop until we get a final text response (not more tool requests)
+    while (currentResponse.data.stop_reason === 'tool_use' && toolDepth < maxToolDepth) {
+      toolDepth++;
+      console.log(`[Tool Round ${toolDepth}] Claude requested tools`);
+
+      const toolUses = currentResponse.data.content.filter(c => c.type === 'tool_use');
+      console.log(`[Tool Round ${toolDepth}] Tools requested: ${toolUses.map(t => t.name).join(', ')}`);
 
       // Execute tool calls
       const toolResults = [];
@@ -6072,6 +6079,33 @@ ${portfolioContext}${marketContext}`;
       );
 
       finalResponse = followUpRes.data.content.find(c => c.type === 'text')?.text || finalResponse;
+      }
+    }
+
+    // Extract final text response after all tool rounds complete
+    if (currentResponse.data.stop_reason === 'end_turn' || toolDepth >= maxToolDepth) {
+      finalResponse = currentResponse.data.content.find(c => c.type === 'text')?.text;
+
+      if (!finalResponse) {
+        console.error('[ERROR] No text response found after tool execution!');
+        console.error('[ERROR] Final content:', JSON.stringify(currentResponse.data.content));
+        finalResponse = 'I apologize, but I encountered an issue generating the final response. Please try rephrasing your question.';
+      }
+
+      if (toolDepth >= maxToolDepth) {
+        console.warn(`[WARNING] Reached max tool depth (${maxToolDepth}). Possible infinite loop or very complex query.`);
+        finalResponse += '\n\n(Note: Analysis was limited due to complexity. Try asking a more specific question.)';
+      }
+
+      console.log(`[Success] Final response generated after ${toolDepth} tool round(s)`);
+    } else if (!finalResponse) {
+      // No tools were used, extract text from initial response
+      finalResponse = currentResponse.data.content.find(c => c.type === 'text')?.text;
+
+      if (!finalResponse) {
+        console.error('[ERROR] No text in initial response');
+        finalResponse = 'I apologize, but I couldn\'t generate a response. Please try again.';
+      }
     }
 
     res.json({ response: finalResponse, model: model || DEFAULT_MODEL });
