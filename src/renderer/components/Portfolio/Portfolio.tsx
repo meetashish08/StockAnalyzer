@@ -92,11 +92,7 @@ export default function Portfolio() {
     setNextRefreshIn(null);
 
     if (autoRefreshInterval > 0) {
-      // Initial silent refresh with current day return
-      const currentReturn = holdingsWithPrices.reduce((sum, h) => sum + (h.dayChange || 0) * h.quantity, 0);
-      handleSilentRefresh(currentReturn);
-
-      // Set next refresh countdown
+      // Set next refresh countdown (NO immediate refresh to avoid triggering when OFF)
       let remainingTime = autoRefreshInterval / 1000;
       setNextRefreshIn(remainingTime);
 
