@@ -711,23 +711,23 @@ export default function SettingsPage() {
           {/* Max Tokens */}
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">
-              Max Tokens: {settings.maxTokens}
+              Max Tokens: {settings.maxTokens.toLocaleString()}
             </label>
             <input
               type="range"
               min="1000"
-              max="8000"
-              step="100"
+              max="20000"
+              step="500"
               value={settings.maxTokens}
               onChange={(e) => handleSettingChange('maxTokens', parseInt(e.target.value))}
               className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-green-500"
             />
             <div className="flex justify-between text-xs text-slate-400 mt-1">
               <span>1,000 (Faster)</span>
-              <span>8,000 (More detailed)</span>
+              <span>20,000 (Maximum)</span>
             </div>
             <p className="text-xs text-slate-400 mt-2">
-              Higher values allow longer responses but may take more time
+              Higher values allow longer responses but may take more time. Portkey max: 20,000 tokens.
             </p>
           </div>
 

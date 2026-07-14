@@ -55,7 +55,7 @@ const DEFAULT_SETTINGS = {
   aiProvider: 'anthropic',
   portkeyApiKey: process.env.PORTKEY_API_KEY || 'MfSPscvdmxTj8jGpP34lq41axRRK',
   claudeModel: 'claude-sonnet',
-  maxTokens: 3000,
+  maxTokens: 20000,
   temperature: 0.7,
   extendedThinking: false,
   // API key profiles for easy switching
@@ -296,7 +296,7 @@ app.get('/api/settings', (req, res) => {
       portkeyApiKey: maskApiKey(settings.portkeyApiKey),
       portkeyApiKeySet: !!settings.portkeyApiKey,
       claudeModel: settings.claudeModel || 'claude-sonnet',
-      maxTokens: settings.maxTokens || 3000,
+      maxTokens: settings.maxTokens || 20000,
       temperature: settings.temperature || 0.7,
       extendedThinking: settings.extendedThinking || false,
     });
@@ -5724,7 +5724,7 @@ ${portfolioContext}${marketContext}`;
       `${PORTKEY_BASE_URL}/v1/messages`,
       {
         model: selectedModel,
-        max_tokens: 3000,
+        max_tokens: settings.maxTokens || 20000,
         system: systemPrompt,
         tools,
         messages: [
@@ -6052,7 +6052,7 @@ ${portfolioContext}${marketContext}`;
         `${PORTKEY_BASE_URL}/v1/messages`,
         {
           model: selectedModel,
-          max_tokens: 3000,
+          max_tokens: settings.maxTokens || 20000,
           system: systemPrompt,
           tools,
           messages: [
