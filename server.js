@@ -6078,8 +6078,11 @@ ${portfolioContext}${marketContext}`;
         }
       );
 
-      finalResponse = followUpRes.data.content.find(c => c.type === 'text')?.text || finalResponse;
-      }
+      console.log(`[Tool Round ${toolDepth}] Response stop_reason: ${followUpRes.data.stop_reason}`);
+      console.log(`[Tool Round ${toolDepth}] Content types: ${followUpRes.data.content.map(c => c.type).join(', ')}`);
+
+      // Update current response for next iteration
+      currentResponse = { data: followUpRes.data };
     }
 
     // Extract final text response after all tool rounds complete
