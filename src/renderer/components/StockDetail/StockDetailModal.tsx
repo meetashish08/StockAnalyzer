@@ -7,6 +7,10 @@ import {
   calculateSMA,
   detectGoldenCross,
   detectDeathCross,
+  calculateRSI,
+  calculateBollingerBands,
+  calculateMACD,
+  getOverallSignal,
   type PricePoint,
   type ChartDataPoint,
 } from '../../utils/technicalAnalysis';
@@ -50,6 +54,7 @@ interface QuoteData {
 
 export default function StockDetailModal({ holding, onClose }: StockDetailModalProps) {
   const [isLoading, setIsLoading] = useState(true);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState('1y');
   const [error, setError] = useState<string | null>(null);
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
@@ -107,12 +112,28 @@ export default function StockDetailModal({ holding, onClose }: StockDetailModalP
   };
 
   const fetchHistoricalData = async () => {
-    setIsLoading(true);
+    // Use transitioning state for period changes, loading state for initial load
+    const isInitialLoad = chartData.length === 0;
+
+    if (isInitialLoad) {
+      setIsLoading(true);
+    } else {
+      setIsTransitioning(true);
+    }
+
     setError(null);
 
     try {
+      // For short periods (1D, 5D, 1M, 3M), fetch extended data for DMA calculations
+      // then slice to display only the requested period
+      // 1D/5D: Need 200 days for 200 DMA
+      // 1M: ~22 days, need 200 days for 200 DMA and 50 days for 50 DMA
+      // 3M: ~66 days, need 200 days for 200 DMA
+      const needsExtendedData = ['1d', '5d', '1mo', '3mo'].includes(selectedPeriod);
+      const fetchPeriod = needsExtendedData ? '1y' : selectedPeriod;
+
       const response = await fetch(
-        `/api/historical/${holding.symbol}/${holding.market}?period=${selectedPeriod}`
+        `/api/historical/${holding.symbol}/${holding.market}?period=${fetchPeriod}`
       );
 
       if (!response.ok) {
@@ -120,32 +141,73 @@ export default function StockDetailModal({ holding, onClose }: StockDetailModalP
       }
 
       const result = await response.json();
-      const historicalData: HistoricalDataPoint[] = result.data;
+      let historicalData: HistoricalDataPoint[] = result.data;
 
       if (!historicalData || historicalData.length === 0) {
         throw new Error('No historical data available for this stock');
       }
 
       // Convert to price points for technical analysis
-      const pricePoints: PricePoint[] = historicalData.map((d) => ({
+      const allPricePoints: PricePoint[] = historicalData.map((d) => ({
         date: d.date,
         close: d.close,
       }));
 
-      // Calculate moving averages
-      const dma50 = calculateSMA(pricePoints, 50);
-      const dma200 = calculateSMA(pricePoints, 200);
+      // Calculate moving averages on full dataset
+      const dma50 = calculateSMA(allPricePoints, 50);
+      const dma200 = calculateSMA(allPricePoints, 200);
 
-      // Detect crosses
-      const goldenCrossIndices = detectGoldenCross(dma50, dma200);
-      const deathCrossIndices = detectDeathCross(dma50, dma200);
+      // Determine how many points to display
+      let displayPoints = allPricePoints;
+      let displayDma50 = dma50;
+      let displayDma200 = dma200;
+
+      if (needsExtendedData) {
+        // Slice to show only the requested period while keeping DMAs calculated
+        let daysToShow;
+        if (selectedPeriod === '1d') {
+          daysToShow = 1;
+        } else if (selectedPeriod === '5d') {
+          daysToShow = 5;
+        } else if (selectedPeriod === '1mo') {
+          daysToShow = 22; // ~1 month of trading days
+        } else if (selectedPeriod === '3mo') {
+          daysToShow = 66; // ~3 months of trading days
+        } else {
+          daysToShow = allPricePoints.length;
+        }
+
+        const startIndex = Math.max(0, allPricePoints.length - daysToShow);
+
+        displayPoints = allPricePoints.slice(startIndex);
+        displayDma50 = dma50.slice(startIndex);
+        displayDma200 = dma200.slice(startIndex);
+      }
+
+      // Calculate technical indicators on display points
+      const rsi = calculateRSI(displayPoints, 14);
+      const bollinger = calculateBollingerBands(displayPoints, 20, 2);
+      const macd = calculateMACD(displayPoints);
+
+      // Detect crosses on full data, then filter to display range
+      const goldenCrossIndices = detectGoldenCross(dma50, dma200)
+        .map(idx => needsExtendedData ? idx - (allPricePoints.length - displayPoints.length) : idx)
+        .filter(idx => idx >= 0 && idx < displayPoints.length);
+
+      const deathCrossIndices = detectDeathCross(dma50, dma200)
+        .map(idx => needsExtendedData ? idx - (allPricePoints.length - displayPoints.length) : idx)
+        .filter(idx => idx >= 0 && idx < displayPoints.length);
 
       // Combine data for chart
-      const combinedData: ChartDataPoint[] = pricePoints.map((point, index) => ({
+      const combinedData: ChartDataPoint[] = displayPoints.map((point, index) => ({
         date: point.date,
         price: point.close,
-        dma50: dma50[index] ?? undefined,
-        dma200: dma200[index] ?? undefined,
+        dma50: displayDma50[index] ?? undefined,
+        dma200: displayDma200[index] ?? undefined,
+        rsi: rsi[index] ?? undefined,
+        bollingerUpper: bollinger.upper[index] ?? undefined,
+        bollingerLower: bollinger.lower[index] ?? undefined,
+        bollingerMiddle: bollinger.middle[index] ?? undefined,
       }));
 
       setChartData(combinedData);
@@ -156,6 +218,7 @@ export default function StockDetailModal({ holding, onClose }: StockDetailModalP
       setError(err instanceof Error ? err.message : 'Failed to load data');
     } finally {
       setIsLoading(false);
+      setIsTransitioning(false);
     }
   };
 
@@ -231,6 +294,7 @@ export default function StockDetailModal({ holding, onClose }: StockDetailModalP
                     onPeriodChange={handlePeriodChange}
                     goldenCrosses={goldenCrosses}
                     deathCrosses={deathCrosses}
+                    isTransitioning={isTransitioning}
                   />
 
                   {/* Technical Summary */}
@@ -382,7 +446,7 @@ export default function StockDetailModal({ holding, onClose }: StockDetailModalP
               {/* Signals Section - Full width on mobile, 1 col on tablet, 3 cols on desktop */}
               <div className="lg:col-span-3">
                 <div className="bg-slate-800 rounded-lg p-4 md:p-5 lg:p-6 h-full">
-                  <h3 className="text-base md:text-lg font-semibold text-white mb-3 md:mb-4">Signals</h3>
+                  <h3 className="text-base md:text-lg font-semibold text-white mb-3 md:mb-4">Technical Signals</h3>
                   <div className="space-y-2 md:space-y-3">
                     <div className="flex justify-between py-2 border-b border-slate-700">
                       <div className="flex items-center gap-1">
@@ -394,11 +458,23 @@ export default function StockDetailModal({ holding, onClose }: StockDetailModalP
                           />
                         </Tooltip>
                       </div>
-                      <span className="text-white font-medium text-sm">-</span>
+                      {(() => {
+                        const currentRSI = chartData[chartData.length - 1]?.rsi;
+                        const rsiColor = currentRSI
+                          ? currentRSI > 70 ? 'text-red-400'
+                          : currentRSI < 30 ? 'text-green-400'
+                          : 'text-yellow-400'
+                          : 'text-slate-400';
+                        return (
+                          <span className={`font-medium text-sm ${rsiColor}`}>
+                            {currentRSI ? currentRSI.toFixed(2) : 'N/A'}
+                          </span>
+                        );
+                      })()}
                     </div>
                     <div className="flex justify-between py-2 border-b border-slate-700">
                       <div className="flex items-center gap-1">
-                        <span className="text-slate-400 text-sm">MACD</span>
+                        <span className="text-slate-400 text-sm">MACD Signal</span>
                         <Tooltip text="Moving Average Convergence Divergence">
                           <InfoIcon
                             title="What is MACD?"
@@ -406,31 +482,90 @@ export default function StockDetailModal({ holding, onClose }: StockDetailModalP
                           />
                         </Tooltip>
                       </div>
-                      <span className="text-white font-medium text-sm">-</span>
+                      {(() => {
+                        const macdData = calculateMACD(chartData.map(d => ({ date: d.date, close: d.price })));
+                        const lastMACD = macdData.macd[macdData.macd.length - 1];
+                        const lastSignal = macdData.signal[macdData.signal.length - 1];
+                        const isBullish = lastMACD !== null && lastSignal !== null && lastMACD > lastSignal;
+                        return (
+                          <span className={`font-medium text-sm ${isBullish ? 'text-green-400' : 'text-red-400'}`}>
+                            {lastMACD !== null && lastSignal !== null ? (isBullish ? 'Bullish' : 'Bearish') : 'N/A'}
+                          </span>
+                        );
+                      })()}
                     </div>
                     <div className="flex justify-between py-2 border-b border-slate-700">
                       <div className="flex items-center gap-1">
-                        <span className="text-slate-400 text-sm">SMA 50</span>
-                        <Tooltip text="50-day Simple Moving Average">
+                        <span className="text-slate-400 text-sm">Price vs 50 SMA</span>
+                        <Tooltip text="Price position relative to 50-day average">
                           <InfoIcon
-                            title="What is SMA 50?"
-                            explanation="The 50-day Simple Moving Average is the average closing price over the last 50 trading days. It's used to identify medium-term trends. When the price is above the 50 SMA, it indicates an uptrend. When below, it suggests a downtrend. Traders often use it as a support or resistance level."
+                            title="What is Price vs SMA 50?"
+                            explanation="The 50-day Simple Moving Average is the average closing price over the last 50 trading days. When the price is above the 50 SMA, it indicates an uptrend. When below, it suggests a downtrend. The percentage shows how far the price is from this key support/resistance level."
                           />
                         </Tooltip>
                       </div>
-                      <span className="text-white font-medium text-sm">-</span>
+                      {(() => {
+                        const currentPrice = chartData[chartData.length - 1]?.price;
+                        const current50 = chartData[chartData.length - 1]?.dma50;
+                        const diff = currentPrice && current50 ? ((currentPrice - current50) / current50) * 100 : null;
+                        const isAbove = diff !== null && diff > 0;
+                        return (
+                          <span className={`font-medium text-sm ${isAbove ? 'text-green-400' : 'text-red-400'}`}>
+                            {diff !== null ? `${isAbove ? '+' : ''}${diff.toFixed(2)}%` : 'N/A'}
+                          </span>
+                        );
+                      })()}
                     </div>
                     <div className="flex justify-between py-2 border-b border-slate-700">
                       <div className="flex items-center gap-1">
-                        <span className="text-slate-400 text-sm">SMA 200</span>
-                        <Tooltip text="200-day Simple Moving Average">
+                        <span className="text-slate-400 text-sm">Price vs 200 SMA</span>
+                        <Tooltip text="Price position relative to 200-day average">
                           <InfoIcon
-                            title="What is SMA 200?"
-                            explanation="The 200-day Simple Moving Average is the average closing price over the last 200 trading days. It's a key indicator of long-term trends and is widely watched by institutional investors. A price above the 200 SMA suggests a long-term bull market, while a price below indicates a bear market. It often acts as strong support or resistance."
+                            title="What is Price vs SMA 200?"
+                            explanation="The 200-day Simple Moving Average is a key indicator of long-term trends. A price above the 200 SMA suggests a long-term bull market, while below indicates a bear market. This percentage shows how far the current price deviates from this critical long-term trend line."
                           />
                         </Tooltip>
                       </div>
-                      <span className="text-white font-medium text-sm">-</span>
+                      {(() => {
+                        const currentPrice = chartData[chartData.length - 1]?.price;
+                        const current200 = chartData[chartData.length - 1]?.dma200;
+                        const diff = currentPrice && current200 ? ((currentPrice - current200) / current200) * 100 : null;
+                        const isAbove = diff !== null && diff > 0;
+                        return (
+                          <span className={`font-medium text-sm ${isAbove ? 'text-green-400' : 'text-red-400'}`}>
+                            {diff !== null ? `${isAbove ? '+' : ''}${diff.toFixed(2)}%` : 'N/A'}
+                          </span>
+                        );
+                      })()}
+                    </div>
+                    <div className="flex justify-between py-2 border-b border-slate-700">
+                      <div className="flex items-center gap-1">
+                        <span className="text-slate-400 text-sm">Bollinger Position</span>
+                        <Tooltip text="Price position within Bollinger Bands">
+                          <InfoIcon
+                            title="What is Bollinger Position?"
+                            explanation="Bollinger Bands show volatility around a 20-day moving average. When price touches the upper band, the stock may be overbought. When it touches the lower band, it may be oversold. The position percentage shows where the current price sits within these bands (0% = lower band, 50% = middle, 100% = upper band)."
+                          />
+                        </Tooltip>
+                      </div>
+                      {(() => {
+                        const currentPrice = chartData[chartData.length - 1]?.price;
+                        const upper = chartData[chartData.length - 1]?.bollingerUpper;
+                        const lower = chartData[chartData.length - 1]?.bollingerLower;
+                        const position = currentPrice && upper && lower
+                          ? ((currentPrice - lower) / (upper - lower)) * 100
+                          : null;
+                        const color = position !== null
+                          ? position > 80 ? 'text-red-400'
+                          : position < 20 ? 'text-green-400'
+                          : 'text-yellow-400'
+                          : 'text-slate-400';
+                        return (
+                          <span className={`font-medium text-sm ${color}`}>
+                            {position !== null ? `${position.toFixed(1)}%` : 'N/A'}
+                          </span>
+                        );
+                      })()}
                     </div>
                     <div className="flex justify-between py-2">
                       <div className="flex items-center gap-1">
@@ -442,9 +577,21 @@ export default function StockDetailModal({ holding, onClose }: StockDetailModalP
                           />
                         </Tooltip>
                       </div>
-                      <span className="px-2 md:px-3 py-1 rounded text-sm font-medium bg-slate-700 text-slate-300">
-                        HOLD
-                      </span>
+                      {(() => {
+                        const currentPrice = chartData[chartData.length - 1]?.price;
+                        const current50 = chartData[chartData.length - 1]?.dma50;
+                        const current200 = chartData[chartData.length - 1]?.dma200;
+                        const currentRSI = chartData[chartData.length - 1]?.rsi;
+                        const signal = currentPrice ? getOverallSignal(currentPrice, current50, current200, currentRSI) : 'HOLD';
+                        const signalColor = signal === 'BUY' ? 'bg-green-600 text-white'
+                          : signal === 'SELL' ? 'bg-red-600 text-white'
+                          : 'bg-slate-700 text-slate-300';
+                        return (
+                          <span className={`px-2 md:px-3 py-1 rounded text-sm font-medium ${signalColor}`}>
+                            {signal}
+                          </span>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>
