@@ -70,15 +70,31 @@ export default function StockPriceChart({
 }: StockPriceChartProps) {
   // Calculate period change percentage
   const periodChange = useMemo(() => {
-    if (!data || data.length === 0) return null;
+    if (!data || data.length === 0) {
+      console.log('[PeriodChange] No data available');
+      return null;
+    }
 
     const startPrice = data[0]?.price;
     const endPrice = data[data.length - 1]?.price;
 
-    if (!startPrice || !endPrice || startPrice === 0) return null;
+    console.log('[PeriodChange] Debug:', {
+      dataLength: data.length,
+      startPrice,
+      endPrice,
+      firstItem: data[0],
+      lastItem: data[data.length - 1]
+    });
+
+    if (!startPrice || !endPrice || startPrice === 0) {
+      console.log('[PeriodChange] Invalid prices - startPrice:', startPrice, 'endPrice:', endPrice);
+      return null;
+    }
 
     const change = endPrice - startPrice;
     const changePercent = (change / startPrice) * 100;
+
+    console.log('[PeriodChange] Calculated:', { change, changePercent });
 
     return {
       change,

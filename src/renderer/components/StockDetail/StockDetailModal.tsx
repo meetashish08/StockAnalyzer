@@ -124,12 +124,10 @@ export default function StockDetailModal({ holding, onClose }: StockDetailModalP
     setError(null);
 
     try {
-      // For short periods (1D, 5D, 1M, 3M), fetch extended data for DMA calculations
-      // then slice to display only the requested period
-      // 1D/5D: Need 200 days for 200 DMA
-      // 1M: ~22 days, need 200 days for 200 DMA and 50 days for 50 DMA
-      // 3M: ~66 days, need 200 days for 200 DMA
-      const needsExtendedData = ['1d', '5d', '1mo', '3mo'].includes(selectedPeriod);
+      // For periods < 6 months, we need to fetch more data for proper DMA calculations
+      // BUT we'll fetch the requested period from API, then pad with extra data if needed
+      // Only 1M and 3M need extended fetch (1D and 5D get intraday data from API)
+      const needsExtendedData = ['1mo', '3mo'].includes(selectedPeriod);
       const fetchPeriod = needsExtendedData ? '1y' : selectedPeriod;
 
       const response = await fetch(
@@ -153,23 +151,53 @@ export default function StockDetailModal({ holding, onClose }: StockDetailModalP
         close: d.close,
       }));
 
-      // Calculate moving averages on full dataset
-      const dma50 = calculateSMA(allPricePoints, 50);
-      const dma200 = calculateSMA(allPricePoints, 200);
+      // For 1D and 5D, we need additional historical data for DMA calculations
+      // Fetch 1 year of data separately just for calculating DMAs
+      let dmaCalculationPoints = allPricePoints;
+
+      if (['1d', '5d'].includes(selectedPeriod) && allPricePoints.length < 200) {
+        try {
+          // Fetch 1 year for DMA calculation
+          const dmaResponse = await fetch(
+            `/api/historical/${holding.symbol}/${holding.market}?period=1y`
+          );
+
+          if (dmaResponse.ok) {
+            const dmaResult = await dmaResponse.json();
+            if (dmaResult.data && dmaResult.data.length > 0) {
+              dmaCalculationPoints = dmaResult.data.map((d: any) => ({
+                date: d.date,
+                close: d.close,
+              }));
+            }
+          }
+        } catch (err) {
+          console.warn('Could not fetch extended data for DMAs, using available data');
+        }
+      }
+
+      // Calculate moving averages on extended dataset
+      const dma50 = calculateSMA(dmaCalculationPoints, 50);
+      const dma200 = calculateSMA(dmaCalculationPoints, 200);
+
+      // Extract DMA values for our display period
+      let displayDma50 = dma50;
+      let displayDma200 = dma200;
+
+      if (dmaCalculationPoints !== allPricePoints) {
+        // We fetched extra data for DMAs, use only the last values matching our display
+        const offset = dmaCalculationPoints.length - allPricePoints.length;
+        displayDma50 = dma50.slice(offset);
+        displayDma200 = dma200.slice(offset);
+      }
 
       // Determine how many points to display
       let displayPoints = allPricePoints;
-      let displayDma50 = dma50;
-      let displayDma200 = dma200;
 
       if (needsExtendedData) {
         // Slice to show only the requested period while keeping DMAs calculated
         let daysToShow;
-        if (selectedPeriod === '1d') {
-          daysToShow = 1;
-        } else if (selectedPeriod === '5d') {
-          daysToShow = 5;
-        } else if (selectedPeriod === '1mo') {
+        if (selectedPeriod === '1mo') {
           daysToShow = 22; // ~1 month of trading days
         } else if (selectedPeriod === '3mo') {
           daysToShow = 66; // ~3 months of trading days
@@ -189,14 +217,37 @@ export default function StockDetailModal({ holding, onClose }: StockDetailModalP
       const bollinger = calculateBollingerBands(displayPoints, 20, 2);
       const macd = calculateMACD(displayPoints);
 
-      // Detect crosses on full data, then filter to display range
-      const goldenCrossIndices = detectGoldenCross(dma50, dma200)
-        .map(idx => needsExtendedData ? idx - (allPricePoints.length - displayPoints.length) : idx)
-        .filter(idx => idx >= 0 && idx < displayPoints.length);
+      // Detect crosses on DMA calculation data, then filter to display range
+      const allGoldenCrosses = detectGoldenCross(dma50, dma200);
+      const allDeathCrosses = detectDeathCross(dma50, dma200);
 
-      const deathCrossIndices = detectDeathCross(dma50, dma200)
-        .map(idx => needsExtendedData ? idx - (allPricePoints.length - displayPoints.length) : idx)
-        .filter(idx => idx >= 0 && idx < displayPoints.length);
+      // Map crosses to display indices
+      let goldenCrossIndices: number[] = [];
+      let deathCrossIndices: number[] = [];
+
+      if (dmaCalculationPoints !== allPricePoints) {
+        // We used extended data for DMAs
+        const offset = dmaCalculationPoints.length - allPricePoints.length;
+        goldenCrossIndices = allGoldenCrosses
+          .map(idx => idx - offset)
+          .filter(idx => idx >= 0 && idx < displayPoints.length);
+        deathCrossIndices = allDeathCrosses
+          .map(idx => idx - offset)
+          .filter(idx => idx >= 0 && idx < displayPoints.length);
+      } else if (needsExtendedData) {
+        // 1M/3M case where we sliced from full year
+        const offset = allPricePoints.length - displayPoints.length;
+        goldenCrossIndices = allGoldenCrosses
+          .map(idx => idx - offset)
+          .filter(idx => idx >= 0 && idx < displayPoints.length);
+        deathCrossIndices = allDeathCrosses
+          .map(idx => idx - offset)
+          .filter(idx => idx >= 0 && idx < displayPoints.length);
+      } else {
+        // Normal case - use all crosses
+        goldenCrossIndices = allGoldenCrosses.filter(idx => idx < displayPoints.length);
+        deathCrossIndices = allDeathCrosses.filter(idx => idx < displayPoints.length);
+      }
 
       // Combine data for chart
       const combinedData: ChartDataPoint[] = displayPoints.map((point, index) => ({
