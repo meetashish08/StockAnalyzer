@@ -6132,6 +6132,8 @@ app.get('/api/historical/:symbol/:market', async (req, res) => {
 
     // Map period to Yahoo Finance ranges
     const periodMap = {
+      '1d': { range: '1d', interval: '5m' },   // 1 day with 5-minute intervals
+      '5d': { range: '5d', interval: '15m' },  // 5 days with 15-minute intervals
       '1mo': { range: '1mo', interval: '1d' },
       '3mo': { range: '3mo', interval: '1d' },
       '6mo': { range: '6mo', interval: '1d' },
@@ -6181,6 +6183,8 @@ function getStartDate(period) {
 
   let daysBack;
   switch (period) {
+    case '1d': daysBack = 1; break;
+    case '5d': daysBack = 5; break;
     case '1mo': daysBack = 30; break;
     case '3mo': daysBack = 90; break;
     case '6mo': daysBack = 180; break;
