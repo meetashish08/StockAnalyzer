@@ -97,7 +97,14 @@ export default function StockDetailModal({ holding, onClose }: StockDetailModalP
 
   const fetchQuoteData = async () => {
     try {
-      const response = await fetch(`/api/quote/${holding.symbol}/${holding.market}`);
+      // Add cache busting to ensure fresh data
+      const timestamp = Date.now();
+      const response = await fetch(`/api/quote/${holding.symbol}/${holding.market}?t=${timestamp}`, {
+        cache: 'no-store', // Prevent browser caching
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      });
 
       if (!response.ok) {
         console.error('Failed to fetch quote data');
@@ -105,6 +112,11 @@ export default function StockDetailModal({ holding, onClose }: StockDetailModalP
       }
 
       const quote = await response.json();
+      console.log('[Quote Data] Fetched:', {
+        symbol: quote.symbol,
+        dividendYield: quote.dividendYield,
+        trailingAnnualDividendRate: quote.trailingAnnualDividendRate
+      });
       setQuoteData(quote);
     } catch (err) {
       console.error('Error fetching quote data:', err);

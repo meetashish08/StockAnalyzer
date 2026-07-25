@@ -739,15 +739,35 @@ app.get('/api/quote/:symbol/:market', async (req, res) => {
     // Get basic quote data
     const quote = await yahooFinance.quote(yahooSymbol);
 
-    // Get additional fundamental data
+    // Get additional fundamental data including latest dividend info
     let roe = null;
     let profitMargin = null;
+    let dividendYield = quote.dividendYield; // Default from quote
+    let trailingAnnualDividendRate = null;
+    let trailingAnnualDividendYield = null;
+
     try {
       const summary = await yahooFinance.quoteSummary(yahooSymbol, {
-        modules: ['defaultKeyStatistics', 'financialData']
+        modules: ['defaultKeyStatistics', 'financialData', 'summaryDetail']
       });
       roe = summary.defaultKeyStatistics?.returnOnEquity?.raw;
       profitMargin = summary.financialData?.profitMargins?.raw;
+
+      // Get the most accurate dividend yield from summaryDetail
+      if (summary.summaryDetail?.dividendYield?.raw !== undefined) {
+        dividendYield = summary.summaryDetail.dividendYield.raw;
+      }
+      if (summary.summaryDetail?.trailingAnnualDividendRate?.raw !== undefined) {
+        trailingAnnualDividendRate = summary.summaryDetail.trailingAnnualDividendRate.raw;
+      }
+      if (summary.summaryDetail?.trailingAnnualDividendYield?.raw !== undefined) {
+        trailingAnnualDividendYield = summary.summaryDetail.trailingAnnualDividendYield.raw;
+      }
+
+      // Prefer trailingAnnualDividendYield if available as it's most accurate
+      if (trailingAnnualDividendYield !== null) {
+        dividendYield = trailingAnnualDividendYield;
+      }
     } catch (err) {
       // Some stocks don't have this data, that's okay
       console.log(`Fundamental data not available for ${yahooSymbol}`);
@@ -770,7 +790,8 @@ app.get('/api/quote/:symbol/:market', async (req, res) => {
       pb: quote.priceToBook,
       roe: roe,  // Added ROE
       profitMargin: profitMargin,  // Added profit margin as bonus
-      dividendYield: quote.dividendYield,
+      dividendYield: dividendYield,  // Use the most accurate dividend yield
+      trailingAnnualDividendRate: trailingAnnualDividendRate,  // Dividend per share
       high52Week: quote.fiftyTwoWeekHigh || 0,
       low52Week: quote.fiftyTwoWeekLow || 0,
     });
