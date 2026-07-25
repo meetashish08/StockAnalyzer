@@ -550,7 +550,7 @@ export default function Portfolio() {
         <StockDetailModal
           holding={selectedStock}
           onClose={() => setSelectedStock(null)}
-          allHoldings={filteredAndSortedHoldings}
+          allHoldings={filteredHoldings}
           onNavigate={setSelectedStock}
         />
       )}
