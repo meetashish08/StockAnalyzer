@@ -19,6 +19,8 @@ import type { Holding } from '../../../shared/types';
 interface StockDetailModalProps {
   holding: Holding;
   onClose: () => void;
+  allHoldings?: Holding[];
+  onNavigate?: (holding: Holding) => void;
 }
 
 interface HistoricalDataPoint {
@@ -52,7 +54,12 @@ interface QuoteData {
   low52Week: number;
 }
 
-export default function StockDetailModal({ holding, onClose }: StockDetailModalProps) {
+export default function StockDetailModal({
+  holding,
+  onClose,
+  allHoldings = [],
+  onNavigate
+}: StockDetailModalProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState('1y');
@@ -63,6 +70,37 @@ export default function StockDetailModal({ holding, onClose }: StockDetailModalP
   const [quoteData, setQuoteData] = useState<QuoteData | null>(null);
 
   const currency = (holding.market === 'NYSE' || holding.market === 'NASDAQ') ? 'USD' : 'INR';
+
+  // Navigation logic
+  const currentIndex = allHoldings.findIndex(h => h.symbol === holding.symbol && h.market === holding.market);
+  const hasPrevious = currentIndex > 0;
+  const hasNext = currentIndex >= 0 && currentIndex < allHoldings.length - 1;
+
+  const handlePrevious = () => {
+    if (hasPrevious && onNavigate) {
+      onNavigate(allHoldings[currentIndex - 1]);
+    }
+  };
+
+  const handleNext = () => {
+    if (hasNext && onNavigate) {
+      onNavigate(allHoldings[currentIndex + 1]);
+    }
+  };
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft' && hasPrevious) {
+        handlePrevious();
+      } else if (e.key === 'ArrowRight' && hasNext) {
+        handleNext();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [currentIndex, hasPrevious, hasNext]);
 
   // Helper function to format large numbers (volume, market cap)
   const formatLargeNumber = (num: number | undefined): string => {
@@ -302,8 +340,54 @@ export default function StockDetailModal({ holding, onClose }: StockDetailModalP
       onClick={handleBackdropClick}
     >
       <div className="bg-slate-900 rounded-lg shadow-2xl w-full max-w-[1400px] max-h-[85vh] overflow-hidden transition-all duration-300 animate-scale-in flex flex-col">
-        {/* Close Button */}
-        <div className="absolute top-4 right-4 z-20">
+        {/* Navigation and Close Buttons */}
+        <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+          {/* Previous Button */}
+          {allHoldings.length > 1 && (
+            <button
+              onClick={handlePrevious}
+              disabled={!hasPrevious}
+              className={`p-2 rounded-lg transition-all shadow-lg ${
+                hasPrevious
+                  ? 'bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white cursor-pointer'
+                  : 'bg-slate-800/50 text-slate-600 cursor-not-allowed'
+              }`}
+              title={hasPrevious ? `Previous Stock (←)` : 'First Stock'}
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          )}
+
+          {/* Stock Counter */}
+          {allHoldings.length > 1 && (
+            <div className="bg-slate-800 px-3 py-2 rounded-lg shadow-lg">
+              <span className="text-slate-300 text-sm font-medium">
+                {currentIndex + 1} / {allHoldings.length}
+              </span>
+            </div>
+          )}
+
+          {/* Next Button */}
+          {allHoldings.length > 1 && (
+            <button
+              onClick={handleNext}
+              disabled={!hasNext}
+              className={`p-2 rounded-lg transition-all shadow-lg ${
+                hasNext
+                  ? 'bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white cursor-pointer'
+                  : 'bg-slate-800/50 text-slate-600 cursor-not-allowed'
+              }`}
+              title={hasNext ? `Next Stock (→)` : 'Last Stock'}
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          )}
+
+          {/* Close Button */}
           <button
             onClick={onClose}
             className="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white p-2 rounded-lg transition-colors shadow-lg"
