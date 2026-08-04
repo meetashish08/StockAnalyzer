@@ -58,7 +58,13 @@ interface Transaction {
     holdingMonths: number;
     isLongTerm: boolean;
     type: 'STCG' | 'LTCG';
+    market?: 'India' | 'US';
   } | null;
+  currency?: 'INR' | 'USD';
+  buyExchangeRate?: number;
+  sellExchangeRate?: number;
+  buyValueINR?: number;
+  sellValueINR?: number;
   sheet: string;
   sourceRow: number;
   confidence: number;
@@ -134,7 +140,8 @@ const SEMANTIC_OPTIONS = [
   'QUANTITY', 'BUY_DATE', 'SELL_DATE', 'TRADE_DATE',
   'BUY_PRICE', 'SELL_PRICE', 'BUY_VALUE', 'SELL_VALUE',
   'GAIN_LOSS', 'GAIN_LOSS_PERCENT', 'STT', 'BROKERAGE',
-  'EXCHANGE', 'FOLIO', 'NAV', 'HOLDING_PERIOD', 'ASSET_TYPE', 'IGNORE'
+  'EXCHANGE', 'CURRENCY', 'BUY_EXCHANGE_RATE', 'SELL_EXCHANGE_RATE',
+  'FOLIO', 'NAV', 'HOLDING_PERIOD', 'ASSET_TYPE', 'IGNORE'
 ];
 
 export default function TaxAnalysis() {
@@ -152,6 +159,8 @@ export default function TaxAnalysis() {
   const [uploadMode, setUploadMode] = useState<UploadMode>('excel');
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   const handleExport = async (format: 'excel' | 'csv' | 'md') => {
     if (!currentAnalysis) return;
@@ -405,6 +414,83 @@ export default function TaxAnalysis() {
     if (confidence >= 0.9) return 'text-green-400';
     if (confidence >= 0.7) return 'text-yellow-400';
     return 'text-red-400';
+  };
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('desc');
+    }
+  };
+
+  const getSortedTransactions = () => {
+    if (!currentAnalysis || !sortField) return currentAnalysis?.transactions || [];
+
+    const transactions = [...currentAnalysis.transactions];
+
+    return transactions.sort((a, b) => {
+      let aVal: any, bVal: any;
+
+      switch (sortField) {
+        case 'symbol':
+          aVal = a.symbol?.toLowerCase() || '';
+          bVal = b.symbol?.toLowerCase() || '';
+          break;
+        case 'buyDate':
+          aVal = a.buyDate ? new Date(a.buyDate).getTime() : 0;
+          bVal = b.buyDate ? new Date(b.buyDate).getTime() : 0;
+          break;
+        case 'sellDate':
+          aVal = a.sellDate ? new Date(a.sellDate).getTime() : 0;
+          bVal = b.sellDate ? new Date(b.sellDate).getTime() : 0;
+          break;
+        case 'quantity':
+          aVal = a.quantity || 0;
+          bVal = b.quantity || 0;
+          break;
+        case 'buyValue':
+          aVal = a.buyValue || 0;
+          bVal = b.buyValue || 0;
+          break;
+        case 'sellValue':
+          aVal = a.sellValue || 0;
+          bVal = b.sellValue || 0;
+          break;
+        case 'gain':
+          aVal = a.gain || 0;
+          bVal = b.gain || 0;
+          break;
+        case 'plPercent':
+          aVal = a.buyValue > 0 ? ((a.gain || 0) / a.buyValue) * 100 : 0;
+          bVal = b.buyValue > 0 ? ((b.gain || 0) / b.buyValue) * 100 : 0;
+          break;
+        case 'type':
+          aVal = a.classification?.type || '';
+          bVal = b.classification?.type || '';
+          break;
+        case 'holding':
+          aVal = a.classification?.holdingMonths || 0;
+          bVal = b.classification?.holdingMonths || 0;
+          break;
+        case 'confidence':
+          aVal = a.confidence || 0;
+          bVal = b.confidence || 0;
+          break;
+        default:
+          return 0;
+      }
+
+      if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+  };
+
+  const getSortIcon = (field: string) => {
+    if (sortField !== field) return '↕️';
+    return sortDirection === 'asc' ? '↑' : '↓';
   };
 
   return (
@@ -887,6 +973,35 @@ export default function TaxAnalysis() {
       {/* Summary Tab */}
       {activeTab === 'summary' && currentAnalysis && (
         <div className="space-y-6">
+          {/* Foreign Asset Info Banner */}
+          <div className="bg-gradient-to-r from-blue-900/40 to-purple-900/40 border border-blue-500/50 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">🌍</span>
+              <div className="flex-1">
+                <p className="text-white font-medium mb-2">Holding Period for LTCG Classification</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">🇮🇳</span>
+                    <div>
+                      <p className="text-slate-300"><strong>Indian Stocks (NSE/BSE):</strong> 12 months</p>
+                      <p className="text-slate-400 text-xs">Holding {'>'} 12 months = LTCG</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">🇺🇸</span>
+                    <div>
+                      <p className="text-slate-300"><strong>US Stocks (NYSE/NASDAQ):</strong> 24 months</p>
+                      <p className="text-slate-400 text-xs">Holding {'>'} 24 months = LTCG</p>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-400 mt-2">
+                  💡 Tax rates: Indian STCG @20%, LTCG @12.5% | US STCG @Slab, LTCG @12.5% | Exemption: ₹1.25L (shared)
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Source Detection Banner */}
           {currentAnalysis.sheets[0]?.sourceGuess && (
             <div className="bg-blue-900/30 border border-blue-500 rounded-lg p-4 flex items-center justify-between">
@@ -943,9 +1058,14 @@ export default function TaxAnalysis() {
             <div className="bg-slate-800 rounded-xl p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-white">Short Term Capital Gains</h3>
-                <span className="bg-orange-600/20 text-orange-400 px-3 py-1 rounded-full text-sm">
-                  Tax @ 20%
-                </span>
+                <div className="flex flex-col gap-1 items-end">
+                  <span className="bg-orange-600/20 text-orange-400 px-3 py-1 rounded-full text-sm">
+                    🇮🇳 India: 20%
+                  </span>
+                  <span className="bg-blue-600/20 text-blue-400 px-3 py-1 rounded-full text-xs">
+                    🇺🇸 US: Per slab
+                  </span>
+                </div>
               </div>
               <div className="space-y-3">
                 <div className="flex justify-between">
@@ -1079,20 +1199,67 @@ export default function TaxAnalysis() {
             <table className="w-full">
               <thead className="bg-slate-900 sticky top-0 z-10">
                 <tr className="text-left text-slate-400 text-sm">
-                  <th className="px-4 py-3">Stock</th>
-                  <th className="px-4 py-3">Buy Date</th>
-                  <th className="px-4 py-3">Sell Date</th>
-                  <th className="px-4 py-3 text-right">Qty</th>
-                  <th className="px-4 py-3 text-right">Buy Value</th>
-                  <th className="px-4 py-3 text-right">Sell Value</th>
-                  <th className="px-4 py-3 text-right">Gain/Loss</th>
-                  <th className="px-4 py-3 text-center">Type</th>
-                  <th className="px-4 py-3 text-center">Holding</th>
-                  <th className="px-4 py-3 text-center">Conf.</th>
+                  <th className="px-4 py-3 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('symbol')}>
+                    <div className="flex items-center gap-1">
+                      Stock <span className="text-xs">{getSortIcon('symbol')}</span>
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('buyDate')}>
+                    <div className="flex items-center gap-1">
+                      Buy Date <span className="text-xs">{getSortIcon('buyDate')}</span>
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('sellDate')}>
+                    <div className="flex items-center gap-1">
+                      Sell Date <span className="text-xs">{getSortIcon('sellDate')}</span>
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 text-right cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('quantity')}>
+                    <div className="flex items-center justify-end gap-1">
+                      Qty <span className="text-xs">{getSortIcon('quantity')}</span>
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 text-right cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('buyValue')}>
+                    <div className="flex items-center justify-end gap-1">
+                      Buy Value <span className="text-xs">{getSortIcon('buyValue')}</span>
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 text-right cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('sellValue')}>
+                    <div className="flex items-center justify-end gap-1">
+                      Sell Value <span className="text-xs">{getSortIcon('sellValue')}</span>
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 text-right cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('gain')}>
+                    <div className="flex items-center justify-end gap-1">
+                      Gain/Loss <span className="text-xs">{getSortIcon('gain')}</span>
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 text-right cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('plPercent')}>
+                    <div className="flex items-center justify-end gap-1">
+                      P/L % <span className="text-xs">{getSortIcon('plPercent')}</span>
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 text-center cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('type')}>
+                    <div className="flex items-center justify-center gap-1">
+                      Type <span className="text-xs">{getSortIcon('type')}</span>
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 text-center cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('holding')}>
+                    <div className="flex items-center justify-center gap-1">
+                      Holding <span className="text-xs">{getSortIcon('holding')}</span>
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 text-center cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('confidence')}>
+                    <div className="flex items-center justify-center gap-1">
+                      Conf. <span className="text-xs">{getSortIcon('confidence')}</span>
+                    </div>
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-700">
-                {currentAnalysis.transactions.map((t, i) => (
+                {getSortedTransactions().map((t, i) => {
+                  const plPercent = t.buyValue > 0 ? ((t.gain || 0) / t.buyValue) * 100 : 0;
+                  return (
                   <tr key={i} className="hover:bg-slate-700/50">
                     <td className="px-4 py-3">
                       {t.symbol ? (
@@ -1110,20 +1277,48 @@ export default function TaxAnalysis() {
                     <td className="px-4 py-3 text-slate-300">{formatDate(t.buyDate)}</td>
                     <td className="px-4 py-3 text-slate-300">{formatDate(t.sellDate)}</td>
                     <td className="px-4 py-3 text-right text-slate-300">{t.quantity}</td>
-                    <td className="px-4 py-3 text-right text-slate-300">{formatCurrency(t.buyValue)}</td>
-                    <td className="px-4 py-3 text-right text-slate-300">{formatCurrency(t.sellValue)}</td>
+                    <td className="px-4 py-3 text-right text-slate-300">
+                      <div className="flex flex-col items-end">
+                        <span>{t.currency === 'USD' ? '$' : '₹'}{formatCurrency(t.buyValue).replace('₹', '')}</span>
+                        {t.currency === 'USD' && t.buyValueINR && (
+                          <span className="text-xs text-slate-500">₹{formatCurrency(t.buyValueINR).replace('₹', '')}</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-right text-slate-300">
+                      <div className="flex flex-col items-end">
+                        <span>{t.currency === 'USD' ? '$' : '₹'}{formatCurrency(t.sellValue).replace('₹', '')}</span>
+                        {t.currency === 'USD' && t.sellValueINR && (
+                          <span className="text-xs text-slate-500">₹{formatCurrency(t.sellValueINR).replace('₹', '')}</span>
+                        )}
+                      </div>
+                    </td>
                     <td className={`px-4 py-3 text-right font-semibold ${(t.gain || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                       {formatCurrency(t.gain || 0)}
                     </td>
+                    <td className={`px-4 py-3 text-right font-semibold ${plPercent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {plPercent >= 0 ? '+' : ''}{plPercent.toFixed(2)}%
+                    </td>
                     <td className="px-4 py-3 text-center">
                       {t.classification ? (
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          t.classification.type === 'LTCG'
-                            ? 'bg-green-600/20 text-green-400'
-                            : 'bg-orange-600/20 text-orange-400'
-                        }`}>
-                          {t.classification.type}
-                        </span>
+                        <div className="flex flex-col gap-1 items-center">
+                          <span className={`px-2 py-1 rounded text-xs font-medium ${
+                            t.classification.type === 'LTCG'
+                              ? 'bg-green-600/20 text-green-400'
+                              : 'bg-orange-600/20 text-orange-400'
+                          }`}>
+                            {t.classification.type}
+                          </span>
+                          {t.classification.market && (
+                            <span className={`px-2 py-0.5 rounded text-xs ${
+                              t.classification.market === 'US'
+                                ? 'bg-blue-600/20 text-blue-400'
+                                : 'bg-slate-600/20 text-slate-400'
+                            }`}>
+                              {t.classification.market === 'US' ? '🇺🇸 US' : '🇮🇳 India'}
+                            </span>
+                          )}
+                        </div>
                       ) : (
                         <span className="text-slate-500">-</span>
                       )}
@@ -1137,7 +1332,8 @@ export default function TaxAnalysis() {
                       </span>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
