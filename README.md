@@ -83,6 +83,8 @@ A comprehensive web application for stock market analysis and investment trackin
 - ITR Schedule CG report generation
 - AIS (Annual Information Statement) CSV import
 - Tax-saving insights and recommendations
+- **NEW: P/L % column** - Profit/Loss percentage for each transaction
+- **NEW: Sortable columns** - Click any column header to sort (all 11 columns)
 - Export in Excel, CSV, and Markdown formats
 
 ### AI Financial Assistant
